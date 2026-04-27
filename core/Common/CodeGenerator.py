@@ -109,6 +109,12 @@ class CodeGenerator:
             'DefaultCustomer':    self._customer,
             # IncGen / user-code-block preservation: empty unless --inc-gen is wired
             'UserCodeDefinitions': {},
+            # Cross-module memory-partition tag. Some module templates (e.g.
+            # Det_Bswmd.arxml) interpolate it into MEMORY-SECTION short names
+            # like VAR_CLEARED_{{EcucPartition}}_UNSPECIFIED. V25.10 leaves it
+            # blank when no EcucPartition is wired — produces "VAR_CLEARED__"
+            # which matches the bundled reference Det_Bswmd.arxml.
+            'EcucPartition':       '',
         })
 
         files_list_text = env.get_template('FilesList.jinja').render(context=self.context).strip()
