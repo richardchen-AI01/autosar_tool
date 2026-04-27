@@ -51,7 +51,7 @@ if [ "$DAY" -ge 1 ]; then
     echo
     echo "--- D1: 项目骨架 ---"
     run_check "C1.1" "monorepo 树就位" \
-        bash -c 'test -d core/Common && test -d generator/modules/MemIf && test -d validator/modules/MemIf'
+        bash -c 'test -d core/Common && test -d generator/modules/MemIf && test -d validator/Bsw/MemIf'
     run_check "C1.2" "git 初始化" \
         bash -c 'git rev-parse --git-dir'
     run_check "C1.3" "reference 软链可用" \
@@ -76,8 +76,8 @@ from MemIf.src.MemIf import MemIf, MemIfGeneral
 m = MemIf()
 "
     run_check "C2.3" "MemIfRules 能 import" \
-        env PYTHONPATH=core:validator/modules python3 -c "
-from MemIf.MemIfRules import RuleBSWMemIfR23
+        env PYTHONPATH=core:validator python3 -c "
+from Bsw.MemIf.MemIfRules import RuleBSWMemIfR23
 RuleBSWMemIfR23()
 "
 fi

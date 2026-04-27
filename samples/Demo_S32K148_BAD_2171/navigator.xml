@@ -1,0 +1,48 @@
+<?xml version="1.1" encoding="ASCII"?>
+<cn.com.isoft.mal.model:BswBuilderModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:cn.com.isoft.mal.model="http:///cn/com/isoft/mal/model.ecore" name="BSW_Builder" projectName="Demo_S32K148_V2510_BSW_ConfigProject">
+  <ecuConfigurationModels pathValue="BSW_Builder\S32K148\ecuconfig.arxml" projectName="Demo_S32K148_V2510_BSW_ConfigProject">
+    <moduleKindModels kindName="COM">
+      <moduleModels moduleName="CanIf" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="CanNm" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="CanSM" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Com" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="ComM" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="EcuC" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Nm" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="PduR" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+    </moduleKindModels>
+    <moduleKindModels kindName="DIAG">
+      <moduleModels moduleName="CanTp" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Dcm" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Dem" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Det" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+    </moduleKindModels>
+    <moduleKindModels kindName="MCAL">
+      <moduleModels moduleName="Can" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Dio" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Fee" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Gpt" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Mcu" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Port" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Wdg" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+    </moduleKindModels>
+    <moduleKindModels kindName="MEM">
+      <moduleModels moduleName="MemIf" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="MemLayout" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="MemMap" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="NvM" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+    </moduleKindModels>
+    <moduleKindModels kindName="SYS">
+      <moduleModels moduleName="BswM" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Crc" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="EcuM" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Os" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="Xfrm" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="iRte" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+    </moduleKindModels>
+    <moduleKindModels kindName="WDG">
+      <moduleModels moduleName="WdgIf" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+      <moduleModels moduleName="WdgM" projectName="Demo_S32K148_V2510_BSW_ConfigProject" pathValue="BSW_Builder\S32K148\ecuconfig.arxml"/>
+    </moduleKindModels>
+  </ecuConfigurationModels>
+</cn.com.isoft.mal.model:BswBuilderModel>
