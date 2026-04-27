@@ -24,16 +24,17 @@
                 <artifactId>tycho-p2-director-plugin</artifactId>
                 <version>${tycho.version}</version>
                 <executions>
+                    <!--
+                      Materialize the per-platform launcher trees on disk
+                      under target/products/<productId>/<os>/<ws>/<arch>/.
+                      Then archive them into per-platform .zip artifacts in
+                      target/products/.
+                    -->
                     <execution>
                         <id>materialize-products</id>
+                        <phase>package</phase>
                         <goals>
                             <goal>materialize-products</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>archive-products</id>
-                        <goals>
-                            <goal>archive-products</goal>
                         </goals>
                     </execution>
                 </executions>

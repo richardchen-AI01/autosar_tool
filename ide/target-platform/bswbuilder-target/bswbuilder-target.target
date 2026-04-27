@@ -33,6 +33,10 @@
 
             <!-- Forms toolkit (will be useful for the ECUC parameter editor later) -->
             <unit id="org.eclipse.ui.forms" version="0.0.0"/>
+
+            <!-- e4 workbench addons (CommandProcessingAddon and friends) — needed
+                 even with an e3-style IApplication so the modern RCP boots cleanly. -->
+            <unit id="org.eclipse.e4.ui.workbench.addons.swt" version="0.0.0"/>
         </location>
     </locations>
 </target>

@@ -5,6 +5,27 @@
 
 ## [Unreleased] — D2 EOD (2026-04-28)
 
+### IDE 半边 — D2 晚追加（Eclipse RCP walking skeleton）
+
+- 新增 `ide/` 完整 Tycho 4 + Java 17 多模块工程：
+  - `ide/pom.xml` Tycho 父 pom
+  - `ide/target-platform/bswbuilder-target/` Eclipse 2024-09 target
+  - `ide/builder_core/cn.com.myorg.bswbuilder.common/` RCP shell
+    （Application + WorkbenchAdvisor + ActionBarAdvisor + Perspective）
+  - `ide/builder_core/cn.com.myorg.bswbuilder.ui/`
+    Generate / Validate handler + ModuleNavigator view + BswgenLauncher
+  - `ide/modules/cn.com.myorg.bswbuilder.modules.memif/` 占位
+  - `ide/feature/cn.com.myorg.bswbuilder.feature/` 统一 feature
+  - `ide/product/cn.com.myorg.bswbuilder.product/` 可启动 RCP 产品
+- **唯一 IDE↔Python 桥**：`BswgenLauncher.run(Tool, args, console, monitor)`
+  - 自动定位 repo 根（向上找 `generator/__main__.py + core/Common/`）
+  - 优先用 `build/dist/bswgen[.exe]`，否则 fallback `python3 -m generator`
+  - `PYTHONPATH=core` 注入子进程
+  - 输出流式写入 BSW Builder 共享 console
+- 没有 ARTOP / Sphinx 依赖，不需要 licensed jar
+- Java 25 上跑 Tycho 4 需要把 `jdk.xml.maxGeneralEntitySizeLimit` 放开
+  （p2 元数据超 100k 字符），已在 `ide/.mvn/jvm.config` 处理
+
 ### M3.1 — D2 下午追加（提前 9 天）
 
 - **Det 端到端跑通** —— 5/5 文件全生成，`Det_Bswmd.arxml` byte-equal vs

@@ -9,13 +9,36 @@ for the actual code generation and validation.
 | Layer | Status |
 |---|---|
 | Tycho parent + target platform | ✅ `ide/pom.xml`, `ide/target-platform/bswbuilder-target/bswbuilder-target.target` |
+| `mvn -B clean verify` | ✅ all 7 reactor modules SUCCESS, 4 launcher zips produced |
+| Per-platform RCP launcher materialized | ✅ macOS arm64/x86_64, Win x86_64, Linux x86_64 → `target/products/.../Eclipse.app/` (mac) |
 | RCP application + perspective | ✅ `cn.com.myorg.bswbuilder.common` |
 | UI: navigator + Generate/Validate handlers | ✅ `cn.com.myorg.bswbuilder.ui` |
 | MemIf module placeholder | ✅ `cn.com.myorg.bswbuilder.modules.memif` |
 | Feature + Product | ✅ `cn.com.myorg.bswbuilder.feature` + `cn.com.myorg.bswbuilder.product` |
+| Eclipse 4 IEventBroker DI on first boot | ⚠️ logs `CommandProcessingAddon`/`ContextProcessingAddon` injection failures — see "Known issues" below |
 | ARTOP / Sphinx integration | 🚧 deferred to M3.3+ (need licensed jars) |
 | ECUC form editor | 🚧 deferred (M3.3+) |
 | Validate → ProblemView | 🚧 deferred (M3.3+) |
+
+### Known issues / followups
+
+1. **e4 IEventBroker injection on first boot.** Launching produces 4-6
+   `!ENTRY org.eclipse.e4.ui.workbench 4` log entries about
+   `CommandProcessingAddon`, `ContextProcessingAddon`, `CleanupAddon`,
+   `MinMaxAddon` failing dependency injection (`no actual value was found
+   for the argument "IEventBroker"`). The application still launches but
+   the workbench is not fully functional. Probable cause: an e3-style
+   `IApplication` (our `cn.com.myorg.bswbuilder.common.app.Application`)
+   on a 2024-09 RCP needs the e4 service bundles started in a different
+   order than Tycho's default `bundles.info` produces. Two ways forward:
+   (a) migrate `Application` to e4's `LifeCycle` model, or (b) add a
+   `config.ini` snippet that explicitly seeds `osgi.bundles=` with the
+   right start levels. Tracking in `docs/PLAN.md` M3.3 followups.
+2. **`-version` flag with our application.** Passing `-version` to
+   `bswbuilder` does not short-circuit early like vanilla Eclipse — our
+   `Application.start` runs `PlatformUI.createAndRunWorkbench` regardless,
+   so the launcher hangs on a headless probe. Use a dedicated
+   `IApplication` for headless smoke tests if needed.
 
 The walking skeleton **proves the IDE ↔ Python bridge** —
 `BswgenLauncher.run(Tool, …)` is the single contact point between the JVM
