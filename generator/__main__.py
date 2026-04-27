@@ -77,12 +77,14 @@ def main(argv: list[str] | None = None) -> int:
         ctx = None
 
     # 3.5. Detect "module not configured in workspace" cleanly so we don't
-    # cascade into a confusing template UndefinedError. Convention: the module's
-    # primary <Module>General container is the canonical "is this module
-    # actually present" probe.
-    domain = getattr(ctx, module_name, None) if ctx is not None else None
-    primary_general = getattr(domain, f'{module_name}General', None) if domain else None
-    if ctx is None or primary_general is None:
+    # cascade into a confusing template UndefinedError. Probe the loader
+    # output: if no ECUC-MODULE-CONFIGURATION-VALUES element with shortName
+    # == <module_name> was found, the workspace simply doesn't include this
+    # BSW. ctx-None fallback covers cases where construction itself blew up.
+    has_module_config = any(
+        getattr(m, 'shortName', None) == module_name for m in modules
+    )
+    if ctx is None or not has_module_config:
         print(f'[INFO] No ECUC configuration for {module_name} in workspace '
               f'{project_path} — nothing to generate.')
         print('**** Generator finished ****')

@@ -14,8 +14,76 @@ D1 STATUS: walking-skeleton stub. M2 will fill the real EMF model walk.
 from typing import Any, List, Optional
 
 
+class _RefTarget(str):
+    """A resolved (or path-only) ECUC reference target.
+
+    Subclass of ``str`` so existing callers that compare/print/format paths
+    keep working. Adds V25.10 BswBase wrapper API on top:
+
+      - ``.shortName_`` / ``.shortName``: leaf of the path
+      - ``.ref_type_.shortName_``: DEST element type (e.g. ``ECUC-CONTAINER-VALUE``)
+      - ``.getAttrValue(BP)`` / ``.getSubContainer(name)`` / ``.getParentContainer()``:
+        proxy to the resolved target container looked up in
+        ``Common.arxmlparse.artop.by_path``.
+
+    Resolution is lazy + cached so we don't pay the dict lookup unless a
+    method actually wants the target object. If by_path doesn't know the path
+    (e.g. workspace doesn't include the referenced module), proxy methods
+    return None / [] gracefully instead of raising — V25.10 closed-source
+    BswBase has the same forgiving shape.
+    """
+    __slots__ = ('_dest', '_resolved_cache', '_resolved_done')
+
+    def __new__(cls, path: str, dest: str = ''):
+        obj = super().__new__(cls, path)
+        obj._dest = dest
+        obj._resolved_cache = None
+        obj._resolved_done = False
+        return obj
+
+    def _resolve(self) -> Any:
+        if not self._resolved_done:
+            from Common.arxmlparse import artop
+            self._resolved_cache = artop.by_path.get(str(self))
+            self._resolved_done = True
+        return self._resolved_cache
+
+    @property
+    def shortName_(self) -> str:
+        s = str(self)
+        return s.rsplit('/', 1)[-1] if '/' in s else s
+
+    @property
+    def shortName(self) -> str:
+        return self.shortName_
+
+    @property
+    def ref_type_(self) -> Any:
+        d = self._dest
+        return type('_RefDest', (), {'shortName_': d, 'shortName': d})()
+
+    def getAttrValue(self, key: Any) -> Any:
+        target = self._resolve()
+        return target.getAttrValue(key) if target is not None else None
+
+    def getSubContainer(self, name: str) -> List[Any]:
+        target = self._resolve()
+        if target is None:
+            return []
+        return target.getSubContainer(name)
+
+    def getParentContainer(self) -> Optional[Any]:
+        target = self._resolve()
+        if target is None:
+            return None
+        # Containers expose eContainer() / parent_; modules don't have a parent.
+        if hasattr(target, 'eContainer'):
+            return target.eContainer()
+        return getattr(target, 'parent_', None)
+
+
 class _RefList(list):
-    """List of ECUC reference target paths with V25.10-wrapper accessors.
+    """List of ``_RefTarget`` items with V25.10 single-ref wrapper accessors.
 
     V25.10's BswBase.getAttrValue returned (a) a list of wrapper objects for
     multi-cardinality refs, (b) a single wrapper object exposing
@@ -23,30 +91,49 @@ class _RefList(list):
     refs. Two distinct return shapes was awkward; we collapse both into one
     type:
 
-      - Acts as a regular ``list[str]`` (iteration, indexing, ``len``, truth).
-        This preserves call sites that loop ``for ref in getAttrValue(...)``.
-      - Also exposes ``.shortName_`` / ``.shortName`` returning the leaf
-        (after the last ``/``) of the *first* element — what V25.10 callsites
-        like ``BswImplementation.shortName_`` expect for singleton refs.
-        Empty list yields ``''`` so ``if obj and obj.shortName_ == 'X'``
-        short-circuits cleanly.
-
-    No memory-cost / API surface penalty: empty refs were already lists
-    under the prior heuristic.
+      - Acts as a regular list (iteration, indexing, ``len``, truth) of
+        ``_RefTarget`` items — string-comparable AND wrapper-API-rich.
+        Preserves call sites that loop ``for ref in getAttrValue(...)``.
+      - Also exposes ``.shortName_`` / ``.shortName`` / ``.ref_type_`` /
+        ``.getAttrValue(...)`` / ``.getParentContainer()`` proxying to the
+        first element — what V25.10 callsites like
+        ``BswImplementation.shortName_`` and
+        ``temp.getParentContainer().shortName_`` expect for singleton refs.
+        Empty list yields ``''`` / ``None`` / ``[]`` so
+        ``if obj and obj.shortName_ == 'X'`` short-circuits cleanly.
     """
 
     @property
+    def _first(self) -> Optional[_RefTarget]:
+        return self[0] if self else None
+
+    @property
     def shortName_(self) -> str:
-        if not self:
-            return ''
-        first = self[0]
-        if not isinstance(first, str):
-            return getattr(first, 'shortName_', '') or getattr(first, 'shortName', '')
-        return first.rsplit('/', 1)[-1] if '/' in first else first
+        f = self._first
+        return f.shortName_ if f is not None else ''
 
     @property
     def shortName(self) -> str:
         return self.shortName_
+
+    @property
+    def ref_type_(self) -> Any:
+        f = self._first
+        if f is not None:
+            return f.ref_type_
+        return type('_RefDest', (), {'shortName_': '', 'shortName': ''})()
+
+    def getAttrValue(self, key: Any) -> Any:
+        f = self._first
+        return f.getAttrValue(key) if f is not None else None
+
+    def getSubContainer(self, name: str) -> List[Any]:
+        f = self._first
+        return f.getSubContainer(name) if f is not None else []
+
+    def getParentContainer(self) -> Optional[Any]:
+        f = self._first
+        return f.getParentContainer() if f is not None else None
 
 
 class BswBase:
@@ -103,12 +190,17 @@ class BswBase:
 
         matches: list = []
         any_is_reference = False
+        ref_dest = ''
         for pv in pvs:
             d = getattr(pv, 'ref_definition_', None) or getattr(pv, 'definition_', None)
             if d is not None and getattr(d, 'shortName', None) == short_name:
-                matches.append(getattr(pv, 'value_', None) or getattr(pv, 'value', None))
+                value = getattr(pv, 'value_', None) or getattr(pv, 'value', None)
                 if getattr(pv, 'is_reference', False):
                     any_is_reference = True
+                    ref_dest = getattr(d, 'dest', '') or ref_dest
+                    matches.append(_RefTarget(value or '', ref_dest))
+                else:
+                    matches.append(value)
 
         if any_is_reference:
             return _RefList(matches)  # supports iteration AND .shortName_

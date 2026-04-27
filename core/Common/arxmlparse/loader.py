@@ -77,7 +77,8 @@ class _Container:
     """ECUC-CONTAINER-VALUE."""
     __slots__ = ('shortName', 'shortName_', 'definition_', 'ref_definition_',
                  'parameterValues_EcucParameterValue',
-                 'subContainers_EcucContainerValue', 'parent_')
+                 'subContainers_EcucContainerValue', 'parent_',
+                 'instance_path')
 
     def __init__(self, short_name: str, def_path: str, dest: str) -> None:
         self.shortName = short_name
@@ -88,6 +89,8 @@ class _Container:
         self.parameterValues_EcucParameterValue: List[_ParameterValue] = []
         self.subContainers_EcucContainerValue: List['_Container'] = []
         self.parent_: Optional['_Container'] = None
+        # Set during load_project once the parent's instance_path is known.
+        self.instance_path: str = ''
 
     def eContainer(self) -> Optional['_Container']:
         return self.parent_
@@ -114,13 +117,17 @@ class _Container:
 
 class _Module:
     """ECUC-MODULE-CONFIGURATION-VALUES."""
-    __slots__ = ('shortName', 'shortName_', 'definition_', 'containers')
+    __slots__ = ('shortName', 'shortName_', 'definition_', 'containers',
+                 'instance_path')
 
     def __init__(self, short_name: str, def_path: str) -> None:
         self.shortName = short_name
         self.shortName_ = short_name
         self.definition_ = _DefRef(def_path, 'ECUC-MODULE-DEF')
         self.containers: List[_Container] = []
+        # Set by load_project once the enclosing AR-PACKAGE short-name is known.
+        # Format: '/<package_short_name>/<module_short_name>'.
+        self.instance_path: str = ''
 
 
 # -------------------------------------------------------------- parsing
@@ -176,6 +183,9 @@ def _parse_module(elem: ET.Element) -> _Module:
     def_ref_elem = elem.find(f'{NS}DEFINITION-REF')
     def_path = (def_ref_elem.text or '').strip() if def_ref_elem is not None else ''
     mod = _Module(short_name, def_path)
+    # Stash instance path for the by_path index. Filled in by load_project once
+    # the enclosing AR-PACKAGE short-name is known.
+    mod.instance_path = ''  # type: ignore[attr-defined]
     cont_elem = elem.find(f'{NS}CONTAINERS')
     if cont_elem is not None:
         for c in cont_elem.findall(f'{NS}ECUC-CONTAINER-VALUE'):
@@ -205,17 +215,49 @@ def load_project(project_path: str | Path) -> List[_Module]:
         except ET.ParseError as e:
             print(f'[WARN] {arxml_path}: parse error {e}')
             continue
-        for mod_elem in tree.iter(f'{NS}ECUC-MODULE-CONFIGURATION-VALUES'):
-            mod = _parse_module(mod_elem)
-            modules.append(mod)
-            # register each container at its DEFINITION-REF path
-            for c in mod.containers:
-                _register_container_recursive(c)
-            # also register at module level
-            artop.def_elements.setdefault(mod.definition_.fullPath, []).append(mod)
-            # populate all_objects too (validator uses this)
-            artop.all_objects.setdefault('EcucModuleConfigurationValues', []).append(mod)
+        # Walk AR-PACKAGE elements so we can record the enclosing package
+        # short-name. ECUC-REFERENCE-VALUE VALUE-REFs use instance paths like
+        # '/<package_sn>/<module_sn>/<container_sn>/...', so we need this to
+        # build the by_path index.
+        for pkg_elem in tree.iter(f'{NS}AR-PACKAGE'):
+            pkg_sn = pkg_elem.findtext(f'{NS}SHORT-NAME', default='').strip()
+            if not pkg_sn:
+                continue
+            elements_elem = pkg_elem.find(f'{NS}ELEMENTS')
+            if elements_elem is None:
+                continue
+            for mod_elem in elements_elem.findall(
+                    f'{NS}ECUC-MODULE-CONFIGURATION-VALUES'):
+                mod = _parse_module(mod_elem)
+                mod.instance_path = f'/{pkg_sn}/{mod.shortName}'
+                modules.append(mod)
+                artop.by_path[mod.instance_path] = mod
+                for c in mod.containers:
+                    _populate_instance_paths(c, mod.instance_path, module=mod)
+                    _register_container_recursive(c)
+                # legacy def-path index too
+                artop.def_elements.setdefault(
+                    mod.definition_.fullPath, []).append(mod)
+                artop.all_objects.setdefault(
+                    'EcucModuleConfigurationValues', []).append(mod)
     return modules
+
+
+def _populate_instance_paths(c: _Container, parent_path: str,
+                             module: Optional[_Module] = None) -> None:
+    """Walk container tree, set instance_path = parent_path + '/' + shortName.
+
+    Also patches top-level containers' ``parent_`` to point at their owning
+    Module, mirroring EMF's eContainer() semantics — so V25.10 callsites like
+    ``temp.getParentContainer().shortName_ == 'Fee_62'`` can identify the
+    enclosing module by its short-name.
+    """
+    c.instance_path = f'{parent_path}/{c.shortName}'
+    artop.by_path[c.instance_path] = c
+    if module is not None and c.parent_ is None:
+        c.parent_ = module  # type: ignore[assignment]
+    for sub in c.subContainers_EcucContainerValue:
+        _populate_instance_paths(sub, c.instance_path, module=None)
 
 
 def _register_container_recursive(c: _Container) -> None:

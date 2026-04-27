@@ -99,22 +99,45 @@ def test_nvm_cfg_h_renders():
         f'expected NvMConf_NvMBlockDescriptor_ macros in NvM_Cfg.h:\n{h[:600]}'
 
 
-@pytest.mark.xfail(reason='NvM ref-target resolution not implemented yet '
-                          '(needs single-cardinality Ref → target container '
-                          'lookup). Tracked in docs/sprint_logs/D2.md.')
-def test_nvm_lcfg_c_renders_TODO():
-    """NvM_Lcfg.c needs `temp.getParentContainer().shortName_` style access on
-    a Ref-resolved target container. Pinned as xfail until we land that.
-    """
-    out = Path('/tmp/test_nvm_partial_lcfg')
+def test_nvm_full_pipeline_renders_all_four_files():
+    """End-to-end NvM rendering — all four files land. Requires the ref-target
+    resolution layer (artop.by_path + _RefTarget.getParentContainer/etc.)."""
+    out = Path('/tmp/test_nvm_full')
     if out.exists():
         shutil.rmtree(out)
     env = os.environ.copy()
     pp = env.get('PYTHONPATH', '')
     env['PYTHONPATH'] = str(CORE) + (':' + pp if pp else '')
-    subprocess.run(
+    p = subprocess.run(
         [sys.executable, '-m', 'generator', '-g', 'NvM',
          '-i', str(SAMPLE), '-o', str(out)],
         capture_output=True, text=True, timeout=60, env=env, cwd=str(ROOT),
     )
-    assert (out / 'NvM_Lcfg.c').is_file()
+    assert p.returncode == 0, f'NvM generation failed:\n{p.stdout}\n{p.stderr}'
+    for name in ('NvM_Cfg.h', 'NvM_Lcfg.h', 'NvM_Lcfg.c', 'NvM_Bswmd.arxml'):
+        assert (out / name).is_file(), \
+            f'NvM output {name} missing.\nstdout:\n{p.stdout}'
+
+
+def test_nvm_bswmd_byte_equal_to_reference():
+    """NvM_Bswmd.arxml — only NvM file with bundled V25.10 reference.
+    Filtered diff = 0 confirms ref-target resolution produces correct values."""
+    import re
+    out = Path('/tmp/test_nvm_bswmd')
+    if out.exists():
+        shutil.rmtree(out)
+    env = os.environ.copy()
+    pp = env.get('PYTHONPATH', '')
+    env['PYTHONPATH'] = str(CORE) + (':' + pp if pp else '')
+    p = subprocess.run(
+        [sys.executable, '-m', 'generator', '-g', 'NvM',
+         '-i', str(SAMPLE), '-o', str(out)],
+        capture_output=True, text=True, timeout=60, env=env, cwd=str(ROOT),
+    )
+    assert p.returncode == 0, p.stdout + p.stderr
+    ours = (out / 'NvM_Bswmd.arxml').read_text()
+    ref = (SAMPLE / 'bswmds' / 'NvM_Bswmd.arxml').read_text()
+    flt = lambda t: '\n'.join(  # noqa: E731
+        l for l in t.splitlines() if not re.search(r'@(date|toolVersion)', l)
+    )
+    assert flt(ours) == flt(ref), 'NvM_Bswmd.arxml differs from V25.10 reference'
