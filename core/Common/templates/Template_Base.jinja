@@ -1,0 +1,63 @@
+{% set DefaultAUTOSARVersion = "R19-11" %}
+
+
+{% macro Header_Description(Description="",AUTOSARVersion="",file = ModuleFile, GenerateTime=generateTime,toolVersion=DefaultToolVersion, MCU=DefaultMcu,license=DefaultLicense, customer =DefaultCustomer)%}
+/**
+ * COPYRIGHT
+ * ---------------------------------------------------------------------------------------------------------------------
+ * Copyright (c) iSOFT INFRASTRUCTURE SOFTWARE CO., LTD. This software is proprietary to
+ * iSOFT INFRASTRUCTURE SOFTWARE CO., LTD., and all rights are reserved by iSOFT INFRASTRUCTURE SOFTWARE CO., LTD.
+ * Without the express written permission of the company, no organization or individual may copy, install, trial,
+ * distribute, or reverse engineer this software. For terms of use and further details, please refer to the End User
+ * License Agreement (EULA) or contact us business@i-soft.com.cn for more assistance.
+ *
+ * This file contains code from {{customer}}, which is licensed under the LGPL-2.1. However, due to a special exception,
+ * you are not required to comply with the provisions of section 6a of LGPL-2.1. Specifically, you may distribute
+ * your software, including this file, under terms of your choice, including proprietary licenses, without needing to
+ * provide the source code or object code as specified in section 6a. For more details, please refer to the project's
+ * LICENSE and EXCEPTION files and the specific exception statement.
+ * ---------------------------------------------------------------------------------------------------------------------
+ * FILE DESCRIPTION
+ * ---------------------------------------------------------------------------------------------------------------------
+ * @MCU         : {{MCU}}
+ * @file        : {{file}}
+ * @licence     : {{license}}
+ * @date        : {{GenerateTime}}
+ * @customer    : {{customer}}
+ * @description : {{Description}}
+ * @generator   : AUTOSAR classic Platform {{AUTOSARVersion}}
+ * @toolVersion : {{toolVersion}}
+ **********************************************************************************************************************/
+{%- endmacro %}{# Header_Description #}
+
+{% macro UserCode_Annotation(id, indent_level, code="", isdef= 1) %}
+/** DO NOT CHANGE THIS COMMENT!
+{{ " " * indent_level }}* <USERBLOCK {{ id }}>
+{{ " " * indent_level }}*/
+{% if code != "" %}
+{{ " " * indent_level*isdef }}{{ code }}
+{% endif %}
+{{ " " * indent_level }}/** DO NOT CHANGE THIS COMMENT!
+{{ " " * indent_level }}* </USERBLOCK>
+{{ " " * indent_level }}*/
+{%- endmacro %}
+
+{% macro IncGen(id, indent_level, UserCodeDefinitions, code="") %}
+{% if UserCodeDefinitions|length != 0  and id in UserCodeDefinitions and UserCodeDefinitions[id] != ""%}
+{{ UserCode_Annotation(id, indent_level, UserCodeDefinitions[id], 0) }}
+{%- else %}
+{{ UserCode_Annotation(id, indent_level, code) }}
+{%- endif %}
+{% endmacro %}
+
+{% macro variant_start(v_name) %}
+{% if v_name != '' %}
+/* # {{ v_name }} start */
+{% endif %}
+{% endmacro %}
+
+{% macro variant_stop(v_name) %}
+{% if v_name != '' %}
+/* # {{ v_name }} stop */
+{% endif %}
+{% endmacro %}

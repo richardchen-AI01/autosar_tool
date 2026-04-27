@@ -53,3 +53,8 @@ class PduInfo:
     def __init__(self) -> None:
         self.tx_pdus: list = []
         self.rx_pdus: list = []
+
+
+# V25.10's <Module>Context.py imports `ModuleContextBase` from this module
+# (not `Context`). Provide as alias for source-level compatibility.
+ModuleContextBase = Context

@@ -34,6 +34,10 @@ class CodeGenerator:
         self.module: Optional[str] = None
         self._template_dirs: list[Path] = []
         self._output_path: Optional[Path] = None
+        # Defaults match V25.10 reference output (see samples/.../config/MemIf_Cfg.h header)
+        self._tool_version: str = 'for AutosarTool v0.1'
+        self._mcu: str = 'S32K148'
+        self._customer: str = 'iSoft'
 
     # ------------------------------------------------------------ public API
 
@@ -65,14 +69,19 @@ class CodeGenerator:
         if not files_list_path.exists():
             raise FileNotFoundError(f'FilesList.jinja not found at {files_list_path}')
 
-        # Render FilesList.jinja with current context to know which files to emit
+        # Render FilesList.jinja with current context to know which files to emit.
+        # Search path: module's own templates/ + Common's shared templates/.
         from jinja2 import Environment, FileSystemLoader, StrictUndefined
+        common_templates = Path(__file__).resolve().parent / 'templates'
+        search_dirs = [str(templates_dir)]
+        if common_templates.is_dir():
+            search_dirs.append(str(common_templates))
         env = Environment(
-            loader=FileSystemLoader(str(templates_dir)),
+            loader=FileSystemLoader(search_dirs),
             undefined=StrictUndefined,
             keep_trailing_newline=True,
-            trim_blocks=False,
-            lstrip_blocks=False,
+            trim_blocks=True,        # eat newline after {% ... %} blocks
+            lstrip_blocks=True,      # strip leading whitespace before {% %}
         )
         # Register custom filters from J2Filters
         try:
@@ -80,6 +89,16 @@ class CodeGenerator:
             register_filters(env)
         except ImportError:
             pass
+        # Inject Template_Base.jinja's expected globals (mirrors V25.10 defaults)
+        import datetime as _dt
+        env.globals.update({
+            'ModuleFile':         '',                            # set per-file in render below
+            'generateTime':       _dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'DefaultToolVersion': self._tool_version,
+            'DefaultMcu':         self._mcu,
+            'DefaultLicense':     '',
+            'DefaultCustomer':    self._customer,
+        })
 
         files_list_text = env.get_template('FilesList.jinja').render(context=self.context).strip()
 
@@ -99,6 +118,7 @@ class CodeGenerator:
                 tpl_name = tpl_name[1:]
             t_start = time.time()
             print(f'[INFO] [{self.module}]: Start to Generate file:\'{out_name}\'')
+            env.globals['ModuleFile'] = out_name
             content = env.get_template(tpl_name).render(context=self.context)
             (out_dir / out_name).write_text(content, encoding='utf-8')
             print(f'[INFO] File:\'{out_name}\' is generated, time consumed: {time.time()-t_start:.3f}(s)')
