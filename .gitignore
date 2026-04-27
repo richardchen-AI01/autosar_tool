@@ -1,0 +1,81 @@
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+
+# IDE / editors
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.eggs/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.pdb
+
+# PyInstaller
+build/
+dist/
+*.manifest
+# spec 文件本身要追（手写的）；spec.bak 不追
+*.spec.bak
+
+# Java / Maven / Tycho
+target/
+*.class
+*.jar.sig
+.classpath
+.project
+.settings/
+bin/
+
+# Eclipse RCP runtime / Equinox cache (运行期产物，禁追)
+.metadata/
+configuration/org.eclipse.osgi/
+configuration/org.eclipse.equinox.app/
+configuration/.bak_*/
+workspace_test/
+
+# 工程里如果不小心生成了配置文件
+*.lock
+*.log
+*.tmp
+
+# 软链 reference (指向 V25.10 反编结果, 不入库)
+reference/
+
+# 二进制制品
+dist/
+*.zip
+*.tar.gz
+*.7z
+
+# 大文件 (避免误提交 V25.10 拷贝)
+*.exe
+*.pyd
+*.dll
+*.so
+*.dylib
+
+# 屏幕截图（除非主动管）
+*.png
+*.jpg
+!docs/**/*.png
+!docs/**/*.jpg
