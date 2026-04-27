@@ -1,0 +1,22 @@
+[
+    {
+        "active": true,
+        "key": "Rule_BSW_MemIf_TCPP_2171",
+        "description": "MemIfNumberOfDevices为1或2时，需要检查NvM/NvMBlockDescriptor/NvMTargetBlockReference，如果存在NvMEaRef和NvMFeeRef两种都不存在时报错",
+        "level": 4,
+        "message": "NvMTargetBlockReference not match lower modle. MemIfNumberOfDevices is ({0}), but have no NvMTargetBlockReference types.",
+        "triggers": ["/AUTOSAR/MemIf/MemIfGeneral/MemIfNumberOfDevices","/AUTOSAR/NvM/NvMBlockDescriptor/NvMTargetBlockReference/NvMFeeRef","/AUTOSAR/NvM/NvMBlockDescriptor/NvMTargetBlockReference/NvMEaRef"],
+        "solve": "修改MemIfNumberOfDevices为0",
+        "memo": ""
+    },
+    {
+        "active": true,
+        "key": "Rule_BSW_MemIf_TCPP_2170",
+        "description": "MemIfNumberOfDevices为1时，需要检查NvM/NvMBlockDescriptor/NvMTargetBlockReference，如果存在NvMEaRef和NvMFeeRef两种时报错",
+        "level": 4,
+        "message": "NvMTargetBlockReference not match lower modle. MemIfNumberOfDevices is ({0}), but have two NvMTargetBlockReference types.",
+        "triggers": ["/AUTOSAR/MemIf/MemIfGeneral/MemIfNumberOfDevices","/AUTOSAR/NvM/NvMBlockDescriptor/NvMTargetBlockReference/NvMFeeRef","/AUTOSAR/NvM/NvMBlockDescriptor/NvMTargetBlockReference/NvMEaRef"],
+        "solve": "修改MemIfNumberOfDevices为2",
+        "memo": ""
+    }
+]

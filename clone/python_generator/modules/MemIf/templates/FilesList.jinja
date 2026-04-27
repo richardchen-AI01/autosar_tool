@@ -1,0 +1,9 @@
+{% set MemIf = context.MemIfContext.MemIf %}
+{% set MemIfGeneral = MemIf.MemIfGeneral %}
+
+{% if MemIfGeneral.MemIfNumberOfDevices > 1 or MemIfGeneral.MemIfDevErrorDetect == 'STD_ON' %}
+MemIf_Cfg.c@#@MemIf_Cfg_c.jinja@#@None
+{% endif %}
+MemIf_Cfg.h@#@/MemIf_Cfg_h.jinja@#@None
+
+MemIf_Bswmd.arxml@#@MemIf_Bswmd_arxml.jinja@#@None

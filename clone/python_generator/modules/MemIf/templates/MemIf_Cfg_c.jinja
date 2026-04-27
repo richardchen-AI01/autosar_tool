@@ -1,0 +1,49 @@
+{% import 'Template_Base.jinja' as Template_Base with context %}
+{% set MemIf = context.MemIfContext.MemIf %}
+{{ Template_Base.Header_Description("Pre-compile time definitions of MemIf","R23-11") }}
+
+/* =================================================== inclusions =================================================== */
+#include "MemIf_Cfg.h"
+{% if MemIf.checkFee %}
+#include "Fee.h"
+{% endif %}
+{% if MemIf.checkEa %}
+#include "Ea.h"
+{% endif %}
+
+/* ============================================ external data definitions =========================================== */
+#define MEMIF_START_SEC_CONFIG_DATA_PTR
+#include "MemIf_MemMap.h"
+/* PRQA S 1531 ++ */ /* VL_MemIf_1531 */
+const MemIf_MemFPtrType MemIf_MemFPtr[MEMIF_NUMBER_OF_DEVICES] =
+{
+{% if MemIf.checkFee %}
+	/*<MEMIF_FEE_API/>*/
+	{
+		/* Fee */
+		Fee_Read,
+		Fee_Write,
+		Fee_EraseImmediateBlock,
+		Fee_InvalidateBlock,
+		Fee_Cancel,
+		Fee_GetStatus,
+		Fee_GetJobResult	
+	},
+{% endif %}
+{% if MemIf.checkEa %}
+	/*<MEMIF_EA_API/>*/
+	{
+		/* Ea */
+		Ea_Read,
+		Ea_Write,
+		Ea_EraseImmediateBlock,
+		Ea_InvalidateBlock,
+		Ea_Cancel,
+		Ea_GetStatus,
+		Ea_GetJobResult	
+	},
+{% endif %}
+};
+/* PRQA S 1531 -- */
+#define MEMIF_STOP_SEC_CONFIG_DATA_PTR
+#include "MemIf_MemMap.h"
