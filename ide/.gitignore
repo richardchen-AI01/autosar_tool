@@ -1,0 +1,11 @@
+# Tycho / Maven build output
+target/
+
+# Eclipse PDE / RCP launch metadata (left behind when developing in Eclipse IDE)
+.project
+.classpath
+.settings/
+.factorypath
+bin/
+.polyglot.*
+*.bak
