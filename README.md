@@ -7,9 +7,9 @@
 
 | 文档 | 用途 |
 |---|---|
-| **[PLAN.md](PLAN.md)** | v0.1 完整方案：14 天逐日排期、4 个里程碑、资产盘点、架构、风险登记 |
-| **[MILESTONES.md](MILESTONES.md)** | v0.1 可执行里程碑清单：每条带具体命令 + 期望输出 + 通过/不通过条件 |
-| **[PLAN_v0.2.md](PLAN_v0.2.md)** | v0.2 sprint：UI 重设计为 EB tresos 风格 + 80 模块全覆盖（10-12 天，v0.1 release 后启动）|
+| **[PLAN.md](docs/PLAN.md)** | v0.1 完整方案：14 天逐日排期、4 个里程碑、资产盘点、架构、风险登记 |
+| **[MILESTONES.md](docs/MILESTONES.md)** | v0.1 可执行里程碑清单：每条带具体命令 + 期望输出 + 通过/不通过条件 |
+| **[PLAN_v0.2.md](docs/PLAN_v0.2.md)** | v0.2 sprint：UI 重设计为 EB tresos 风格 + 80 模块全覆盖（10-12 天，v0.1 release 后启动）|
 
 ## 快速一览
 

@@ -5,7 +5,7 @@
 >   1. **UI 重设计** 为 EB tresos 风格（三栏 + 分类导航 + 面包屑 + Properties + Validation）
 >   2. **模块覆盖** 从 30 扩到 80（V25.10 全部 BSW 模块）
 >
-> 入口看板：[README.md](README.md) · 主方案：[PLAN.md](PLAN.md) · v0.1 里程碑：[MILESTONES.md](MILESTONES.md)
+> 入口看板：[README.md](../README.md) · 主方案：[PLAN.md](PLAN.md) · v0.1 里程碑：[MILESTONES.md](MILESTONES.md)
 
 ---
 

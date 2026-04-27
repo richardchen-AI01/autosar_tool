@@ -493,4 +493,4 @@ D7、D11、D14 这三个 milestone day 走完所有 M*.* 检查。
 ## 关联文档
 
 - [PLAN.md](PLAN.md) — 完整方案
-- [README.md](README.md) — 项目入口
+- [README.md](../README.md) — 项目入口
