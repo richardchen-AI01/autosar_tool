@@ -14,6 +14,41 @@ D1 STATUS: walking-skeleton stub. M2 will fill the real EMF model walk.
 from typing import Any, List, Optional
 
 
+class _RefList(list):
+    """List of ECUC reference target paths with V25.10-wrapper accessors.
+
+    V25.10's BswBase.getAttrValue returned (a) a list of wrapper objects for
+    multi-cardinality refs, (b) a single wrapper object exposing
+    ``.shortName_`` / ``.shortName`` / ``.ref_type_`` for single-cardinality
+    refs. Two distinct return shapes was awkward; we collapse both into one
+    type:
+
+      - Acts as a regular ``list[str]`` (iteration, indexing, ``len``, truth).
+        This preserves call sites that loop ``for ref in getAttrValue(...)``.
+      - Also exposes ``.shortName_`` / ``.shortName`` returning the leaf
+        (after the last ``/``) of the *first* element — what V25.10 callsites
+        like ``BswImplementation.shortName_`` expect for singleton refs.
+        Empty list yields ``''`` so ``if obj and obj.shortName_ == 'X'``
+        short-circuits cleanly.
+
+    No memory-cost / API surface penalty: empty refs were already lists
+    under the prior heuristic.
+    """
+
+    @property
+    def shortName_(self) -> str:
+        if not self:
+            return ''
+        first = self[0]
+        if not isinstance(first, str):
+            return getattr(first, 'shortName_', '') or getattr(first, 'shortName', '')
+        return first.rsplit('/', 1)[-1] if '/' in first else first
+
+    @property
+    def shortName(self) -> str:
+        return self.shortName_
+
+
 class BswBase:
     """Base class for every BSW module's domain model class.
 
@@ -24,6 +59,24 @@ class BswBase:
 
     def __init__(self, Container: Any = None) -> None:
         self.container = Container
+
+    # ------------------------------------------------------------ delegated
+    # V25.10 BswBase exposed the underlying ECUC container's identity through
+    # ``.shortName_`` / ``.shortName`` (mirroring EMF's eShortName). Templates
+    # like NvM_Cfg.h use ``NvMBlockDescriptor[i].shortName_`` to embed the
+    # block's short-name into ``#define`` macros, so subclasses that wrap a
+    # container need this delegation to work uniformly.
+
+    @property
+    def shortName_(self) -> Any:
+        c = self.container
+        if c is None:
+            return ''
+        return getattr(c, 'shortName_', None) or getattr(c, 'shortName', '') or ''
+
+    @property
+    def shortName(self) -> Any:
+        return self.shortName_
 
     # ------------------------------------------------------------ public API
 
@@ -58,17 +111,18 @@ class BswBase:
                     any_is_reference = True
 
         if any_is_reference:
-            return matches  # could be []; iteration-friendly
+            return _RefList(matches)  # supports iteration AND .shortName_
         if len(matches) > 1:
             return matches
         if matches:
             return matches[0]
         # No matches: heuristic — if the key looks like a reference-type param
-        # (shortName ends in 'Ref' / 'Refs'), return [] rather than None so
-        # callers `for x in result:` works without None-checks. Mirrors V25.10
-        # closed-source behavior (Cython BswBase.pyd is schema-aware).
+        # (shortName ends in 'Ref' / 'Refs'), return _RefList([]) rather than
+        # None so callers `for x in result:` works without None-checks AND
+        # `result.shortName_` short-circuits cleanly. Mirrors V25.10 closed-
+        # source behavior (Cython BswBase.pyd is schema-aware).
         if short_name.endswith(('Ref', 'Refs')):
-            return []
+            return _RefList()
         return None
 
     def getSubContainer(self, name: str) -> List[Any]:
