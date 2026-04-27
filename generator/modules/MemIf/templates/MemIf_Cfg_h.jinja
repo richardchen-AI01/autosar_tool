@@ -32,6 +32,10 @@ extern "C" {
 /** MemIf/MemIfGeneral/MemIfVersionInfoApi */
 #define MEMIF_VERSION_INFO_API {{MemIfGeneral.MemIfVersionInfoApi}}
 
+/** Module version string (vendor probe param). */
+/** MemIf/MemIfGeneral/MemIfModuleVersion */
+#define MEMIF_MODULE_VERSION "{{MemIfGeneral.MemIfModuleVersion}}"
+
 {% if MemIfGeneral.MemIfNumberOfDevices > 1 or MemIfGeneral.MemIfDevErrorDetect == 'STD_ON' %}
 /**
  * @brief Read function pointer type for MemHwA API services

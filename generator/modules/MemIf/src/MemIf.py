@@ -19,9 +19,19 @@ class MemIfGeneral(BswBase):
     @property
     def MemIfVersionInfoApi(self):
         return getSwitchValue(self.getAttrValue(BP.MemIf_MemIfVersionInfoApi))
-    
 
-    
+    @property
+    def MemIfModuleVersion(self):
+        # docs §15 patch: walk container's parameterValues directly because
+        # BP enum is auto-generated from V25.10 and does not include this
+        # vendor-extension entry.
+        for pv in self.container.parameterValues_EcucParameterValue:
+            d = getattr(pv, 'ref_definition_', None) or getattr(pv, 'definition_', None)
+            if d is not None and getattr(d, 'shortName', None) == 'MemIfModuleVersion':
+                return getattr(pv, 'value_', None) or getattr(pv, 'value', '') or ''
+        return ''
+
+
 class MemIf:
     
     def __init__(self):

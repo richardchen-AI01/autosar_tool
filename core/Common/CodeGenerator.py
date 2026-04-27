@@ -129,7 +129,10 @@ class CodeGenerator:
             print(f'[INFO] [{self.module}]: Start to Generate file:\'{out_name}\'')
             env.globals['ModuleFile'] = out_name
             content = env.get_template(tpl_name).render(context=self.context)
-            (out_dir / out_name).write_text(content, encoding='utf-8')
+            # Match V25.10 output line endings (CRLF on Windows-generated files).
+            # newline='' on write keeps embedded line endings as-is.
+            content = content.replace('\r\n', '\n').replace('\n', '\r\n')
+            (out_dir / out_name).write_text(content, encoding='utf-8', newline='')
             print(f'[INFO] File:\'{out_name}\' is generated, time consumed: {time.time()-t_start:.3f}(s)')
 
         print(f'[INFO] [{self.module}]: All files are generated, time consumed: {time.time()-t0:.3f}(s)')
