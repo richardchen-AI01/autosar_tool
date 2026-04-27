@@ -9,7 +9,10 @@ Bundle-ActivationPolicy: lazy
 Bundle-Activator: cn.com.myorg.bswbuilder.common.Activator
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.ui,
- org.eclipse.core.commands
+ org.eclipse.core.commands,
+ org.eclipse.e4.core.services,
+ org.eclipse.e4.ui.services,
+ org.eclipse.equinox.event
 Export-Package: cn.com.myorg.bswbuilder.common,
  cn.com.myorg.bswbuilder.common.app
 Automatic-Module-Name: cn.com.myorg.bswbuilder.common
