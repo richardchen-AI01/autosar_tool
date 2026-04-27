@@ -76,6 +76,18 @@ def main(argv: list[str] | None = None) -> int:
     else:
         ctx = None
 
+    # 3.5. Detect "module not configured in workspace" cleanly so we don't
+    # cascade into a confusing template UndefinedError. Convention: the module's
+    # primary <Module>General container is the canonical "is this module
+    # actually present" probe.
+    domain = getattr(ctx, module_name, None) if ctx is not None else None
+    primary_general = getattr(domain, f'{module_name}General', None) if domain else None
+    if ctx is None or primary_general is None:
+        print(f'[INFO] No ECUC configuration for {module_name} in workspace '
+              f'{project_path} — nothing to generate.')
+        print('**** Generator finished ****')
+        return 0
+
     # 4. Wrap context in a holder that templates can do `context.<Module>Context.<Module>` on
     class _Ctx:
         pass

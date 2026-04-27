@@ -13,10 +13,10 @@ class Ea:
         self.EaGeneral=  EaGeneral(tempEaGeneral[0]) if tempEaGeneral else None
 
         tempEaBlockConfiguration = getBswContainerByEnum(BP.Ea_EaBlockConfiguration)
-        self.EaBlockConfiguration = [EaBlockConfiguration(blockconfiguration) for blockconfiguration in tempEaBlockConfiguration] if tempEaBlockConfiguration else None
+        self.EaBlockConfiguration = [EaBlockConfiguration(blockconfiguration) for blockconfiguration in tempEaBlockConfiguration] if tempEaBlockConfiguration else []
 
         tempEaEepApi = getBswContainerByEnum(BP.Ea_Ea_EepApi)
-        self.EaEepApi = [EaEepApi(EaEepApiIdx) for EaEepApiIdx in tempEaEepApi] if tempEaEepApi else None
+        self.EaEepApi = [EaEepApi(EaEepApiIdx) for EaEepApiIdx in tempEaEepApi] if tempEaEepApi else []
         for EaEepApiIndex in self.EaEepApi:
             EaEepApiArray.append(EaEepApiIndex.EaEepDeviceRef.shortName_)
             EaEepAddrOffsetArray.append(0)
