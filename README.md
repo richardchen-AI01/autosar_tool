@@ -41,13 +41,13 @@ Autosar_tool/
 ├── PLAN.md
 ├── README.md  (this)
 ├── docs/                设计文档
-├── clone/               真正的代码
-│   ├── eclipse_plugins/   Eclipse RCP 工程
-│   ├── python_common/     13 个原 .pyd 的 Python 等价
-│   ├── python_generator/  bswgen.exe 源码
-│   ├── python_validator/  bswval.exe 源码
-│   ├── bswmd/             ECUC schema 资产
-│   └── test_workspace/    Demo_S32K148 黄金对照
+├── /               真正的代码
+│   ├── ide/   Eclipse RCP 工程
+│   ├── core/     13 个原 .pyd 的 Python 等价
+│   ├── generator/  bswgen.exe 源码
+│   ├── validator/  bswval.exe 源码
+│   ├── schemas/             ECUC schema 资产
+│   └── samples/    Demo_S32K148 黄金对照
 ├── tools/               构建脚本
 └── reference/           V25.10 reference (软链)
 ```

@@ -178,10 +178,10 @@ LinIf, LinSM, Nm, CanNm, CanSM, ComM, Rte           # 7 NM/Rte
 
 ## 5. 法律提醒（v0.2 不再是研究 demo）
 
-v0.2 如果还包含 V25.10 派生的 Python 代码（`python_generator/modules/<Module>/*.py` 这些），**仍属于研究 / 内部用，不能商业化**。
+v0.2 如果还包含 V25.10 派生的 Python 代码（`generator/modules/<Module>/*.py` 这些），**仍属于研究 / 内部用，不能商业化**。
 
 商业化路线（v0.3 起）需要 clean-room 重写：
-- 把 `python_generator/modules/` 整个换成自己实现（每个模块 ~200-500 行 Python，AI 加速 2-3x）
+- 把 `generator/modules/` 整个换成自己实现（每个模块 ~200-500 行 Python，AI 加速 2-3x）
 - iSoft 衍生 jar（cn.com.isoft.bswbuilder.\*）替换为自家 namespace 的 clean-room 实现
 - 引用 ARTOP / Sphinx 的部分继续合法（你是 ARTOP 会员或买断）
 

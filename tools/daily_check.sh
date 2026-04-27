@@ -51,13 +51,13 @@ if [ "$DAY" -ge 1 ]; then
     echo
     echo "--- D1: 项目骨架 ---"
     run_check "C1.1" "monorepo 树就位" \
-        bash -c 'test -d clone/python_common/Common && test -d clone/python_generator/modules/MemIf && test -d clone/python_validator/modules/MemIf'
+        bash -c 'test -d core/Common && test -d generator/modules/MemIf && test -d validator/modules/MemIf'
     run_check "C1.2" "git 初始化" \
         bash -c 'git rev-parse --git-dir'
     run_check "C1.3" "reference 软链可用" \
         bash -c 'test -L reference/autosar-cfg && test -e reference/autosar-cfg/ORIENTAISBswGen.exe/data/MemIf/src/MemIf.py'
     run_check "C1.4" "MemIf 生成器代码已搬入" \
-        bash -c 'test -f clone/python_generator/modules/MemIf/src/MemIf.py'
+        bash -c 'test -f generator/modules/MemIf/src/MemIf.py'
 fi
 
 # ----------------------------------------------------------------- D2
@@ -65,18 +65,18 @@ if [ "$DAY" -ge 2 ]; then
     echo
     echo "--- D2: native helper + 最小 plugin ---"
     run_check "C2.1" "MemIf 用到的 5 个 native helper 可 import" \
-        env PYTHONPATH=clone/python_common python3 -c "
+        env PYTHONPATH=core python3 -c "
 import importlib
 for m in ['BswBase','Public','CodeGenerator','Context','J2Filters']:
     importlib.import_module(f'Common.{m}')
 "
     run_check "C2.2" "MemIf 自家 .py 能 import" \
-        env PYTHONPATH=clone/python_common:clone/python_generator/modules python3 -c "
+        env PYTHONPATH=core:generator/modules python3 -c "
 from MemIf.src.MemIf import MemIf, MemIfGeneral
 m = MemIf()
 "
     run_check "C2.3" "MemIfRules 能 import" \
-        env PYTHONPATH=clone/python_common:clone/python_validator/modules python3 -c "
+        env PYTHONPATH=core:validator/modules python3 -c "
 from MemIf.MemIfRules import RuleBSWMemIfR23
 RuleBSWMemIfR23()
 "
@@ -87,13 +87,13 @@ if [ "$DAY" -ge 3 ]; then
     echo
     echo "--- M1: MemIf walking skeleton ---"
     run_check "M1.1" "5 个 native helper 可 import" \
-        env PYTHONPATH=clone/python_common python3 -c "
+        env PYTHONPATH=core python3 -c "
 import importlib
 for m in ['BswBase','Public','CodeGenerator','Context','J2Filters']:
     importlib.import_module(f'Common.{m}')
 "
     run_check "M1.2" "BswBase 5 个方法签名" \
-        env PYTHONPATH=clone/python_common python3 -c "
+        env PYTHONPATH=core python3 -c "
 from Common.BswBase import BswBase
 for m in ['getAttrValue','getSubContainer','getIndex','getWholeIndex','getParentContainer']:
     assert hasattr(BswBase, m), f'missing {m}'

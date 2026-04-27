@@ -72,7 +72,7 @@ docs/04-recipes/15-add-new-param-end-to-end.md   ← 端到端补丁实战经验
 |---|---|---|---|
 | 80+ 模块 Python 生成器 | `ORIENTAISBswGen.exe/data/<Module>/` | ~3 MB | 整体复制，去掉 PyInstaller 包装 |
 | 47 模块校验规则（明文 .py）| `ORIENTAISBswVal.exe/data/Bsw/<Module>/` | ~500 KB | 直接搬 |
-| BSWMD schema 定义 | `bswmd/Common/*.arxml` (58 个) + 各代标准 | ~4 MB | 直接搬 |
+| BSWMD schema 定义 | `schemas/common/*.arxml` (58 个) + 各代标准 | ~4 MB | 直接搬 |
 | ARTOP plugin jar | `plugins/org.artop.*` (28 jar) | ~10 MB | 直接搬（合法用户用） |
 | Sphinx plugin jar | `plugins/org.eclipse.sphinx.*` (13 jar) | ~5 MB | 直接搬（EPL 开源） |
 | Eclipse RCP runtime | `plugins/org.eclipse.*` (~200 jar) | ~150 MB | 直接搬 |
@@ -121,7 +121,7 @@ docs/04-recipes/15-add-new-param-end-to-end.md   ← 端到端补丁实战经验
 │                              │                                   │
 │  cn.com.<myorg>.bswbuilder.modules.<Module>_*.jar (per module)   │
 │  - plugin.xml                                                    │
-│  - <Module>Def.arxml         ← schema (从 bswmd/ 复制)            │
+│  - <Module>Def.arxml         ← schema (从 schemas/ 复制)            │
 │  - <Module>DefaultRegistry   ← 表单注册                          │
 │  - <Module>Validator         ← 校验入口                          │
 │  - <Module>UpdateBswmd       ← 工程升级器                         │
@@ -182,8 +182,8 @@ docs/04-recipes/15-add-new-param-end-to-end.md   ← 端到端补丁实战经验
 
 | 实例 | 角色 | 14 天内的输出 |
 |---|---|---|
-| **A** "Native Replacements" | 复刻 13 个 .pyd 为 Python | `clone/python_common/*.py`（~13 个文件，~3000 行）|
-| **B** "Schema & Plugins" | 复刻 80+ iSoft 的 OSGi plugin jar | `clone/eclipse_plugins/cn.com.<org>.modules.*/` |
+| **A** "Native Replacements" | 复刻 13 个 .pyd 为 Python | `core/*.py`（~13 个文件，~3000 行）|
+| **B** "Schema & Plugins" | 复刻 80+ iSoft 的 OSGi plugin jar | `ide/cn.com.<org>.modules.*/` |
 | **C** "RCP Product" | Eclipse RCP product 配置、p2 repo、launcher、splash | 一个能 `./run.sh` 启动的空 IDE |
 | **D** "Generator & Validator" | 整理 V25.10 的 Python 代码 + 写 PyInstaller spec + 打 exe | `bswgen.exe` 和 `bswval.exe` 两个产物 |
 | **You**（人）| 协调、验收、关键决策、对照测试、git/IP 边界守门 | 每天 review + 决定优先级 |
@@ -204,12 +204,12 @@ docs/04-recipes/15-add-new-param-end-to-end.md   ← 端到端补丁实战经验
 
 | 天 | 任务 | 实例 | 验收 |
 |---|---|---|---|
-| **D1** | 立项目录骨架；从 V25.10 复制 **仅 MemIf 相关** 的资产到 `clone/`；git init | You + 全员 | `clone/` 目录就位，第一个 commit |
-| **D1** | 复刻 MemIf 实际用到的 5 个 native helper（**只**做 BswBase, Public, CodeGenerator, Context, J2Filters，其它 8 个先 stub）| A | `python_common/{BswBase,Public,CodeGenerator,Context,J2Filters}.py` 单测通过 |
+| **D1** | 立项目录骨架；从 V25.10 复制 **仅 MemIf 相关** 的资产到 `/`；git init | You + 全员 | `/` 目录就位，第一个 commit |
+| **D1** | 复刻 MemIf 实际用到的 5 个 native helper（**只**做 BswBase, Public, CodeGenerator, Context, J2Filters，其它 8 个先 stub）| A | `core/{BswBase,Public,CodeGenerator,Context,J2Filters}.py` 单测通过 |
 | **D1-D2** | Eclipse RCP product 最小骨架，仅注册 MemIf 一个 plugin | C | IDE 弹空白窗口 + MemIf 节点出现 |
 | **D2** | MemIf plugin jar 全套（`MemIfDef.arxml` / `MemIfDefaultRegistry` / `MemIfValidator` / `MemIfUpdateBswmd` / `plugin.xml`）| B | OSGi 启动后 MemIf bundle started，无 ClassFormatError |
-| **D2** | python_generator **只**含 MemIf；PyInstaller 第一次打 bswgen.exe | D | Windows 上 `bswgen.exe -g MemIf -i ... -o ...` 能产出**任意**输出（diff 不为 0 没关系）|
-| **D3** | python_validator **只**含 MemIf 校验规则 + Common 框架基类（直接搬 V25.10 反编结果）| D | `bswval.exe -m MemIf -i ...` 能跑 |
+| **D2** | generator **只**含 MemIf；PyInstaller 第一次打 bswgen.exe | D | Windows 上 `bswgen.exe -g MemIf -i ... -o ...` 能产出**任意**输出（diff 不为 0 没关系）|
+| **D3** | validator **只**含 MemIf 校验规则 + Common 框架基类（直接搬 V25.10 反编结果）| D | `bswval.exe -m MemIf -i ...` 能跑 |
 | **D3** | IDE 接入：双击 MemIf → 表单 → Generate 按钮调起 bswgen.exe | All | **端到端走通**：表单 → 输出文件（diff 可以不为 0）|
 
 ### 阶段 2：MemIf 完美 + 端到端补丁可重现（D4-D7）
@@ -239,8 +239,8 @@ D8 起 MemIf 已经完美——把它当**模板**复制。每个新模块的工
 | **D8** | 复制 MemIf 模板到 NvM、Ea、Fee | B + D | 3 模块 diff = 0（NV 链完整）|
 | **D9** | 复制到 Det（最简单，单元测试用）| B + D | Det diff = 0 |
 | **D9** | 批量脚本化生成剩余 25 模块的 plugin jar 骨架 | B | 30 模块 OSGi resolve 全过 |
-| **D10** | python_generator 加入剩余 25 模块（直接搬 V25.10 反编代码 + 改 import 路径）| D | 30 模块 smoke：generate 不抛异常 |
-| **D10** | python_validator 加入对应规则文件 | D | 30 模块 validate smoke |
+| **D10** | generator 加入剩余 25 模块（直接搬 V25.10 反编代码 + 改 import 路径）| D | 30 模块 smoke：generate 不抛异常 |
+| **D10** | validator 加入对应规则文件 | D | 30 模块 validate smoke |
 | **D11** | 校验器整套接入 IDE Validate 按钮 + ProblemView 显示 | C | 故意改 ARXML 后 IDE 红色错误 |
 | **D11** | 跨模块校验集成测试（NvM ↔ MemIf ↔ Ea/Fee）| A + D | 跨模块规则在 IDE 中触发 |
 
@@ -301,8 +301,8 @@ D8 起 MemIf 已经完美——把它当**模板**复制。每个新模块的工
 │   ├── 04-build-and-package.md
 │   └── 99-known-differences-from-V25.10.md
 │
-├── clone/                                ← 真正的代码
-│   ├── eclipse_plugins/                  Eclipse RCP plugin 工程
+├── /                                ← 真正的代码
+│   ├── ide/                  Eclipse RCP plugin 工程
 │   │   ├── product/                          (实例 C 主战场)
 │   │   │   └── cn.com.myorg.bswbuilder.product.product
 │   │   ├── frameworks/                       从 V25.10 复制：
@@ -319,7 +319,7 @@ D8 起 MemIf 已经完美——把它当**模板**复制。每个新模块的工
 │   │       ├── cn.com.myorg.bswbuilder.modules.memif/
 │   │       └── ...
 │   │
-│   ├── python_common/                    13 个 .pyd 的等价 Python（实例 A）
+│   ├── core/                    13 个 .pyd 的等价 Python（实例 A）
 │   │   ├── __init__.py
 │   │   ├── BswBase.py
 │   │   ├── Public.py
@@ -339,7 +339,7 @@ D8 起 MemIf 已经完美——把它当**模板**复制。每个新模块的工
 │   │       │   └── BswPathConstant.py    自动生成 enum，2789 项
 │   │       └── ...
 │   │
-│   ├── python_generator/                 (实例 D 主战场)
+│   ├── generator/                 (实例 D 主战场)
 │   │   ├── pyproject.toml
 │   │   ├── pyinstaller.spec
 │   │   ├── tests/
@@ -348,20 +348,20 @@ D8 起 MemIf 已经完美——把它当**模板**复制。每个新模块的工
 │   │       ├── MemIf/                    （从 V25.10 data/MemIf/ 直接复制）
 │   │       └── ... 80 个
 │   │
-│   ├── python_validator/                 (实例 D 主战场)
+│   ├── validator/                 (实例 D 主战场)
 │   │   ├── pyproject.toml
 │   │   ├── pyinstaller.spec
 │   │   └── modules/
 │   │       └── ... 47 个
 │   │
-│   ├── bswmd/                            ECUC schema 资产
+│   ├── schemas/                            ECUC schema 资产
 │   │   ├── Common/                       （从 V25.10 复制）
 │   │   ├── AUTOSAR_00048/
 │   │   ├── AUTOSAR_00052/
 │   │   ├── AUTOSAR_4-2-2/
 │   │   └── STD/
 │   │
-│   └── test_workspace/                   golden 工程
+│   └── samples/                   golden 工程
 │       └── Demo_S32K148/                 （从 V25.10 复制）
 │
 ├── tools/                                构建脚本
@@ -382,7 +382,7 @@ D8 起 MemIf 已经完美——把它当**模板**复制。每个新模块的工
 
 ```bash
 cd /Users/richard/AI-MiniWorkspace/project/Autosar_tool
-mkdir -p clone/{eclipse_plugins/{product,frameworks,builder_core,modules},python_common/arxmlparse/constant,python_generator/modules,python_validator/modules,bswmd,test_workspace}
+mkdir -p {ide/{product,frameworks,builder_core,modules},core/Common/arxmlparse/constant,generator/modules,validator/modules,schemas/{common,std},samples}
 mkdir -p tools docs reference
 
 # 软链 reference V25.10 资产
@@ -391,9 +391,9 @@ ln -s /Users/richard/AI-MiniWorkspace/project/autosar-cfg/ORIENTAISBswVal.exe re
 
 # 复制可直接搬的资产
 SRC=/Volumes/ORIENTAIS_Studio/ORIENTAIS_Configurator_for_EasyXMen_V25.10
-cp -r $SRC/bswmd/* clone/bswmd/
-cp -r reference/ORIENTAISBswGen.exe/data/* clone/python_generator/modules/    # 80 个模块
-cp -r reference/ORIENTAISBswVal.exe/data/Bsw/* clone/python_validator/modules/ # 47 个模块
+cp -r $SRC/bswmd/* schemas/
+cp -r reference/ORIENTAISBswGen.exe/data/* generator/modules/    # 80 个模块
+cp -r reference/ORIENTAISBswVal.exe/data/Bsw/* validator/modules/ # 47 个模块
 
 git init
 git add . && git commit -m "Initial scaffolding from V25.10 extracts"
@@ -404,11 +404,11 @@ git add . && git commit -m "Initial scaffolding from V25.10 extracts"
 | 优先级 | 任务 | 谁 | 截止 |
 |---|---|---|---|
 | P0 | 建 monorepo 骨架（上面那段脚本）| You | D1 上午 |
-| P0 | `python_common/BswBase.py` v1（从 `_pyd_analysis/BswBase.md` API + `Bsw/MemIf/MemIfRules.py` 调用现场反推）| 实例 A | D1 EOD |
+| P0 | `core/BswBase.py` v1（从 `_pyd_analysis/BswBase.md` API + `Bsw/MemIf/MemIfRules.py` 调用现场反推）| 实例 A | D1 EOD |
 | P0 | Eclipse RCP `.product` 文件 + 最小启动配置 | 实例 C | D1 EOD |
-| P1 | `python_common/Public.py` v1 | 实例 A | D2 上午 |
+| P1 | `core/Public.py` v1 | 实例 A | D2 上午 |
 | P1 | 1 个 minimal plugin（cn.com.myorg.bswbuilder.modules.memif）—— 仅 plugin.xml + MemIfDef.arxml | 实例 B | D2 上午 |
-| P1 | python_generator 跑通 `python -m generator -g Det -i clone/test_workspace/Demo_S32K148`（哪怕错）| 实例 D | D2 EOD |
+| P1 | generator 跑通 `python -m generator -g Det -i samples/Demo_S32K148`（哪怕错）| 实例 D | D2 EOD |
 
 ---
 
@@ -459,9 +459,9 @@ git add . && git commit -m "Initial scaffolding from V25.10 extracts"
 
 四个 Claude Code 实例的初始任务包（D1 启动）也准备好了——只要骨架建出来，可以同时分发：
 
-- **实例 A**：去 `python_common/` 写 BswBase.py 和 Public.py（参考 `reference/ORIENTAISBswGen.exe/_pyd_analysis/BswBase.md` 和 `reference/ORIENTAISBswVal.exe/data/Bsw/MemIf/MemIfRules.py`）
-- **实例 B**：去 `clone/eclipse_plugins/modules/cn.com.myorg.bswbuilder.modules.memif/` 写 plugin.xml 和 MANIFEST.MF（参考 `reference/ORIENTAISBswGen.exe/...`，但用我们自己的 vendor 名称）
-- **实例 C**：去 `clone/eclipse_plugins/product/` 写 product.product 文件 + p2 metadata
-- **实例 D**：去 `clone/python_generator/` 写 PyInstaller spec + 修 import 路径
+- **实例 A**：去 `core/` 写 BswBase.py 和 Public.py（参考 `reference/ORIENTAISBswGen.exe/_pyd_analysis/BswBase.md` 和 `reference/ORIENTAISBswVal.exe/data/Bsw/MemIf/MemIfRules.py`）
+- **实例 B**：去 `ide/modules/cn.com.myorg.bswbuilder.modules.memif/` 写 plugin.xml 和 MANIFEST.MF（参考 `reference/ORIENTAISBswGen.exe/...`，但用我们自己的 vendor 名称）
+- **实例 C**：去 `ide/product/` 写 product.product 文件 + p2 metadata
+- **实例 D**：去 `generator/` 写 PyInstaller spec + 修 import 路径
 
 每个实例的具体任务卡片我可以下一步出。先确认这份方案是不是你想要的样子。
