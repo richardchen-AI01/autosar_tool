@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?pde version="3.5"?>
+<product name="BSW Configurator"
+         uid="cn.com.myorg.bswbuilder.product"
+         id="cn.com.myorg.bswbuilder.common.product"
+         application="cn.com.myorg.bswbuilder.common.application"
+         version="0.1.0.qualifier"
+         type="features"
+         includeLaunchers="true">
+
+    <configIni use="default"/>
+
+    <launcherArgs>
+        <vmArgs>-Xms256m -Xmx1024m
+            --add-modules=ALL-SYSTEM
+            -Dfile.encoding=UTF-8
+            -Dorg.eclipse.swt.internal.carbon.smallFonts=
+        </vmArgs>
+        <vmArgsMac>-XstartOnFirstThread
+            -Dorg.eclipse.swt.internal.carbon.smallFonts=
+        </vmArgsMac>
+    </launcherArgs>
+
+    <launcher name="bswbuilder">
+        <macosx icon=""/>
+        <win useIco="false"/>
+    </launcher>
+
+    <vm/>
+
+    <plugins>
+    </plugins>
+
+    <features>
+        <feature id="cn.com.myorg.bswbuilder.feature"/>
+        <feature id="org.eclipse.rcp"/>
+        <feature id="org.eclipse.equinox.executable"/>
+    </features>
+
+    <configurations>
+        <plugin id="org.eclipse.core.runtime"        autoStart="true"  startLevel="0"/>
+        <plugin id="org.eclipse.equinox.common"      autoStart="true"  startLevel="2"/>
+        <plugin id="org.eclipse.equinox.event"       autoStart="true"  startLevel="2"/>
+        <plugin id="org.eclipse.equinox.simpleconfigurator" autoStart="true" startLevel="1"/>
+    </configurations>
+
+</product>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+        id="cn.com.myorg.bswbuilder.feature"
+        label="BSW Builder Feature"
+        version="0.1.0.qualifier"
+        provider-name="Autosar_tool">
+
+    <description>
+        Walking-skeleton feature that bundles all Autosar_tool RCP plugins:
+        common (RCP shell), ui (handlers + views), and the MemIf module
+        plugin. ARTOP / Sphinx integration will be added once the build is
+        proven.
+    </description>
+
+    <copyright>
+        Research / internal demo only — see NOTICE.md at repo root.
+    </copyright>
+
+    <license>
+        v0.1 / v0.2 are derived from ORIENTAIS Configurator V25.10 and not
+        for redistribution. See NOTICE.md.
+    </license>
+
+    <plugin
+            id="cn.com.myorg.bswbuilder.common"
+            download-size="0"
+            install-size="0"
+            version="0.0.0"
+            unpack="false"/>
+
+    <plugin
+            id="cn.com.myorg.bswbuilder.ui"
+            download-size="0"
+            install-size="0"
+            version="0.0.0"
+            unpack="false"/>
+
+    <plugin
+            id="cn.com.myorg.bswbuilder.modules.memif"
+            download-size="0"
+            install-size="0"
+            version="0.0.0"
+            unpack="false"/>
+
+</feature>

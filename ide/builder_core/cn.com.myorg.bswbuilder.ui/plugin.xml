@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+    <!-- Module navigator view: lists configurable BSW modules. -->
+    <extension
+            point="org.eclipse.ui.views">
+        <category
+                id="cn.com.myorg.bswbuilder.ui.viewCategory"
+                name="BSW Builder"/>
+        <view
+                category="cn.com.myorg.bswbuilder.ui.viewCategory"
+                class="cn.com.myorg.bswbuilder.ui.views.ModuleNavigatorView"
+                id="cn.com.myorg.bswbuilder.ui.views.ModuleNavigator"
+                name="BSW Modules"
+                restorable="true"/>
+    </extension>
+
+    <!-- Commands: Generate / Validate -->
+    <extension
+            point="org.eclipse.ui.commands">
+        <category
+                id="cn.com.myorg.bswbuilder.commands.category"
+                name="BSW Builder"/>
+        <command
+                categoryId="cn.com.myorg.bswbuilder.commands.category"
+                defaultHandler="cn.com.myorg.bswbuilder.ui.handlers.GenerateMemIfHandler"
+                id="cn.com.myorg.bswbuilder.commands.generateMemIf"
+                name="Generate MemIf"/>
+        <command
+                categoryId="cn.com.myorg.bswbuilder.commands.category"
+                defaultHandler="cn.com.myorg.bswbuilder.ui.handlers.ValidateMemIfHandler"
+                id="cn.com.myorg.bswbuilder.commands.validateMemIf"
+                name="Validate MemIf"/>
+    </extension>
+
+    <!-- Surface them in the BSW menu (provided by .common's ActionBarAdvisor). -->
+    <extension
+            point="org.eclipse.ui.menus">
+        <menuContribution
+                locationURI="menu:cn.com.myorg.bswbuilder.menu?after=generators">
+            <command
+                    commandId="cn.com.myorg.bswbuilder.commands.generateMemIf"
+                    label="Generate MemIf"
+                    style="push"/>
+        </menuContribution>
+        <menuContribution
+                locationURI="menu:cn.com.myorg.bswbuilder.menu?after=validators">
+            <command
+                    commandId="cn.com.myorg.bswbuilder.commands.validateMemIf"
+                    label="Validate MemIf"
+                    style="push"/>
+        </menuContribution>
+        <!-- Toolbar buttons too. -->
+        <menuContribution
+                locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
+            <toolbar id="cn.com.myorg.bswbuilder.toolbar">
+                <command
+                        commandId="cn.com.myorg.bswbuilder.commands.generateMemIf"
+                        label="Generate MemIf"
+                        style="push"
+                        tooltip="Run bswgen for MemIf on the current workspace"/>
+                <command
+                        commandId="cn.com.myorg.bswbuilder.commands.validateMemIf"
+                        label="Validate MemIf"
+                        style="push"
+                        tooltip="Run bswval for MemIf on the current workspace"/>
+            </toolbar>
+        </menuContribution>
+    </extension>
+
+</plugin>

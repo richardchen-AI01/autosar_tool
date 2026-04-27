@@ -1,46 +1,135 @@
 # Eclipse RCP IDE — `ide/`
 
-The Eclipse RCP product that hosts the BSW configuration GUI. This is the
-**Java/OSGi** half of the tool, complementing the Python `generator/` and
-`validator/` exes.
+Java / Tycho / OSGi half of Autosar_tool: a minimal Eclipse RCP shell that
+hosts the BSW configuration GUI and shells out to Python `bswgen` / `bswval`
+for the actual code generation and validation.
+
+## Status (D2 EOD → walking skeleton landed)
+
+| Layer | Status |
+|---|---|
+| Tycho parent + target platform | ✅ `ide/pom.xml`, `ide/target-platform/bswbuilder-target/bswbuilder-target.target` |
+| RCP application + perspective | ✅ `cn.com.myorg.bswbuilder.common` |
+| UI: navigator + Generate/Validate handlers | ✅ `cn.com.myorg.bswbuilder.ui` |
+| MemIf module placeholder | ✅ `cn.com.myorg.bswbuilder.modules.memif` |
+| Feature + Product | ✅ `cn.com.myorg.bswbuilder.feature` + `cn.com.myorg.bswbuilder.product` |
+| ARTOP / Sphinx integration | 🚧 deferred to M3.3+ (need licensed jars) |
+| ECUC form editor | 🚧 deferred (M3.3+) |
+| Validate → ProblemView | 🚧 deferred (M3.3+) |
+
+The walking skeleton **proves the IDE ↔ Python bridge** —
+`BswgenLauncher.run(Tool, …)` is the single contact point between the JVM
+and our Python tooling, so the architecture stays cleanly two-tier even
+once the IDE grows.
 
 ## Directory layout
 
 ```
 ide/
-├── product/                    Eclipse Product configuration
-│   └── (TODO: cn.com.myorg.bswbuilder.product.product)
-├── frameworks/                 Third-party plugin jars (committed binary)
-│   └── (TODO: ARTOP 28 + Sphinx 13 + Eclipse RCP runtime)
-├── builder_core/               Our Java code framework plugins
-│   ├── cn.com.myorg.bswbuilder.common/
-│   ├── cn.com.myorg.bswbuilder.ui/
-│   ├── cn.com.myorg.bswbuilder.extensionpoints/
-│   └── cn.com.myorg.bswbuilder.validation/
-└── modules/                    Per-BSW-module plugin jars
-    ├── cn.com.myorg.bswbuilder.modules.memif/
-    ├── cn.com.myorg.bswbuilder.modules.det/
-    └── ...
+├── pom.xml                                    Tycho parent
+├── target-platform/
+│   └── bswbuilder-target/                     Eclipse 2024-09 target platform
+├── builder_core/
+│   ├── cn.com.myorg.bswbuilder.common/        RCP app + perspective
+│   └── cn.com.myorg.bswbuilder.ui/            handlers, views, launcher
+├── modules/
+│   └── cn.com.myorg.bswbuilder.modules.memif/ MemIf module (placeholder)
+├── feature/
+│   └── cn.com.myorg.bswbuilder.feature/       wraps all plugins
+└── product/
+    └── cn.com.myorg.bswbuilder.product/       launchable RCP product
 ```
 
-## Status (D2 EOD)
-
-🚧 **Skeleton only.** No Java code written yet. The functional pipeline
-(generator + validator + Common) all works **without** Eclipse RCP — see
-project root `README.md` quickstart. The IDE is for the GUI experience and
-forms part of M3.3 (校验器接入 IDE Validate 按钮) and M4 (v0.1 demo).
-
-## How to build (when implemented)
+## How to build (Tycho)
 
 ```bash
-# Maven Tycho build (Java 8 + Maven 3.8+)
 cd ide
 mvn -B clean verify
-
-# Output:
-#   product/target/products/cn.com.myorg.bswbuilder.product/macosx/cocoa/aarch64/...
-#   product/target/products/cn.com.myorg.bswbuilder.product/win32/win32/x86_64/...
 ```
+
+First run downloads ~150 MB from `download.eclipse.org`. Subsequent builds
+are seconds.
+
+Outputs land in:
+```
+ide/product/cn.com.myorg.bswbuilder.product/target/products/cn.com.myorg.bswbuilder.product/
+├── macosx/cocoa/aarch64/Eclipse.app/         (on Mac)
+├── win32/win32/x86_64/...                    (on Windows)
+└── linux/gtk/x86_64/...                      (on Linux)
+```
+
+Plus per-platform .zip archives in
+`target/products/cn.com.myorg.bswbuilder.product-<os>.<ws>.<arch>.zip`.
+
+## How to launch the built RCP
+
+```bash
+# Mac
+open ide/product/cn.com.myorg.bswbuilder.product/target/products/cn.com.myorg.bswbuilder.product/macosx/cocoa/aarch64/Eclipse.app
+```
+
+The window title should read **"BSW Configurator (Autosar_tool)"**, with:
+
+- **BSW** menu (Generate MemIf / Validate MemIf)
+- Toolbar buttons for the same
+- Left-side **BSW Modules** view
+- Bottom **Console** view (output of bswgen/bswval streams here)
+
+Clicking **Generate MemIf** prompts for a workspace dir (e.g.
+`samples/Demo_S32K148`) and an output dir, then runs the equivalent of:
+
+```
+PYTHONPATH=core python3 -m generator -g MemIf -i <workspace> -o <output>
+```
+
+…unless `build/dist/bswgen[.exe]` exists, in which case the binary is used.
+
+## How to develop interactively (Eclipse PDE)
+
+1. Install the **Eclipse IDE for RCP and RAP Developers** package
+   (any 2024-x release works).
+2. File → Import… → Existing Maven Projects → point at `ide/` →
+   Eclipse imports all six Tycho modules.
+3. Window → Preferences → Plug-in Development → Target Platform →
+   Add → File system → pick
+   `ide/target-platform/bswbuilder-target/bswbuilder-target.target` → Set as Active.
+4. Open `ide/product/cn.com.myorg.bswbuilder.product/cn.com.myorg.bswbuilder.product` →
+   click **Launch an Eclipse application** in the Overview tab.
+5. The launched RCP runs against your local sources — edit, save, relaunch.
+
+## How the IDE finds the Python repo at runtime
+
+`BswgenLauncher.locateRepoRoot()` walks up from the JVM `user.dir` until it
+finds both `generator/__main__.py` AND `core/Common/`. So launching from the
+repo root works automatically. If you're launching from elsewhere, pass
+`-Dautosar.repoRoot=/path/to/Autosar_tool` to the JVM.
+
+## Bundle / package naming
+
+| Bundle SymbolicName | Role |
+|---|---|
+| `cn.com.myorg.bswbuilder.common`         | RCP shell — Application, Perspective, ActionBarAdvisor |
+| `cn.com.myorg.bswbuilder.ui`             | Module navigator view + Generate/Validate command handlers + bswgen launcher |
+| `cn.com.myorg.bswbuilder.modules.memif`  | MemIf module plugin (placeholder until ARTOP integration) |
+| `cn.com.myorg.bswbuilder.feature`        | feature wrapping the three plugins above |
+| `cn.com.myorg.bswbuilder.product`        | product config (RCP launcher build) |
+
+The `myorg` is a placeholder — pick your real organization domain before
+external sharing.
+
+## What's intentionally missing (vs V25.10)
+
+| V25.10 component | Why we don't have it (yet) |
+|---|---|
+| `cn.com.isoft.mal.encrypt.FileEncryptyManager` | License/hash protection — not needed for research demo |
+| ARTOP 4.5.2 jars in `frameworks/` | Licensed; need ARTOP-member entitlement to redistribute |
+| Sphinx 0.11.2 jars | Same as ARTOP — pulled from Eclipse p2 only when integrated |
+| Forms-based ECUC parameter editor | Needs ARTOP integration first |
+| Project Explorer with .arxml model | Needs Sphinx workspace lifecycle |
+| ProblemView integration | Needs Sphinx + a problem-marker producer |
+
+Tracking: see [PLAN.md](../docs/PLAN.md) M3.3 ("Validator → IDE Validate
+button") and [PLAN_v0.2.md](../docs/PLAN_v0.2.md) for the form editor.
 
 ## Reference: V25.10 plugin layout (for cloning)
 
@@ -48,70 +137,37 @@ mvn -B clean verify
 
 | jar | role | clone status |
 |---|---|---|
-| `cn.com.isoft.bswbuilder.modules.memif_*.jar` | per-module schema + UI registry | TODO: clone-and-rename to `cn.com.myorg.*` |
-| `cn.com.isoft.bswbuilder.ui_*.jar` | NewBswBuilderEditor + actions | TODO |
-| `cn.com.isoft.bswbuilder.common_*.jar` | shared base classes | TODO |
-| `cn.com.isoft.bswbuilder.validation_*.jar` | validator framework | TODO |
-| `cn.com.isoft.mal_*.jar` | FileEncryptyManager (license / hash) | TODO: skip; we don't need V25.10's hash protection |
-| `org.artop.aal.*` (28 jar) | AUTOSAR EMF metamodel | copy as-is to frameworks/ |
-| `org.eclipse.sphinx.*` (13 jar) | EMF workspace lifecycle | copy as-is |
-| `org.eclipse.*` (RCP runtime, ~200 jar) | Eclipse RCP base | copy as-is via p2 |
+| `cn.com.isoft.bswbuilder.modules.memif_*.jar` | per-module schema + UI registry | TODO when ARTOP lands |
+| `cn.com.isoft.bswbuilder.ui_*.jar` | NewBswBuilderEditor + actions | partially done — basic actions in our `.ui` |
+| `cn.com.isoft.bswbuilder.common_*.jar` | shared base classes | partially done — RCP shell in our `.common` |
+| `cn.com.isoft.bswbuilder.validation_*.jar` | validator framework | not yet (will hook into bswval JSON) |
+| `cn.com.isoft.mal_*.jar` | FileEncryptyManager (license / hash) | skip; v0.1 doesn't need it |
+| `org.artop.aal.*` (28 jar) | AUTOSAR EMF metamodel | will copy as-is to `frameworks/` once ARTOP lands |
+| `org.eclipse.sphinx.*` (13 jar) | EMF workspace lifecycle | same |
+| `org.eclipse.*` RCP base | Eclipse RCP runtime | already pulled via `bswbuilder-target.target` |
 
-## Per-plugin minimum file set (for one BSW module)
+## Architectural decisions (recap)
 
-For each `<Module>` (e.g. MemIf):
-
-```
-ide/modules/cn.com.myorg.bswbuilder.modules.<Module>/
-├── META-INF/
-│   └── MANIFEST.MF              OSGi bundle manifest
-├── plugin.xml                   Eclipse plugin descriptor — registers:
-│                                  editor / validator / generator / metaModelDescriptor
-├── pom.xml                      Tycho build descriptor
-├── <Module>Def.arxml            ECUC schema (copied from schemas/common/)
-├── <Module>_Bswmd.arxml         BSWMD module description stub
-└── src/cn/com/myorg/bswbuilder/modules/<module>/
-    ├── Activator.java           OSGi bundle activator
-    ├── <Module>DefaultRegistry.java     Form / table layout
-    ├── <Module>MetaModelDescriptor.java Sphinx metamodel descriptor
-    ├── <Module>UpdateBswmd.java         Project upgrader (auto-add new params)
-    ├── functionextensions/
-    │   ├── <Module>FunctionExtension.java
-    │   └── ...
-    ├── generator/
-    │   └── <Module>Generator.java       (in V25.10) calls bswgen.exe; can shell out via Runtime.exec
-    └── validator/
-        └── <Module>Validator.java       calls bswval.exe similarly
-```
-
-## Architectural decisions
-
-1. **Native helpers (V25.10 .pyd) are NOT needed in IDE.** Java side only
+1. **Native helpers (V25.10 `.pyd`) NOT needed in IDE.** Java side only
    contains schema + UI + extension points + validator integration. All actual
-   computation lives in `bswgen.exe` / `bswval.exe` (Python).
-
-2. **OSGi version compatibility.** ARTOP 4.5.2 + Sphinx 0.11.2 (from V25.10).
-   Don't upgrade for v0.1.
-
+   computation lives in `bswgen.exe` / `bswval.exe`.
+2. **OSGi compat.** Walking skeleton uses Eclipse 2024-09 because Tycho 4.x
+   builds it cleanly. ARTOP 4.5.2 + Sphinx 0.11.2 will likely require an
+   older target — we'll branch the target if needed.
 3. **No license / file-integrity protection** for v0.1. V25.10's
-   `FileEncryptyManager.verifyFileHash` is intentionally **not cloned** — its
-   sole purpose was anti-tampering, which we don't need for our demo. (Skipping
-   it also avoids the entire docs §15 §2.4 reverse-engineering rabbit hole.)
-
+   `FileEncryptyManager.verifyFileHash` is intentionally **not cloned** — see
+   [`NOTICE.md`](../NOTICE.md).
 4. **Plugin namespace `cn.com.myorg.*`** — placeholder. Choose your real
    organization domain before any external sharing.
 
-## Suggested implementation order
+## Suggested next steps
 
 | Step | Effort | Output |
 |---|---|---|
-| 1. Tycho parent pom + product-feature.xml | 1 day | `mvn verify` builds empty .zip |
-| 2. Copy ARTOP / Sphinx / RCP jars to frameworks/ | 0.5 day | bundles list complete |
-| 3. cn.com.myorg.bswbuilder.common plugin (shared base classes) | 1 day | Other plugins can require-bundle |
-| 4. cn.com.myorg.bswbuilder.modules.memif (1 module template) | 1 day | IDE shows MemIf node |
-| 5. Connect Generate button to bswgen.exe via Runtime.exec | 0.5 day | M1.6 |
-| 6. Form-page: parameter editing | 1 day | M1.5 |
-| 7. Validate button → ProblemView | 0.5 day | M3.3 |
-| 8. Replicate to NvM/Det/Ea/Fee | 1-2 days | M3.1 prep |
+| ⬜ Wire up project picker + recent-projects MRU | 0.5 day | better workspace UX |
+| ⬜ Stream JSON validator findings into ProblemView | 1 day | M3.3 |
+| ⬜ Add Det / NvM module plugins (mirror MemIf) | 0.5 day | parity with generator side |
+| ⬜ Add ARTOP target file branch | 1 day | unlocks form editor |
+| ⬜ Form-based ECUC parameter editor | 3-5 days | M4 / v0.2 |
 
-Total: ~6-8 days for one engineer; less for parallel Claude Code instances.
+Total to functional v0.1 IDE: ~1 week for one engineer; less in parallel.

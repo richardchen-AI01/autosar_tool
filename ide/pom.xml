@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tycho parent pom for the Eclipse RCP IDE half of Autosar_tool.
+
+  Build:
+      cd ide
+      mvn -B clean verify
+
+  Outputs (after build):
+      product/cn.com.myorg.bswbuilder.product/target/products/.../
+          (per-OS / per-arch RCP launcher)
+
+  Walking-skeleton scope (D3+):
+      - Eclipse RCP shell launches with our app + perspective
+      - "Generate MemIf" command shells out to Python bswgen
+      - No ARTOP / Sphinx integration yet (those need licensed jars)
+
+  Tycho 4.x + Java 17. Target platform = Eclipse 2024-09 (latest stable that
+  Tycho 4 fully supports). Future ARTOP integration will need a target tweak.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>cn.com.myorg.bswbuilder</groupId>
+    <artifactId>cn.com.myorg.bswbuilder.parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Autosar_tool IDE — parent</name>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+
+        <tycho.version>4.0.8</tycho.version>
+    </properties>
+
+    <modules>
+        <module>target-platform/bswbuilder-target</module>
+        <module>builder_core/cn.com.myorg.bswbuilder.common</module>
+        <module>builder_core/cn.com.myorg.bswbuilder.ui</module>
+        <module>modules/cn.com.myorg.bswbuilder.modules.memif</module>
+        <module>feature/cn.com.myorg.bswbuilder.feature</module>
+        <module>product/cn.com.myorg.bswbuilder.product</module>
+    </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-maven-plugin</artifactId>
+                <version>${tycho.version}</version>
+                <extensions>true</extensions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>target-platform-configuration</artifactId>
+                <version>${tycho.version}</version>
+                <configuration>
+                    <target>
+                        <artifact>
+                            <groupId>cn.com.myorg.bswbuilder</groupId>
+                            <artifactId>bswbuilder-target</artifactId>
+                            <version>0.1.0-SNAPSHOT</version>
+                        </artifact>
+                    </target>
+                    <environments>
+                        <environment>
+                            <os>macosx</os><ws>cocoa</ws><arch>aarch64</arch>
+                        </environment>
+                        <environment>
+                            <os>macosx</os><ws>cocoa</ws><arch>x86_64</arch>
+                        </environment>
+                        <environment>
+                            <os>win32</os><ws>win32</ws><arch>x86_64</arch>
+                        </environment>
+                        <environment>
+                            <os>linux</os><ws>gtk</ws><arch>x86_64</arch>
+                        </environment>
+                    </environments>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-compiler-plugin</artifactId>
+                <version>${tycho.version}</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

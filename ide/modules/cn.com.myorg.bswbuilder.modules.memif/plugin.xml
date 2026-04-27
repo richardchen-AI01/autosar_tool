@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<!--
+  Per-BSW-module plugin: in V25.10 these registered the schema, default
+  registry, metaModelDescriptor, and project upgrader. v0.1 leaves them as
+  placeholders since all real generation lives in the Python bswgen.
+
+  When ARTOP integration lands (M3.3 / v0.2):
+    - register MemIfDef.arxml as the ECUC schema
+    - register MemIfDefaultRegistry for the form layout
+    - register MemIfMetaModelDescriptor for Sphinx
+-->
+<plugin>
+</plugin>

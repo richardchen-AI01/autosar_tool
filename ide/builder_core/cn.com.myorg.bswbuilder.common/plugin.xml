@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+    <!-- The RCP Application: Eclipse runtime entry point. -->
+    <extension
+            id="application"
+            point="org.eclipse.core.runtime.applications">
+        <application>
+            <run class="cn.com.myorg.bswbuilder.common.app.Application"/>
+        </application>
+    </extension>
+
+    <!-- The RCP Product: ties application + branding into an IProduct. -->
+    <extension
+            id="product"
+            point="org.eclipse.core.runtime.products">
+        <product
+                application="cn.com.myorg.bswbuilder.common.application"
+                name="BSW Configurator (Autosar_tool)">
+            <property name="appName"   value="BSW Configurator"/>
+            <property name="windowImages" value=""/>
+        </product>
+    </extension>
+
+    <!-- A perspective that lays out the workbench window. -->
+    <extension
+            point="org.eclipse.ui.perspectives">
+        <perspective
+                class="cn.com.myorg.bswbuilder.common.app.Perspective"
+                id="cn.com.myorg.bswbuilder.common.perspective"
+                name="BSW Configurator"/>
+    </extension>
+
+</plugin>

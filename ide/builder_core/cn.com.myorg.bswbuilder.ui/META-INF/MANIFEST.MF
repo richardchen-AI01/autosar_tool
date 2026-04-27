@@ -1,0 +1,21 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: BSW Builder UI
+Bundle-SymbolicName: cn.com.myorg.bswbuilder.ui;singleton:=true
+Bundle-Version: 0.1.0.qualifier
+Bundle-Vendor: Autosar_tool
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-ActivationPolicy: lazy
+Bundle-Activator: cn.com.myorg.bswbuilder.ui.Activator
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.ui,
+ org.eclipse.ui.console,
+ org.eclipse.core.commands,
+ org.eclipse.core.expressions,
+ org.eclipse.jface,
+ cn.com.myorg.bswbuilder.common
+Export-Package: cn.com.myorg.bswbuilder.ui,
+ cn.com.myorg.bswbuilder.ui.handlers,
+ cn.com.myorg.bswbuilder.ui.launcher,
+ cn.com.myorg.bswbuilder.ui.views
+Automatic-Module-Name: cn.com.myorg.bswbuilder.ui
