@@ -5,6 +5,39 @@
 
 ## [Unreleased] — D2 EOD (2026-04-28)
 
+### M3.1 — D2 下午追加（提前 9 天）
+
+- **Det 端到端跑通** —— 5/5 文件全生成，`Det_Bswmd.arxml` byte-equal vs
+  V25.10 reference（filtered diff = 0）
+  - 修复：`CodeGenerator` env.globals 注入默认 `EcucPartition=''`，让
+    `Det_Bswmd_arxml.jinja` line 110 的 `VAR_CLEARED_{{EcucPartition}}_…`
+    能渲染（V25.10 在没有 EcucPartition 配置时输出双下划线即空串拼接）
+- **NvM 端到端跑通** —— 4/4 文件全生成，`NvM_Bswmd.arxml` byte-equal vs
+  V25.10 reference
+  - 新增 `core/Common/arxmlparse/artop.by_path` —— ECUC instance-path →
+    EObject 的反向索引（loader 在解析 AR-PACKAGE 时按
+    `/<package_sn>/<module_sn>/<container_sn>/...` 建立）
+  - 新增 `core/Common/BswBase._RefTarget(str)` —— V25.10 ref-wrapper API：
+    `.shortName_` / `.shortName` / `.ref_type_.shortName_` /
+    `.getAttrValue` / `.getSubContainer` / `.getParentContainer`，全部
+    lazy-resolve 到 `by_path[path]`
+  - `_RefList` 升级：元素从 str 升为 `_RefTarget`，新增 `_first` 代理
+    给单基数 ref 用法
+  - `BswBase` 加 `.shortName_` / `.shortName` 委托到 `self.container`
+  - 顶层 container 的 `parent_` 现在指向 owning module（mirror EMF
+    eContainer 语义）
+- **Ea 优雅退出** —— 模块未在 workspace 配置时不再崩在模板渲染
+  - `Ea.__init__` 列表型属性（`EaBlockConfiguration` / `EaEepApi`）默认
+    `[]` 而不是 `None`
+  - `bswgen __main__` 加"模块是否配置"探针：查 modules 列表中 shortName
+    == module_name 是否存在；不存在则 print "No ECUC configuration for X"
+    + rc=0 退出
+- **回归扩展** —— `tools/test_memif_full.sh` 从 7 项扩到 10 项（+ Det /
+  NvM / Ea 三项 M3.1 检查），全部 PASS
+- **测试覆盖** —— pytest 16 → 25（+ Det 3、NvM 5、no-config 1）
+
+
+
 ### Added — D2 半天压缩 5 天计划
 - **M1 MemIf walking skeleton** — `generator -g MemIf -i samples/Demo_S32K148 -o /tmp/out`
   完整端到端跑通（提前 D3 EOD 计划 2 天）
