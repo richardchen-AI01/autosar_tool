@@ -1,0 +1,207 @@
+{% import 'Template_Base.jinja' as Template_Base with context %}
+{% set Det = context.DetContext.Det %}
+{% set DetGeneral,DetNotification,DetModule = Det.DetGeneral,Det.DetNotification,Det.DetModule %}
+{{Template_Base.Header_Description("config definitions for DET module","R23-11")}}
+
+/*******************************************************************************
+** Configuration description :
+** All configurations of the DET module are not dependent on tool generation,
+** and all configuration items are fixed
+*******************************************************************************/
+
+/* =================================================== inclusions =================================================== */
+#include "Det_Externals.h"
+
+{# 此处仅生成参考代码，对于实际的头文件包含需要用户根据平台而适配，用于错误日志消息的转发功能，后续不再赘述 #}
+{% set customCode -%}
+{% if DetGeneral.DetForwardToDlt == 'STD_ON' %}
+#include "Det_Cfg.h"
+#include "Os.h"
+#include "Gpt.h"
+#include "Dlt.h"
+#include "CanTp.h"
+#include "Can_17_McmCan.h"
+{% endif %}
+{% endset %}
+{{Template_Base.IncGen("HeadFile", 1, UserCodeDefinitions, customCode)}}
+
+ /* ===================================================== macros ===================================================== */
+
+{# 此处仅生成参考代码，对于实际的定时器阈值需要用户根据平台而适配，用于错误日志消息的转发功能，后续不再赘述 #}
+{% set customCode -%}
+{% if DetGeneral.DetForwardToDlt == 'STD_ON' %}
+/* This parameter is used to define the 1ms interval threshold of the GPT timer */
+#define DET_GPT_ONE_SECOND_TIMER  9u
+/* This parameter is used to define the maximum delay time threshold after error log messages are sent */
+#define DET_DLT_LOG_TX_DEFER_TIME (1000u)
+{% endif %}
+{% endset %}
+{{Template_Base.IncGen("macros", 1, UserCodeDefinitions, customCode)}}
+
+ /* ================================================ type definitions ================================================ */
+
+ /* ========================================== internal function declarations ======================================== */
+
+ /* ============================================ internal data definitions =========================================== */
+ 
+/* ============================================ external data definitions =========================================== */
+ 
+/* ========================================== external function definitions ========================================= */
+
+#define DET_START_SEC_CODE
+#include "Det_MemMap.h"
+
+/* The API is used to enter endless loop */
+/* limit condition: If the source of the DET error is generated internally by the interrupt, 
+   the user needs to edit the code himself and send the error log message by asynchronous operation. */
+/* Specification condition: If the source of the DET error is generated internally by the task scheduler, 
+   the following code can be used to send the error log message. */
+/* Interrupt mode: When a CAN message is received, the CAN frame data is read from the CAN buffer by the response of the interrupt service function. */
+/* Polling mode: After receiving the CAN message, the CAN frame data is read from the CAN buffer through the periodic scheduling of 
+   the polling main function(The following reference code was not written)
+(Can_17_McmCan_MainFunction_Write,Can_17_McmCan_MainFunction_Read) */
+/* CAN Communication stack: Since the error log message of DLT is sent in multi-frame mode, the CanTp module is needed, 
+   so it is necessary to call CanTp_MainFunction in the next week frame to implement multi-frame message passing. */
+/* Ethernet Communication stack: Since the error log message of DLT is sent in multi-frame mode, the EthIf/TcpIp/SoAd module is needed, 
+   so it is necessary to call EthIf_MainFunctionState /TcpIp_MainFunction/ SoAd_MainFunction in the next week frame to implement multi-frame message passing. */
+/* DLT: Since DLT error log messages are sent in multi-frame mode, it is necessary to call Dlt_TxFunction in the next frame to implement error log message sending. */
+/* HALT Triggered: The AUTOSAR software architecture explicitly stipulates that as long as any module causes an DET error, 
+   the system is required to eventually enter HALT mode, which is the "crash" phenomenon. */
+/* Specification condition: The 1ms timing in the following code needs to be implemented by the user during the integration process. */
+/* Specification condition: The delay after error log messages are sent is determined by the user (change the value of the corresponding macro DET_DLT_LOG_TX_DEFER_TIME). */
+void Det_EndlessLoop(void) /* PRQA S 1532 */ /* VL_QAC_OneFunRef */
+{
+    {# 此处仅生成参考代码，用于错误日志消息的转发功能，后续不再赘述 #}
+{% if DetGeneral.DetForwardToDlt == 'STD_ON' %}
+    {% set customCode -%}
+#ifdef DET_ENDLESSLOOP_EXAMPLE
+    static boolean periodExpired = FALSE;
+    static uint16 periodCounter = DET_DLT_LOG_TX_DEFER_TIME;
+#endif
+    while (TRUE) /* PRQA S 2740,2870 */ /* VL_Det_2740,VL_Det_2870 */
+    {
+#ifdef DET_ENDLESSLOOP_EXAMPLE
+        /* Check if the value of the period counter is 0 */
+        if (periodCounter > 0u)
+        {
+            /* Check if the expired state is TRUE for the 1ms interval */
+            if (TRUE == Det_GetExpiredFlag_1ms())
+            {
+                /* Execute CanTp's scheduling main function */
+                CanTp_MainFunction();
+                /* Execute Dlt's scheduling main function */
+                Dlt_TxFunction();
+                /* Decrement the value of the period counter */
+                periodCounter--;
+                /* Check if the value of the period counter is 0 */
+                if (0u == periodCounter)
+                {
+                    /* Set the expired status of the period counter to TRUE */
+                    periodExpired = TRUE;
+                }
+            }
+        }
+        /* Check if the expired status of the period counter is set to TRUE */
+        if (TRUE == periodExpired)
+        {
+            /* The expired status of the period counter is set to FALSE */
+            periodExpired = FALSE;
+            /* Suspend all interrupts */
+            SuspendAllInterrupts();
+        }
+#endif /* DET_ENDLESSLOOP_EXAMPLE */
+    }
+    {% endset %}
+    {{Template_Base.IncGen("ToDltON", 4, UserCodeDefinitions, customCode)}}
+{% endif %}
+        {# 此处仅生成参考代码，用于错误日志消息的转发功能，后续不再赘述 #}
+{% if DetGeneral.DetForwardToDlt != 'STD_ON' %}
+    {% set customCode -%}
+#ifdef DET_ENDLESSLOOP_EXAMPLE
+    static boolean periodExpired = TRUE;
+#endif
+    while (TRUE) /* PRQA S 2740,2870 */ /* VL_Det_2740,VL_Det_2870 */
+    {
+#ifdef DET_ENDLESSLOOP_EXAMPLE
+        /* Check if the expired status of the period counter is set to TRUE */
+        if (TRUE == periodExpired)
+        {
+            /* The expired status of the period counter is set to FALSE */
+            periodExpired = FALSE;
+            /* Suspend all interrupts */
+            SuspendAllInterrupts();
+        }
+#endif /* DET_ENDLESSLOOP_EXAMPLE */
+    }
+    {% endset %}
+    {{Template_Base.IncGen("ToDltOFF", 4, UserCodeDefinitions, customCode)}}
+{% endif %}
+}
+
+{# 从配置项 DetNotification->DetErrorHook->Add->ErrorHookFunction 获取编辑输入框的每一个字符串的API函数名称,并对函数API进行声明,如果没有设置则不生成 #}
+{% if Det.ErrorHookTable %}
+    {% for errorHook in Det.ErrorHookTable %}
+/* The API is used to error hook notification for DET modules */
+/* PRQA S 3206,1532 ++ */ /* VL_Det_3206,VL_QAC_OneFunRef */
+Std_ReturnType {{ errorHook }}(uint16 moduleId, uint8 instanceId, uint8 apiId, uint8 errorId)
+/* PRQA S 3206,1532 -- */
+{
+    {# 此处仅生成框架代码，对于未使用的参数做了宏操作，从而避免QAC警告问题，后续不再赘述 #}
+    {% set customCode -%}
+    DET_PARAM_UNUSED(moduleId);
+    DET_PARAM_UNUSED(instanceId);
+    DET_PARAM_UNUSED(apiId);
+    DET_PARAM_UNUSED(errorId);
+    return E_OK;
+    {% endset %}
+    {{Template_Base.IncGen(errorHook, 4, UserCodeDefinitions, customCode)}}
+}
+    {% endfor %}
+{% endif %}
+
+{# 从配置项 DetNotification->DetReportRuntimeErrorCallout->Add->CalloutFunction 获取编辑输入框的每一个字符串的API函数名称,并对函数API进行声明,如果没有设置则不生成 #}
+{% if Det.RuntimeErrorCalloutTable %}
+    {% for runtimeErrorCallout in Det.RuntimeErrorCalloutTable %}
+/* The API is used to report runtime error callout for DET modules */
+/* PRQA S 1532,3206 ++ */ /* VL_QAC_OneFunRef,VL_Det_3206 */
+Std_ReturnType {{ runtimeErrorCallout }}(uint16 moduleId, uint8 instanceId, uint8 apiId, uint8 errorId)
+/* PRQA S 1532,3206 -- */
+{
+    {# 此处仅生成框架代码，对于未使用的参数做了宏操作，从而避免QAC警告问题，后续不再赘述 #}
+    {% set customCode -%}
+    DET_PARAM_UNUSED(moduleId);
+    DET_PARAM_UNUSED(instanceId);
+    DET_PARAM_UNUSED(apiId);
+    DET_PARAM_UNUSED(errorId);
+    return E_OK;
+    {% endset %}
+    {{Template_Base.IncGen(runtimeErrorCallout, 4, UserCodeDefinitions, customCode)}}
+}
+    {% endfor %}
+{% endif %}
+
+{# 从配置项 DetNotification->DetReportTransientFaultCallout->Add->CalloutFunction 获取编辑输入框的每一个字符串的API函数名称,并对函数API进行声明,如果没有设置则不生成 #}
+{% if Det.TransientFaultCalloutTable %}
+    {% for transientFaultCallout in Det.TransientFaultCalloutTable %}
+/* The API is used to report transient fault callout for DET modules */
+/* PRQA S 1532,3206 ++ */ /* VL_QAC_OneFunRef,VL_Det_3206 */
+Std_ReturnType {{ transientFaultCallout }}(uint16 moduleId, uint8 instanceId, uint8 apiId, uint8 faultId)
+/* PRQA S 1532,3206 -- */
+{
+    {# 此处仅生成框架代码，对于未使用的参数做了宏操作，从而避免QAC警告问题，后续不再赘述 #}
+    {% set customCode -%}
+    DET_PARAM_UNUSED(moduleId);
+    DET_PARAM_UNUSED(instanceId);
+    DET_PARAM_UNUSED(apiId);
+    DET_PARAM_UNUSED(faultId);
+    return E_OK;
+    {% endset %}
+    {{Template_Base.IncGen(transientFaultCallout, 4, UserCodeDefinitions, customCode)}}
+}
+    {% endfor %}
+{% endif %}
+
+#define DET_STOP_SEC_CODE
+#include "Det_MemMap.h"
+
+/* ========================================== internal function definitions ========================================= */

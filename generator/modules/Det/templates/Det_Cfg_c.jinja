@@ -1,0 +1,128 @@
+{% import 'Template_Base.jinja' as Template_Base with context %}
+{% set Det = context.DetContext.Det %}
+{% set DetGeneral,DetNotification,DetModule = Det.DetGeneral,Det.DetNotification,Det.DetModule %}
+{{Template_Base.Header_Description("config definitions for DET module","R23-11")}}
+
+/*******************************************************************************
+** Configuration description :
+** All configurations of the DET module are not dependent on tool generation,
+** and all configuration items are fixed
+*******************************************************************************/
+
+/* =================================================== inclusions =================================================== */
+#include "Det_Types.h"
+#include "Det_Cfg.h"
+#include "Det_Externals.h"
+
+/* ===================================================== macros ===================================================== */
+
+/* ================================================ type definitions ================================================ */
+
+/* ========================================== internal function declarations ======================================== */
+
+/* ============================================ internal data definitions =========================================== */
+
+/* ============================================ external data definitions =========================================== */
+
+#define DET_START_SEC_CONST_UNSPECIFIED
+#include "Det_MemMap.h"
+
+{# 从配置项 DetNotification->DetErrorHook->Add->ErrorHookFunction 获取编辑输入框的每一个字符串的API函数名称 #}
+{% if Det.ErrorHookTable %}
+/* Check if the number of error hook notification callbacks is greater than 0. */
+/* Get the error hook function name string and generates function list based on the function prototype */
+/* PRQA S 1531,1533 ++ */ /* VL_QAC_OneRefSymbol */
+/* PRQA S 1334,3132 ++ */ /* VL_Det_1334,VL_QAC_MagicNum */
+const Det_ErrorHookFncType Det_GetErrorHookTable[{{ Det.ErrorHookTable | length }}] =
+{
+    {# DetErrorHook 编辑输入框的每一个字符串的API函数名称 #}
+    {{ Det.ErrorHookTable | join(',\n\t') }}
+};
+/* PRQA S 1531,1533 -- */
+/* PRQA S 1334,3132 -- */
+{% endif %}
+
+{# 从配置项 DetNotification->DetReportRuntimeErrorCallout->Add->CalloutFunction 获取编辑输入框的每一个字符串的API函数名称 #}
+{% if Det.RuntimeErrorCalloutTable %}
+/* Check if the number of runtime error callout callbacks is greater than 0. */
+/* Get the runtime error callout name string and generates function list based on the function prototype */
+/* PRQA S 1533,1334 ++ */ /* VL_QAC_OneRefSymbol,VL_Det_1334 */
+const Det_CalloutFncType Det_GetRuntimeErrorCalloutTable[{{ Det.RuntimeErrorCalloutTable | length }}] =
+{
+    {# DetReportRuntimeErrorCallout 编辑输入框的每一个字符串的API函数名称 #}
+    {{ Det.RuntimeErrorCalloutTable | join(',\n\t') }}
+};
+/* PRQA S 1533,1334 -- */
+{% endif %}
+
+{# 从配置项 DetNotification->DetReportTransientFaultCallout->Add->CalloutFunction 获取编辑输入框的每一个字符串的API函数名称 #}
+{% if Det.TransientFaultCalloutTable %}
+/* Check if the number of transient fault callout callbacks is greater than 0. */
+/* Get the transient fault callout name string and generates function list based on the function prototype */
+/* PRQA S 1533,1334 ++ */ /* VL_QAC_OneRefSymbol,VL_Det_1334 */
+const Det_CalloutFncType Det_GetTransientFaultCalloutTable[{{ Det.TransientFaultCalloutTable | length }}] =
+{
+    {# DetReportTransientFaultCallout 编辑输入框的每一个字符串的API函数名称 #}
+    {{ Det.TransientFaultCalloutTable | join(',\n\t') }}
+};
+/* PRQA S 1533,1334 -- */
+{% endif %}
+
+{% if (DetModule | length) > 0 %}
+
+{# 从配置项 DetConfigSet->DetModule->DetModuleInstance 获取编辑界面容器的设备配置列表,如果用户没有创建“DetModuleInstance”容器,则不生成该配置项数组 #}
+    {% for detModule in DetModule %}
+/* Describes the Instance used for the according Service Port. 
+   It shall be used to differentiate software component instances when multiple instantiation is used. */
+static const uint8 Det_{{ detModule.shortName_ }}_{{ detModule.DetModuleId }}_ModuleInstanceCfg[{{ detModule.DetModuleInstance|length }}] =
+{
+    {# 从配置项 DetConfigSet->DetModule->DetModuleInstance->DetInstanceId 获取编辑输入框的模块标识符 #}
+    /* Describes the InstanceId used for the according Service Port. 
+       It shall be used to differentiate software component instances when multiple instantiation is used. 
+       Else it shall be set to zero. */
+    {{ Det.getInstanceId(detModule) | join(',') }}
+};
+    {% endfor %}
+
+{# 从配置项 DetConfigSet->DetModule 获取编辑界面容器的设备配置列表,如果用户没有创建“DetModule”容器,则不生成该配置项数组 #}
+/* This container describes a non BSW module that is using the Det via Service Interface. */
+/* PRQA S 1290 ++ */ /* VL_Det_1290 */
+static const Det_ModuleType Det_ModuleCfg[{{ DetModule | length }}] = /* PRQA S 3132 */ /* VL_QAC_MagicNum */
+{
+    {% for detModule in DetModule %}
+    {
+        {# 从配置项 DetConfigSet->DetModule->DetModuleId 获取编辑输入框的模块标识符 #}
+        /* Unique identifier of the error reporting component. When reporting errors to the DET, 
+           a symbolic name derived from the moduleID has to be used to identify the reporter. */
+        {{ detModule.DetModuleId }},
+        {# DetModule 下 DetModuleInstance 数量 #}
+        {{ detModule.DetModuleInstance | length }}u,
+        {# 从配置项 DetConfigSet->DetModule->DetModuleInstance 获取编辑界面容器的设备配置列表 #}
+        /* Describes the Instance used for the according Service Port. 
+           It shall be used to differentiate software component instances when multiple instantiation is used. */
+        &Det_{{ detModule.shortName_ }}_{{ detModule.DetModuleId }}_ModuleInstanceCfg[0]
+    },
+    {% endfor %}
+};
+/* PRQA S 1290 -- */
+
+{% endif %}
+
+const Det_ConfigType Det_Config = /* PRQA S 1502,3408 */ /* VL_Det_1502,VL_Det_3408 */
+{
+    {# DetModule数量 #}
+    /* Used to indicate the number of configured modules */
+    {{ DetModule | length }}u,
+{% if (DetModule | length) > 0 %}
+    {# 从配置项 DetConfigSet->DetModule 获取编辑界面容器的设备配置列表,如果没有创建“DetModule”容器,则生成NULL_PTR #}
+    /* Used to indicate the parameter list information describing of configured module. */
+    &Det_ModuleCfg[0],
+{% endif %}
+};
+
+#define DET_STOP_SEC_CONST_UNSPECIFIED
+#include "Det_MemMap.h"
+
+/* ========================================== external function definitions ========================================= */
+
+/* ========================================== internal function definitions ========================================= */

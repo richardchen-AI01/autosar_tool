@@ -1,0 +1,193 @@
+{% import 'Template_Base.jinja' as Template_Base with context %}
+{% set NvM = context.NvMContext.NvM %}
+{% set NvMCommon = NvM.NvMCommon %}
+{% set NvMBlockDescriptor = NvM.NvMBlockDescriptor %}
+{% set NvMDemEventParameterRefs = NvM.NvMDemEventParameterRefs %}
+{% set NvMBlockCiphering = NvM.NvMBlockCiphering %}
+{{ Template_Base.Header_Description("Pre-compile time definitions of NvM","R23-11") }}
+#ifndef NVM_CFG_H
+#define NVM_CFG_H
+
+/* =================================================== inclusions =================================================== */
+#include "Std_Types.h"
+{% if NvM.NvMDemEventNumber %}
+#include "Dem_Cfg.h"
+{% endif %}
+ 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* =============================================== version information ============================================== */
+
+/* ===================================================== macros ===================================================== */
+/** Enable some APIs which are related to NVM API configuration classes */
+#define NVM_API_CONFIG_CLASS            {{NvMCommon.NvMApiConfigClass}}
+
+/** Defines whether the corresponding switches is enabled */
+#define NVM_BSWM_MULTIBLOCK_JOBSTATUS_INFORMATION   {{NvMCommon.NvMBswMMultiBlockJobStatusInformation}}
+#define NVM_BSWM_SINGLEBLOCK_JOBSTATUS_INFORMATION      {{NvM.NvMBswMBlockStatusInformationEabled}}
+#define NVM_DEV_ERROR_DETECT            {{NvMCommon.NvMDevErrorDetect}}
+#define NVM_DYNAMIC_CONFIGURATION       {{NvMCommon.NvMDynamicConfiguration}}
+#define NVM_JOB_PRIORITIZATION	        {{NvMCommon.NvMJobPrioritization}}
+#define NVM_POLLING_MODE            {{NvMCommon.NvMPollingMode}}
+#define NVM_SET_RAM_BLOCK_STATUS_API            {{NvMCommon.NvMSetRamBlockStatusApi}}
+#define NVM_VERSION_INFO_API            {{NvMCommon.NvMVersionInfoApi}}
+
+/** Size of the queue */
+#define NVM_SIZE_IMMEDIATE_JOB_QUEUE            ({{NvMCommon.NvMSizeImmediateJobQueue}}u)
+#define NVM_SIZE_STANDARD_JOB_QUEUE     ({{NvMCommon.NvMSizeStandardJobQueue}}u)
+
+/** Configuration ID regarding the NV memory layout */
+#define NVM_COMPILED_CONFIG_ID          ({{NvMCommon.NvMCompiledConfigId}}u)
+
+/** Defines the number of least significant bits which shall be used */
+#define NVM_DATASET_SELECTION_BITS              ({{NvMCommon.NvMDatasetSelectionBits}}u)
+
+/** Defines the number of retries to copy data to or from the NvM module's mirror */
+#define NVM_REPEAT_MIRROR_OPERATIONS            ({{NvMCommon.NvMRepeatMirrorOperations}}u)
+
+/** The Crc information */
+#define NVM_INCLUDE_CRC             {{NvM.NvMBlockUseCrcEabled}}
+#define NVM_CRC_TYPE_8              {{NvM.NvMBlockCRC8Eabled}}
+#define NVM_CRC_TYPE_16             {{NvM.NvMBlockCRC16Eabled}}
+#define NVM_CRC_TYPE_32             {{NvM.NvMBlockCRC32Eabled}}
+#define NVM_CRC_NUM_OF_BYTES            ({{NvMCommon.NvMCrcNumOfBytes}}u)
+
+/** Defines whether enable the write verification function */
+#define NVM_WRITE_VERIFY {{NvM.NvMWriteVerificationEabled}}
+
+/** Defines whether enable the static blockID function */
+#define NVM_STATIC_BLOCKID {{NvM.NvMStaticBlockIDCheckEabled}}
+
+/** Defines the Dem error reporting switches is enabled */
+{% if NvM.NvMDemEventNumber %}
+#define NVM_DEM_PRODUCTION_ERROR_DETECT        {{NvMDemEventParameterRefs.NvMAnyDemEabled}}
+#define NVM_DEM_E_HARDWARE                {{NvMDemEventParameterRefs.NVM_E_HARDWARE_EABLED}}
+{% if NvMDemEventParameterRefs.NVM_E_HARDWARE_EABLED == 'STD_ON' %}
+#define NVM_E_HARDWARE             DemConf_DemEventParameter_{{NvMDemEventParameterRefs.NVM_E_HARDWARE.shortName_}}
+{% endif %}
+#define NVM_DEM_E_INTEGRITY_FAILED        {{NvMDemEventParameterRefs.NVM_E_INTEGRITY_FAILED_EABLED}}
+{% if NvMDemEventParameterRefs.NVM_E_INTEGRITY_FAILED_EABLED == 'STD_ON' %}
+#define NVM_E_INTEGRITY_FAILED             DemConf_DemEventParameter_{{NvMDemEventParameterRefs.NVM_E_INTEGRITY_FAILED.shortName_}}
+{% endif %}
+#define NVM_DEM_E_LOSS_OF_REDUNDANCY      {{NvMDemEventParameterRefs.NVM_E_LOSS_OF_REDUNDANCY_EABLED}}
+{% if NvMDemEventParameterRefs.NVM_E_LOSS_OF_REDUNDANCY_EABLED == 'STD_ON' %}
+#define NVM_E_LOSS_OF_REDUNDANCY             DemConf_DemEventParameter_{{NvMDemEventParameterRefs.NVM_E_LOSS_OF_REDUNDANCY.shortName_}}
+{% endif %}
+#define NVM_DEM_E_REQ_FAILED              {{NvMDemEventParameterRefs.NVM_E_REQ_FAILED_EABLED}}
+{% if NvMDemEventParameterRefs.NVM_E_REQ_FAILED_EABLED == 'STD_ON' %}
+#define NVM_E_REQ_FAILED             DemConf_DemEventParameter_{{NvMDemEventParameterRefs.NVM_E_REQ_FAILED.shortName_}}
+{% endif %}
+#define NVM_DEM_E_VERIFY_FAILED           {{NvMDemEventParameterRefs.NVM_E_VERIFY_FAILED_EABLED}}
+{% if NvMDemEventParameterRefs.NVM_E_VERIFY_FAILED_EABLED == 'STD_ON' %}
+#define NVM_E_VERIFY_FAILED             DemConf_DemEventParameter_{{NvMDemEventParameterRefs.NVM_E_VERIFY_FAILED.shortName_}}
+{% endif %}
+#define NVM_DEM_E_WRITE_PROTECTED         {{NvMDemEventParameterRefs.NVM_E_WRITE_PROTECTED_EABLED}}
+{% if NvMDemEventParameterRefs.NVM_E_WRITE_PROTECTED_EABLED == 'STD_ON' %}
+#define NVM_E_WRITE_PROTECTED             DemConf_DemEventParameter_{{NvMDemEventParameterRefs.NVM_E_WRITE_PROTECTED.shortName_}}
+{% endif %}
+#define NVM_DEM_E_WRONG_BLOCK_ID          {{NvMDemEventParameterRefs.NVM_E_WRONG_BLOCK_ID_EABLED}}
+{% if NvMDemEventParameterRefs.NVM_E_WRONG_BLOCK_ID_EABLED == 'STD_ON' %}
+#define NVM_E_WRONG_BLOCK_ID             DemConf_DemEventParameter_{{NvMDemEventParameterRefs.NVM_E_WRONG_BLOCK_ID.shortName_}}
+{% endif %}
+{% else %}
+#define NVM_DEM_PRODUCTION_ERROR_DETECT            STD_OFF
+#define NVM_DEM_E_HARDWARE           STD_OFF
+#define NVM_DEM_E_INTEGRITY_FAILED   STD_OFF
+#define NVM_DEM_E_LOSS_OF_REDUNDANCY STD_OFF
+#define NVM_DEM_E_REQ_FAILED         STD_OFF
+#define NVM_DEM_E_VERIFY_FAILED      STD_OFF
+#define NVM_DEM_E_WRITE_PROTECTED    STD_OFF
+#define NVM_DEM_E_WRONG_BLOCK_ID     STD_OFF
+{% endif %}
+
+/** Defines the BlockCiphering information */
+{% if NvM.NvMBlockCipheringEabled == 'STD_ON' %}
+#define NVM_CIPHERING_ENABLE            STD_ON
+#define NVM_CSM_RETRY_COUNTER           ({{NvMCommon.NvMCsmRetryCounter}}u)
+#define NVM_BLOCKMAXLENGTH              ({{NvM.NvMBlockCipheringMaxLength}}u)
+#define NVM_BLOCK_CIPHERING_NUM_ALL     ({{NvMBlockCiphering|length}}u)
+{% else %}
+#define NVM_CIPHERING_ENABLE            STD_OFF
+{% endif %}
+
+/** Defines the BlockCompression information */
+{% if NvM.NvMBlocCompressionEabled == 'STD_ON' %}
+#define NVM_COMPRESSION_ENABLE          STD_ON
+{% else %}
+#define NVM_COMPRESSION_ENABLE          STD_OFF
+{% endif %}
+{% if NvM.NvMBlockCipheringEabled == 'STD_OFF' and NvM.NvMBlocCompressionEabled == 'STD_ON' %}
+#define NVM_BLOCKMAXLENGTH              ({{NvM.NvMMaxBlockLength}}u)
+{% endif %}
+
+/** Defines the BlockPartition information */
+{% if NvMCommon.NvMMasterEcucPartitionRef %}
+#define NVM_MASTER_ECUC_PARTITION              ({{NvMCommon.NvMMasterEcucPartitionId}}u)
+{% endif %}
+#define NVM_ECUC_PARTITION_NUM               ({{NvMCommon.NvMEcucPartitionRef}}u)
+
+/** The following definitions used to index NVM block for SW */
+{% for i in range(NvMBlockDescriptor|length) %}
+{% if i > 0 %}
+#define NvMConf_NvMBlockDescriptor_{{NvMBlockDescriptor[i].shortName_}}   {{i+1}}u
+{% endif %}
+{% endfor %}
+
+/** The total number of user configured */
+#define NVM_BLOCK_NUM_ALL  {{NvMBlockDescriptor|length}}u
+#define NVM_REDUNDANT_ALL  {{NvM.NvMRedundantBlockCount}}u
+
+/** The max length of the configured buffer */
+#define NVM_MAX_LENGTH_CONFIGED_RAM_MIRROR      {{NvM.NvMMaxBlockLengthConfigedRamMirror}}u
+#define NVM_MAX_LENGTH_NV_BLOCK {{NvM.NvMMaxBlockLength}}u
+#define NVM_MAX_LENGTH_REDUNDANT_BLOCK   {{NvM.NvMMaxRedundantBlockLength}}u
+
+{% if NvMCommon.NvMJobPrioritization == 'STD_ON' %}
+/** The priority table size*/
+#define NVM_TABLE_SIZE_PRIORITY  {{NvM.NVM_TABLE_SIZE_PRIORITY}}u
+/*The total number of different priority*/
+#define NVM_TOTAL_NUM_DIFF_PRI NVM_TABLE_SIZE_PRIORITY
+{% endif %}
+
+/* ================================================ type definitions ================================================ */
+
+/* ========================================== internal function definitions ========================================= */
+
+/* =========================================== external data declarations =========================================== */
+
+/* ========================================= external function declarations ========================================= */
+{% if NvM.NvMBlocCompressionEabled == 'STD_ON' %}
+/**
+ * @brief       Compress callout interface
+ * @param[in]   Buffer: Pointer to input Nv data buffer
+ * @param[in]   Length: Input Nv data length
+ * @param[out]  CompressionBuffer: Pointer to output Compress buffer
+ * @param[out]  compressionOutLength: Pointer to output Compress buffer length
+ * @reentrant   Non Reentrant
+ * @synchronous TRUE
+ * @trace       CPD-76660
+ */
+/** The callout is defined by customer */
+extern Std_ReturnType NvM_CompressionCallout(uint8* Buffer, uint16 Length, uint8* CompressionBuffer, uint16* compressionOutLength);
+
+/**
+ * @brief       Decompress callout interface
+ * @param[in]   Buffer: Pointer to input Nv data buffer
+ * @param[in]   Length: Input Nv data length
+ * @param[out]  DecompressionBuffer: Pointer to output Decompress buffer
+ * @param[out]  compressionOutLength: Pointer to output Decompress buffer length
+ * @reentrant   Non Reentrant
+ * @synchronous TRUE
+ * @trace       CPD-76661
+ */
+/** The callout is defined by customer */
+extern Std_ReturnType NvM_DecompressionCallout(uint8* Buffer, uint16 Length, uint8* DecompressionBuffer, uint16* compressionOutLength);
+{% endif %}
+
+#ifdef __cplusplus
+}
+#endif
+#endif
+

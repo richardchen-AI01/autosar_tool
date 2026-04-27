@@ -1,0 +1,8 @@
+{% set NvM = context.NvMContext.NvM %}
+NvM_Cfg.h@#@NvM_Cfg_h.jinja@#@None
+NvM_Lcfg.h@#@NvM_Lcfg_h.jinja@#@None
+NvM_Lcfg.c@#@NvM_Lcfg_c.jinja@#@None
+NvM_Bswmd.arxml@#@NvM_Bswmd_arxml.jinja@#@None
+{% if not NvM.checkRTE and not NvM.checkiRTE %}
+Rte_NvM_Type.h@#@Rte_NvM_Type_h.jinja@#@None
+{% endif %}

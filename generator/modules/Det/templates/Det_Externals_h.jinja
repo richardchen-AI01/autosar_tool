@@ -1,0 +1,66 @@
+{% import 'Template_Base.jinja' as Template_Base with context %}
+{% set Det = context.DetContext.Det %}
+{% set DetGeneral,DetNotification,DetModule = Det.DetGeneral,Det.DetNotification,Det.DetModule %}
+{{Template_Base.Header_Description("config definitions for DET module","R23-11")}}
+
+/*******************************************************************************
+**                      Revision Control History                              **
+*******************************************************************************/
+
+#ifndef DET_EXTERNALS_H_
+#define DET_EXTERNALS_H_
+
+/* =================================================== inclusions =================================================== */
+#include "Std_Types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* =============================================== version information ============================================== */
+ 
+/* ===================================================== macros ===================================================== */
+#if !defined(DET_PARAM_UNUSED)
+#define DET_PARAM_UNUSED(x) (void)(x)
+#endif
+ 
+/* ================================================ type definitions ================================================ */
+ 
+/* ========================================== internal function definitions ========================================= */
+ 
+/* =========================================== external data declarations =========================================== */
+ 
+/* ========================================= external function declarations ========================================= */
+
+/* The API is used to enter endless loop */
+extern void Det_EndlessLoop(void);
+
+{# 从配置项 DetNotification->DetErrorHook->Add->ErrorHookFunction 获取编辑输入框的每一个字符串的API函数名称,并对函数API进行声明,如果没有设置则不生成 #}
+{% if Det.ErrorHookTable %}
+    {% for errorHook in Det.ErrorHookTable %}
+/* The API is used to error hook notification for DET modules */
+extern Std_ReturnType {{ errorHook }}(uint16 moduleId, uint8 instanceId, uint8 apiId, uint8 errorId);
+    {% endfor %}
+{% endif %}
+
+{# 从配置项 DetNotification->DetReportRuntimeErrorCallout->Add->CalloutFunction 获取编辑输入框的每一个字符串的API函数名称,并对函数API进行声明,如果没有设置则不生成 #}
+{% if Det.RuntimeErrorCalloutTable %}
+    {% for runtimeErrorCallout in Det.RuntimeErrorCalloutTable %}
+/* The API is used to report runtime error callout for DET modules */
+extern Std_ReturnType {{ runtimeErrorCallout }}(uint16 moduleId, uint8 instanceId, uint8 apiId, uint8 errorId);
+    {% endfor %}
+{% endif %}
+
+{# 从配置项 DetNotification->DetReportTransientFaultCallout->Add->CalloutFunction 获取编辑输入框的每一个字符串的API函数名称,并对函数API进行声明,如果没有设置则不生成 #}
+{% if Det.TransientFaultCalloutTable %}
+    {% for transientFaultCallout in Det.TransientFaultCalloutTable %}
+/* The API is used to report transient fault callout for DET modules */
+extern Std_ReturnType {{ transientFaultCallout }}(uint16 moduleId, uint8 instanceId, uint8 apiId, uint8 faultId);
+    {% endfor %}
+{% endif %}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* DET_EXTERNALS_H_ */

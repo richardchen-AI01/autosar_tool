@@ -1,0 +1,54 @@
+{% import 'Template_Base.jinja' as Template_Base with context %}
+{% set Ea = context.EaContext.Ea %}
+{% set EaGeneral,EaPublishedInformation = Ea.EaGeneral,Ea.EaPublishedInformation %}
+{{Template_Base.Header_Description("Configuration parameter of Ea","R23-11")}}
+#ifndef  EA_CFG_H
+#define  EA_CFG_H
+/* =================================================== inclusions =================================================== */
+#include "Ea_Lcfg.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* ===================================================== macros ===================================================== */
+#define EA_DEV_ERROR_DETECT {{EaGeneral.EaDevErrorDetect}} /** Switch the development error detection on or off */
+
+#define EA_VERSION_INFO_API {{EaGeneral.EaVersionInfoApi}} /** Switch to enable/disable reading the version information */
+
+#define EA_POLLING_MODE {{EaGeneral.EaPollingMode}} /** Switch to enable/disable the polling mode */
+
+#define EA_VIRTUAL_PAGE_SIZE {{EaGeneral.EaVirtualPageSize}}u /** The size in bytes to which logical blocks shall be aligned */
+
+#define EA_NUMBER_OF_BLOCKS {{Ea.EaBlockNumber}}u /** Total block numbers */
+
+#define EA_NUMBER_OF_EEP_DEVICE {{Ea.EaEepDeviceNumber}}u /** Total block numbers */
+
+#define EA_BLOCK_OVER_HEAD {{EaPublishedInformation.EaBlockOverhead}}u /** Management overhead per logical block in bytes */
+
+#define EA_PAGE_OVER_HEAD {{EaPublishedInformation.EaPageOverhead}}u /** Management overhead per page in bytes */
+
+#define EA_BLOCK_MAX_SIZE {{Ea.maxEaBlockSize}}u /** Max block size in the configuration */
+
+#define EA_MINIMUM_READ_PAGE_SIZE {{EaGeneral.EaMinimumReadPageSize}}u /** Minimun page size during read */
+
+{% if EaGeneral.EaBufferAlignmentValue %}
+#define EA_BUFFER_ALIGN_VALUE {{EaGeneral.EaBufferAlignmentValue}}u /** The buffer alignment value */
+{% endif %}
+
+/* ================================================ type definitions ================================================ */
+
+/* ========================================== internal function declarations ======================================== */
+
+/* ============================================ internal data definitions =========================================== */
+
+/* ============================================ external data definitions =========================================== */
+
+/* ========================================== external function definitions ========================================= */
+
+/* ========================================== internal function definitions ========================================= */
+
+#ifdef __cplusplus
+}
+#endif
+#endif

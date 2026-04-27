@@ -1,0 +1,147 @@
+{% import 'Template_Base.jinja' as Template_Base with context %}
+{% set NvM = context.NvMContext.NvM %}
+{% set NvMCommon = NvM.NvMCommon %}
+{% set NvMBlockDescriptor = NvM.NvMBlockDescriptor %}
+{% set NvMDemEventParameterRefs = NvM.NvMDemEventParameterRefs %}
+{% set NvMBlockCiphering = NvM.NvMBlockCiphering %}
+{{ Template_Base.Header_Description("Link time declaration of NvM","R23-11") }}
+#ifndef NVM_LCFG_H
+#define NVM_LCFG_H
+
+/* =================================================== inclusions =================================================== */
+#include "Std_Types.h"
+{% if NvMCommon.NvMEcucPartitionRef > 1 %}
+#include "Os.h"
+{% endif %}
+{% if NvM.NvMBlockCipheringEabled == 'STD_ON' %}
+#include "Csm.h"
+{% endif %}
+#include "NvM_Cfg.h"
+#include "NvM_Types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* =============================================== version information ============================================== */
+
+/* ===================================================== macros ===================================================== */
+/** Defines used as parameters for the MemIf job buffer */
+#define NVM_MEMIF_JOB_MAX_NUM           6U
+#define NVM_MEMIF_CLASS1_AND_CLASS2_NUM 3U
+
+/** Defines used as parameters for priority table queue */
+#define NVM_PRI_TAB_MAX_NUM 2U
+
+/* ================================================ type definitions ================================================ */
+{% if NvM.NvMBlockCipheringEabled == 'STD_ON' %}
+/**
+ * @brief     NvM module block Ciphering type
+ */
+typedef struct
+{
+    uint16 NvMNvBlockNVRAMDataLength; /** Ciphering length */
+    uint32 NvMCsmDecryptJobId;        /** Decrypt job Id */
+    uint32 NvMCsmEncryptJobId;        /** Encrypt job Id */
+} NvM_BlockCipheringType;
+{% endif %}
+
+/**
+ * @brief     NvM module block Descriptor type
+ */
+typedef struct
+{
+    uint8 NvmNvramDeviceId;                         /** Device ID for layer module */
+    NvM_BlockManagementType NvmBlockManagementType; /** Block management type */
+{% if NvMCommon.NvMApiConfigClass != 'NVM_API_CONFIG_CLASS_1' and NvMCommon.NvMJobPrioritization == 'STD_ON' %}
+    uint8 NvmBlockJobPriority; /** Priority value */
+{% endif %}
+    uint8 NvmNvBlockNum;              /** Nv block number */
+    uint8 NvmRomBlockNum;             /** Rom blcok number */
+    uint8 NvMMaxNumOfReadRetries;     /** Max number of read retries */
+    uint8 NvMMaxNumOfWriteRetries;    /** Max number of write retries */
+    NvM_BlockCRCType NvmBlockCRCType; /** Type of used crc */
+    /**
+     * Bit 0:NvmWriteBlockOnce
+     * Bit 1:NvmBlockWriteProt
+     * Bit 2:NvmCalcRamBlockCrc
+     * Bit 3:NvmResistantToChangedSw
+     * Bit 4:NvmSelectBlockForReadall
+     * Bit 5:NvmSelectBlockForWriteall
+     * Bit 6:NvMStaticBlockIDCheck
+     * Bit 7:NvMWriteVerification
+     * Bit 8:NvMBlockUseAutoValidation
+     * Bit 9:NvMBlockUseCRCCompMechanism
+     * Bit 10:NvMBlockUseSetRamBlockStatus
+     * Bit 11:NvMBlockUseSyncMechanism
+     * Bit 12:NvMBswMBlockStatusInformation
+     */
+    uint16 FlagGroup;                    /** Administrative block flag */
+    uint16 NvmNvBlockBaseNumber;         /** Base number value */
+    uint16 NvmNvBlockLength;             /** Nv block length */
+    uint16 NvMWriteVerificationDataSize; /** Max number of write verification */
+    NvM_BlockIdType RepairIndex; /** Index of repair buffer */
+{% if NvMCommon.NvMEcucPartitionRef > 1 %}
+    /** Ecuc partition number */
+    ApplicationType NvMBlockEcucPartitionRef;
+{% endif %}
+    /* PRQA S 3432++ */ /* VL_NvM_3432 */
+    uint32* NvmBlockCrcBuffAddress; /** Crc buffer address */
+    uint8* NvmRamBlockDataAddress; /** Ram buffer address */
+    uint8* NvmRomBlockDataAddress; /** Rom buffer address */
+    /* PRQA S 3432-- */
+    /** Initial callback function pointer */
+    NvM_InitBlockCallbackType NvmInitBlockCallback;
+    /** Single block callback function pointer */
+    NvM_SingleBlockCallbackType NvmSingleBlockCallback;
+    /** Read callback function pointer address to copy ram to ram mirror */
+    NvM_ReadRamBlockFromNvmCallbackType NvM_ReadRamBlockFromNvm;
+    /** Write callback function pointer address to copy ram to ram mirror */
+    NvM_WriteRamBlockToNvmCallbackType NvM_WriteRamBlockToNvm;
+{% if NvM.NvMBlockCipheringEabled == 'STD_ON' %}
+    /** Pointer to NvM module block Ciphering type */
+    const NvM_BlockCipheringType* NvMBlockCipheringRef;
+{% endif %}
+} NvM_BlockDescriptorType;
+
+/**
+ * @brief     NvM module config type
+ */
+typedef struct
+{
+    uint8 idle; /* not used */
+} NvM_ConfigType;
+
+/* ========================================== internal function definitions ========================================= */
+
+/* =========================================== external data declarations =========================================== */
+/**
+ * @brief Buffer of RAM block @range NA
+ */
+/* PRQA S 3132 ++ */ /* VL_QAC_MagicNum */
+{% for i in range(NvMBlockDescriptor|length) %}
+{% if NvMBlockDescriptor[i].NvMRamBlockDataBufferAutoFillEabled == 'STD_ON' and NvMBlockDescriptor[i].NvMRamBlockDataAddress %}
+{% if not NvM.checkRTE or NvM.checkRTE and NvMBlockDescriptor[i].NvMBlockUsePort == 'STD_OFF' %}
+extern uint8 {{NvMBlockDescriptor[i].NvMRamBlockDataAddress}}[{{NvMBlockDescriptor[i].NvMNvBlockLength}}];
+{% endif %}
+{% endif %}
+{% endfor %}
+
+{% for i in range(NvMBlockDescriptor|length) %}
+{% if NvMBlockDescriptor[i].NvMBlockUseCrc == 'STD_ON' %}
+{% if NvMBlockDescriptor[i].NvMBlockManagementType == 'NVM_BLOCK_REDUNDANT' or NvMBlockDescriptor[i].NvMBlockManagementType == 'NVM_BLOCK_NATIVE' %}
+extern uint32 NvMCrcBuf_{{NvMBlockDescriptor[i].shortName_}}[1];
+{% else %}
+extern uint32 NvMCrcBuf_{{NvMBlockDescriptor[i].shortName_}}[{{NvMBlockDescriptor[i].NvMDataSetTypeNvNum}}];
+{% endif %}
+{% endif %}
+{% endfor %}
+/* PRQA S 3132 -- */
+
+/* ========================================= external function declarations ========================================= */
+
+#ifdef __cplusplus
+}
+#endif
+#endif
+

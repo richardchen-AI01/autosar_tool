@@ -1,0 +1,88 @@
+{% import 'Template_Base.jinja' as Template_Base with context %}
+{% set Ea = context.EaContext.Ea %}
+{% set EaBlockConfiguration,EaGeneral, EaEepApi =Ea.EaBlockConfiguration,Ea.EaGeneral, Ea.EaEepApi %}
+{{ Template_Base.Header_Description("Configuration parameter of Ea","R23_11") }}
+/* =================================================== inclusions =================================================== */
+#include "Ea_Cfg.h"
+#include "Ea_Types.h"
+{% if EaGeneral.EaNvmJobEndNotification is not none or EaGeneral.EaNvmJobErrorNotification is not none %}
+#include "NvM_MemIf.h"
+{% endif %}
+
+/* ===================================================== macros ===================================================== */
+
+/* ================================================ type definitions ================================================ */
+
+/* ========================================== internal function declarations ======================================== */
+ 
+/* ============================================ internal data definitions =========================================== */
+#define EA_START_SEC_CONFIG_DATA_UNSPECIFIED
+#include "Ea_MemMap.h"
+/**
+ * @brief Defines the block configuration array item
+ */
+static const Ea_BlockConfigurationType Ea_BlockConfiguration[EA_NUMBER_OF_BLOCKS] =
+{
+{% for i in range(EaBlockConfiguration|length) %}
+    {
+        {{EaBlockConfiguration[i].EaImmediateData}}, /** Immediate Data */
+        {{EaBlockConfiguration[i].EaDeviceIndex}}u, /** Device Index */
+        {{EaBlockConfiguration[i].EaBlockNumber}}u, /** Block Number */
+        {{EaBlockConfiguration[i].EaBlockSize}}u, /** Block Size */
+        {{EaBlockConfiguration[i].EaNumberOfWriteCycles}}u, /** Number Of Write Cycles */
+        {{EaBlockConfiguration[i].EaStartAddress}}u, /** Block Start Address */
+    },
+{% endfor %}
+};
+
+/**
+ * @brief Defines the block configuration information item
+ */
+static const Ea_BlockCfgType Ea_BlockCfg =
+{
+    EA_NUMBER_OF_BLOCKS, /** Block Number */
+    Ea_BlockConfiguration /** Block configuration item */
+};
+
+/**
+ * @brief Defines the used lower layer api
+ */
+static const Ea_EepApiType Ea_EepApi[EA_NUMBER_OF_EEP_DEVICE] =
+{
+{% for i in range(EaEepApi|length) %}
+    {
+        {{EaEepApi[i].EepReadApi}}, /** Eep Read Api */
+        {{EaEepApi[i].EepWriteApi}}, /** Eep Write Api */
+        {{EaEepApi[i].EepEraseApi}}, /** Eep Erase Api */
+        {{EaEepApi[i].EepCancelApi}}, /** Eep Cancel Api */
+        {{EaEepApi[i].EepGetStatusApi}}, /** Eep Get Status Api */
+        {{EaEepApi[i].EepGetJobResultApi}}, /** Eep Get JobResult Api */
+    },
+{% endfor %}
+};
+
+/* ============================================ external data definitions =========================================== */
+/**
+ * @brief Defines the configuration information item of the module
+ */
+/* PRQA S 1531,3408 ++ */ /* VL_Ea_1531,VL_Ea_3408 */
+const Ea_ConfigType Ea_Config =
+{
+    {{EaEepApi|length}}u, /** Number of Eep device */
+    Ea_EepApi, /** Reference Eep device API */
+    &Ea_BlockCfg, /** Pointer to configuration block */
+{% if EaGeneral.EaNvmJobEndNotification %}
+    {{EaGeneral.EaNvmJobEndNotification}}, /** End callback interface in NvM */
+{% endif %}
+{% if EaGeneral.EaNvmJobErrorNotification %}
+    {{EaGeneral.EaNvmJobErrorNotification}} /** Error callback interface in NvM */
+{% endif %}
+};
+/* PRQA S 1531,3408 -- */
+
+#define EA_STOP_SEC_CONFIG_DATA_UNSPECIFIED
+#include "Ea_MemMap.h"
+
+/* ========================================== external function definitions ========================================= */
+ 
+/* ========================================== internal function definitions ========================================= */

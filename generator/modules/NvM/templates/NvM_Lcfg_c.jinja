@@ -1,0 +1,256 @@
+{% import 'Template_Base.jinja' as Template_Base with context %}
+{% set NvM = context.NvMContext.NvM %}
+{% set NvMCommon = NvM.NvMCommon %}
+{% set NvMBlockDescriptor = NvM.NvMBlockDescriptor %}
+{% set NvMBlockCiphering = NvM.NvMBlockCiphering %}
+{{ Template_Base.Header_Description("Link time definitions of NvM","R23-11") }}
+
+/* =================================================== inclusions =================================================== */
+{% if NvM.NvMBlockCipheringEabled == 'STD_ON' %}
+#include "Csm.h"
+{% endif %}
+{% for i in range(NvMBlockDescriptor|length) %}
+{% if NvMBlockDescriptor[i].NvMBlockHeaderInclude %}
+#include "{{NvMBlockDescriptor[i].NvMBlockHeaderInclude}}"
+{% endif %}
+{% endfor %}
+#include "NvM_Types.h"
+#include "NvM_Lcfg.h"
+{% if NvM.checkRTE or NvM.checkiRTE %}
+#include "Rte_NvM.h"
+{% endif %}
+
+/* ===================================================== macros ===================================================== */
+
+/* ================================================ type definitions ================================================ */
+
+/* ========================================== internal function declarations ======================================== */
+
+/* ============================================ internal data definitions =========================================== */
+
+/* ============================================ external data definitions =========================================== */
+#define NVM_START_SEC_CONFIG_DATA_PTR
+#include "NvM_MemMap.h"
+/**
+ * @brief Container for NvmMultiBlockCallback
+ */
+/* PRQA S 1502 ++ */ /* VL_NvM_1502 */
+const NvM_MultiBlockCallbackType NvmMultiBlockCallback = {% if NvMCommon.NvMMultiBlockCallback %}{{NvMCommon.NvMMultiBlockCallback}}{% else %}NULL_PTR{% endif %};
+/* PRQA S 1502 -- */
+#define NVM_STOP_SEC_CONFIG_DATA_PTR
+#include "NvM_MemMap.h"
+
+/* PRQA S 3132 ++ */ /* VL_QAC_MagicNum */
+/* PRQA S 1504,1751 ++ */ /* VL_QAC_OneRefSymbol */
+{% if NvM.NvMRamBlockDataBufferAutoFillUsed %}
+#define NVM_START_SEC_VAR_CLEARED_8
+#include "NvM_MemMap.h"
+/**
+ * @brief Buffer of RAM block
+ */
+{% for i in range(NvMBlockDescriptor|length) %}
+{% if NvMBlockDescriptor[i].NvMRamBlockDataBufferAutoFillEabled == 'STD_ON' and NvMBlockDescriptor[i].NvMRamBlockDataAddress %}
+{% if not NvM.checkRTE or NvM.checkRTE and NvMBlockDescriptor[i].NvMBlockUsePort == 'STD_OFF' %}
+uint8 {{NvMBlockDescriptor[i].NvMRamBlockDataAddress}}[{{NvMBlockDescriptor[i].NvMNvBlockLength}}];
+{% endif %}
+{% endif %}
+{% endfor %}
+#define NVM_STOP_SEC_VAR_CLEARED_8
+#include "NvM_MemMap.h"
+{% endif %}
+
+#define NVM_START_SEC_VAR_CLEARED_32
+#include "NvM_MemMap.h"
+{% for i in range(NvMBlockDescriptor|length) %}
+{% if NvMBlockDescriptor[i].NvMBlockUseCrc == 'STD_ON' %}
+{% if NvMBlockDescriptor[i].NvMBlockManagementType == 'NVM_BLOCK_REDUNDANT' or NvMBlockDescriptor[i].NvMBlockManagementType == 'NVM_BLOCK_NATIVE' %}
+uint32 NvMCrcBuf_{{NvMBlockDescriptor[i].shortName_}}[1];
+{% else %}
+uint32 NvMCrcBuf_{{NvMBlockDescriptor[i].shortName_}}[{{NvMBlockDescriptor[i].NvMDataSetTypeNvNum}}];
+{% endif %}
+{% endif %}
+{% endfor %}
+#define NVM_STOP_SEC_VAR_CLEARED_32
+#include "NvM_MemMap.h"
+/* PRQA S 3132 -- */
+/* PRQA S 1504,1751 -- */
+#define NVM_START_SEC_CONFIG_DATA_UNSPECIFIED
+#include "NvM_MemMap.h"
+{% if NvM.NvMBlockCipheringNumber %}
+/**
+ * @brief Container for ciphering block
+ */
+const NvM_BlockCipheringType NvMBlockCiphering[NVM_BLOCK_CIPHERING_NUM_ALL] =
+{
+    {% for i in range(NvMBlockCiphering|length) %}
+    /** {{NvMBlockCiphering[i].shortName_}} */
+    {
+        {{NvMBlockCiphering[i].NvMNvBlockNVRAMDataLength}}u, /** NvMNvBlockNVRAMDataLength */
+        {{NvMBlockCiphering[i].NvMCsmDecryptionJobReference}}u, /** NvMCsmDecryptJobId */
+        {{NvMBlockCiphering[i].NvMCsmEncryptionJobReference}}u, /** NvMCsmEncryptJobId */
+    },
+    {% endfor %}
+};
+{% endif %}
+
+/**
+ * @brief Container for a management structure to configure the composition of a given NVRAM Block Management Type
+ */
+/* PRQA S 1334 ++ */ /* VL_NvM_1334 */
+const NvM_BlockDescriptorType NvM_BlockDescriptor[NVM_BLOCK_NUM_ALL] =
+{
+{% for i in range(NvMBlockDescriptor|length) %}
+{% if i == 0 %}
+    /** {{NvMBlockDescriptor[i].shortName_}} */
+    {
+        {{NvMBlockDescriptor[i].NvMNvramDeviceId}}u,        /** NvMNvramDeviceId */
+        NVM_BLOCK_REDUNDANT,    /** NvmBlockManagementType */
+{% if NvMCommon.NvMApiConfigClass != 'NVM_API_CONFIG_CLASS_1' and NvMCommon.NvMJobPrioritization == 'STD_ON' %}
+        1u,      /** NvmBlockJobPriority */
+{% endif %}
+        2u,    /** NvmNvBlockNum */
+        0u,    /** NvmRomBlockNum */
+        {{NvMBlockDescriptor[i].NvMMaxNumOfReadRetries}}u, /** NvMMaxNumOfReadRetries */
+        {{NvMBlockDescriptor[i].NvMMaxNumOfWriteRetries}}u,  /** NvMMaxNumOfWriteRetries */
+        {{NvMBlockDescriptor[i].NvMBlockCrcType}},        /** NvmBlockCRCType */
+        /*
+         * Bit 0:NvmWriteBlockOnce
+         * Bit 1:NvmBlockWriteProt
+         * Bit 2:NvmCalcRamBlockCrc
+         * Bit 3:NvmResistantToChangedSw
+         * Bit 4:NvmSelectBlockForReadall
+         * Bit 5:NvmSelectBlockForWriteall
+         * Bit 6:NvMStaticBlockIDCheck
+         * Bit 7:NvMWriteVerification
+         * Bit 8:NvMBlockUseAutoValidation
+         * Bit 9:NvMBlockUseCRCCompMechanism
+         * Bit 10:NvMBlockUseSetRamBlockStatus
+         * Bit 11:NvMBlockUseSyncMechanism
+         * Bit 12:NvMBswMBlockStatusInformation
+         * Bit 13:NvMSelectBlockForFirstInitAll
+         * BIt 14:NvMBlockUseCompression
+         */
+        {{NvMBlockDescriptor[i].NvMBlockFlagGroup}}u, /** FlagGroup */
+        {{NvMBlockDescriptor[i].NvMNvBlockBaseNumber}}u,   /** NvmNvBlockBaseNumber */
+        2u,    /** NvmNvBlockLength */
+        {% if NvMBlockDescriptor[i].NvMWriteVerification == 'true' %}
+        {{NvMBlockDescriptor[i].NvMWriteVerificationDataSize}}u{% else %}
+        0u{% endif %}, /** NvMWriteVerificationDataSize */
+        0u, /** RepairIndex */
+        {% if NvMCommon.NvMEcucPartitionRef > 1 %}
+        {{NvMBlockDescriptor[i].NvMBlockEcucPartitionId}}u, /** NvMBlockEcucPartitionRef */
+        {% endif %}
+        /* PRQA S 3432, 0306++ */ /* VL_NvM_3432, VL_NvM_0306 */
+        {% if NvMBlockDescriptor[i].NvMBlockUseCrc == 'STD_ON' %}
+        NvMCrcBuf_{{NvMBlockDescriptor[i].shortName_}}{% else %}
+        NULL_PTR{% endif %},    /** NvmBlockCrcBuffAddress */
+        (uint8*) {{NvMBlockDescriptor[i].NvMRamBlockDataAddress}},	/** NvMRamBlockDataAddress */
+        NULL_PTR,   /** NvMRomBlockDataAddress */
+        /* PRQA S 3432, 0306 -- */
+        NULL_PTR,   /** NvMInitBlockCallback */
+        NULL_PTR,   /** NvMSingleBlockCallback */
+        NULL_PTR,   /** NvM_ReadRamBlockFromNvmCallbackType */
+        NULL_PTR,   /** NvM_WriteRamBlockToNvmCallbackType */
+        {% if NvM.NvMBlockCipheringEabled == 'STD_ON' %}
+        {{NvMBlockDescriptor[i].NvMBlockCipheringRef}}, /** NvMBlockCipheringRef */
+        {% endif %}
+    },
+{% else %}
+    /** {{NvMBlockDescriptor[i].shortName_}} */
+    {
+        {{NvMBlockDescriptor[i].NvMNvramDeviceId}}u,	        /** NvMNvramDeviceId */
+        {{NvMBlockDescriptor[i].NvMBlockManagementType}},    /** NvmBlockManagementType */
+{% if NvMCommon.NvMApiConfigClass != 'NVM_API_CONFIG_CLASS_1' and NvMCommon.NvMJobPrioritization == 'STD_ON' %}
+        {{NvMBlockDescriptor[i].NvMBlockJobPriority}}u,    /** NvmBlockJobPriority */
+{% endif %}
+        {{NvMBlockDescriptor[i].NvMNvBlockNum}}u,    /** NvmNvBlockNum */
+        {{NvMBlockDescriptor[i].NvMRomBlockNum}}u,    /** NvmRomBlockNum */
+        {{NvMBlockDescriptor[i].NvMMaxNumOfReadRetries}}u, /** NvMMaxNumOfReadRetries */
+        {{NvMBlockDescriptor[i].NvMMaxNumOfWriteRetries}}u,  /** NvMMaxNumOfWriteRetries */
+        {% if NvMBlockDescriptor[i].NvMBlockUseCrc == 'STD_ON' %}
+        {{NvMBlockDescriptor[i].NvMBlockCrcType}}{% else %}
+        NVM_CRC_NOT_USED{% endif %},        /** NvmBlockCRCType */
+        /*
+         * Bit 0:NvmWriteBlockOnce
+         * Bit 1:NvmBlockWriteProt
+         * Bit 2:NvmCalcRamBlockCrc
+         * Bit 3:NvmResistantToChangedSw
+         * Bit 4:NvmSelectBlockForReadall
+         * Bit 5:NvmSelectBlockForWriteall
+         * Bit 6:NvMStaticBlockIDCheck
+         * Bit 7:NvMWriteVerification
+         * Bit 8:NvMBlockUseAutoValidation
+         * Bit 9:NvMBlockUseCRCCompMechanism
+         * Bit 10:NvMBlockUseSetRamBlockStatus
+         * Bit 11:NvMBlockUseSyncMechanism
+         * Bit 12:NvMBswMBlockStatusInformation
+         * Bit 13:NvMSelectBlockForFirstInitAll
+         * BIt 14:NvMBlockUseCompression
+         */
+        {{NvMBlockDescriptor[i].NvMBlockFlagGroup}}u, /** FlagGroup */
+        {{NvMBlockDescriptor[i].NvMNvBlockBaseNumber}}u,    /** NvmNvBlockBaseNumber */
+        {{NvMBlockDescriptor[i].NvMNvBlockLength}}u,    /** NvmNvBlockLength */
+        {% if NvMBlockDescriptor[i].NvMWriteVerification == 'true' %}
+        {{NvMBlockDescriptor[i].NvMWriteVerificationDataSize}}u{% else %}
+        0u{% endif %}, /** NvMWriteVerificationDataSize */
+        0u, /** RepairIndex */
+        {% if NvMCommon.NvMEcucPartitionRef > 1 %}
+        {{NvMBlockDescriptor[i].NvMBlockEcucPartitionId}}u, /** NvMBlockEcucPartitionRef */
+        {% endif %}
+        /* PRQA S 3432, 0306++ */ /* VL_NvM_3432, VL_NvM_0306 */
+        {% if NvMBlockDescriptor[i].NvMBlockUseCrc == 'STD_ON' %}
+        NvMCrcBuf_{{NvMBlockDescriptor[i].shortName_}}{% else %}
+        NULL_PTR{% endif %},    /** NvmBlockCrcBuffAddress */
+        {% if NvMBlockDescriptor[i].NvMRamBlockDataAddress %}
+        (uint8*) {{NvMBlockDescriptor[i].NvMRamBlockDataAddress}}{% else %}
+        NULL_PTR{% endif %},    /** NvMRamBlockDataAddress */
+        {% if NvMBlockDescriptor[i].NvMRomBlockDataAddress %}
+        (uint8*) {{NvMBlockDescriptor[i].NvMRomBlockDataAddress}}{% else %}
+        NULL_PTR{% endif %},       /** NvMRomBlockDataAddress */
+        /* PRQA S 3432, 0306 -- */
+        {% if NvMBlockDescriptor[i].NvMInitBlockCallbackFnc %}
+        {{NvMBlockDescriptor[i].NvMInitBlockCallbackFnc}}{% elif NvMBlockDescriptor[i].NvMBlockUsePort == 'STD_ON' and NvMBlockDescriptor[i].NvMInitBlockCallback and NvMBlockDescriptor[i].NvMInitBlockCallbackFnc is none %}
+        Rte_Call_PNIB_{{NvMBlockDescriptor[i].shortName_}}_InitBlock{% else %}
+        NULL_PTR{% endif %},       /** NvMInitBlockCallback */
+        {% if NvMBlockDescriptor[i].NvMSingleBlockCallbackFnc %}
+        {{NvMBlockDescriptor[i].NvMSingleBlockCallbackFnc}}{% elif NvMBlockDescriptor[i].NvMBlockUsePort == 'STD_ON' and NvMBlockDescriptor[i].NvMSingleBlockCallback and NvMBlockDescriptor[i].NvMSingleBlockCallbackFnc is none %}
+        Rte_Call_PNJF_{{NvMBlockDescriptor[i].shortName_}}_JobFinished{% else %}
+        NULL_PTR{% endif %},    /** NvmSingleBlockCallback */
+        {% if NvMBlockDescriptor[i].NvMBlockUseSyncMechanism == 'STD_ON' %}
+        {{NvMBlockDescriptor[i].NvMReadRamBlockFromNvCallback}}{% else %}
+        NULL_PTR{% endif %},       /** NvM_ReadRamBlockFromNvmCallbackType */
+        {% if NvMBlockDescriptor[i].NvMBlockUseSyncMechanism == 'STD_ON' %}
+        {{NvMBlockDescriptor[i].NvMWriteRamBlockToNvCallback}}{% else %}
+        NULL_PTR{% endif %},       /** NvM_WriteRamBlockToNvmCallbackType */
+        {% if NvM.NvMBlockCipheringEabled == 'STD_ON' %}
+        {{NvMBlockDescriptor[i].NvMBlockCipheringRef}}, /** NvMBlockCipheringRef */
+        {% endif %}
+    },
+{% endif %}
+{% endfor %}
+};
+/* PRQA S 1334 -- */
+#define NVM_STOP_SEC_CONFIG_DATA_UNSPECIFIED
+#include "NvM_MemMap.h"
+
+{% if NvMCommon.NvMApiConfigClass != 'NVM_API_CONFIG_CLASS_1' and NvMCommon.NvMJobPrioritization == 'STD_ON' %}
+#define NVM_START_SEC_VAR_INIT_16
+#include "NvM_MemMap.h"
+/**
+ * @brief Buffer of Priority Table
+ */
+/* PRQA S 3408,3132 ++ */ /* VL_NvM_3408,VL_NvM_3132 */
+uint16 NvM_PriorityTable[2][NVM_TABLE_SIZE_PRIORITY] =
+/* PRQA S 3408,3132 -- */
+{
+    { {% for i in range(NvM.NVM_TABLE_SIZE_PRIORITY) %}0x0000U, {% endfor %} },
+    { {% for i in range(NvM.NVM_TABLE_SIZE_PRIORITY) %}0x0000U, {% endfor %} }
+};
+#define NVM_STOP_SEC_VAR_INIT_16
+#include "NvM_MemMap.h"
+{% endif %}
+
+/* ========================================== external function definitions ========================================= */
+
+/* ========================================== internal function definitions ========================================= */
+

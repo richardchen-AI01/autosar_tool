@@ -56,8 +56,17 @@ class CodeGenerator:
         D1 stub: no-op (M2 will read FilesList.jinja and delete only those)."""
         pass
 
-    def generateCode(self) -> None:
-        """The main entry point. Render all Jinja templates listed in FilesList.jinja."""
+    def generateCode(self, *args, **kwargs) -> None:
+        """The main entry point. Render all Jinja templates listed in FilesList.jinja.
+
+        Some module subclasses pass extras (e.g. Det's `incFileList`); we accept
+        and currently ignore them — D2 walking-skeleton scope. M2 will use them
+        for the IncGen / Externals.c handling.
+        """
+        if args:
+            self._extra_args = args
+        if kwargs:
+            self._extra_kwargs = kwargs
         if self.module is None:
             raise RuntimeError("CodeGenerator.generateCode: module not set")
         t0 = time.time()

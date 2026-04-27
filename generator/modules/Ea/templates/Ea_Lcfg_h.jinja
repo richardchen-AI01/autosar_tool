@@ -1,0 +1,173 @@
+{% import 'Template_Base.jinja' as Template_Base with context %}
+{% set Ea = context.EaContext.Ea %}
+{% set EaBlockConfigurations,EaGeneral,EaPublishedInformation =Ea.EaBlockConfigurations,Ea.EaGeneral,Ea.EaPublishedInformation %}
+{{Template_Base.Header_Description("Link time declaration of Ea","R23-11")}}
+#ifndef  EA_LCFG_H
+#define  EA_LCFG_H
+/* =================================================== inclusions =================================================== */
+#include "Ea_Types.h"
+{% for headerFile in EaGeneral.EaHeaderFile %}
+#include "{{headerFile}}"
+{% endfor %}
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* ===================================================== macros ===================================================== */
+
+/* ================================================ type definitions ================================================ */
+{% if EaGeneral.EaNvmJobEndNotification or EaGeneral.EaNvmJobErrorNotification %}
+/**
+ * @brief       Function Pointer type define, with void parameter and void return value
+ * @reentrant   Non Reentrant
+ * @synchronous TRUE
+ * @trace       CPD-PLACEHOLDER
+ */
+/* PRQA S 5004 ++ */ /* VL_Ea_5004 */
+typedef void (*Ea_VoidFunctionVoidPtr)(void);
+/* PRQA S 5004 -- */
+{% endif %}
+
+/**
+ * @brief     Type of Ea job requested
+ */
+typedef enum
+{
+    EA_JOB_IDLE, /**< no job */
+    EA_JOB_READ, /**< read job */
+    EA_JOB_WRITE, /**< Write job */
+    EA_JOB_CANCEL, /**< cancel job */
+    EA_JOB_INVALIDATE, /**< inbalidate job */
+    EA_JOB_ERASE /**< erase job */
+} Ea_RequestJobType;
+
+/**
+ * @brief     Defines status for the Ea sub job
+ */
+typedef enum
+{
+    EA_SUB_JOB_IDLE, /**< no job deal */
+    EA_SUB_JOB_READ_HEADER, /**< read job read header */
+    EA_SUB_JOB_READ_HEADER_OK, /**< read job read header ok */
+    EA_SUB_JOB_READ_DATA, /**< read job read data */
+    EA_SUB_JOB_INVALID_HEADER, /**< inbalidate job write header */
+    EA_SUB_JOB_INVALID_HEADER_OK, /**< inbalidate job write header ok */
+    EA_SUB_JOB_WRITE_DATA, /**< Write job write data */
+    EA_SUB_JOB_WRITE_DATA_OK, /**< Write job write data ok */
+    EA_SUB_JOB_WRITE_HEADER_VALID, /**< Write job write valid header */
+} Ea_SubJobStatusType;
+
+/**
+ * @brief     Defines status for the Ea request job to eep
+ */
+typedef enum
+{
+    EA_EEP_JOB_IDLE, /**< no job deal*/
+    EA_EEP_JOB_ASYNC_READY, /**< job ready to request sub mode*/
+    EA_EEP_JOB_ASYNC_PENDING, /**< requested sub mode, job pending*/
+} Ea_EepStateType;
+
+/**
+ * @brief     Each block config information type
+ */
+typedef struct Ea_BlockConfigurationTypeTag /* PRQA S 1536 */ /* VL_Ea_1536 */
+{
+    boolean ImmediateData; /** Marker for high priority data */
+    uint8 DeviceIndex; /** Reference to the device this block is stored in */
+    uint16 BlockNumber; /** Block identifier */
+    uint16 BlockSize; /** Size of a logical block in bytes */
+    uint32 NumberOfWriteCycles; /** Number of write cycles required for this block */
+    Eep_AddressType BlockStartAddress; /** block start address*/
+} Ea_BlockConfigurationType;
+
+/**
+ * @brief     Block config information type
+ */
+typedef struct Ea_BlockCfgTypeTag /* PRQA S 1536 */ /* VL_Ea_1536 */
+{
+    uint16 BlockNum; /** block number*/
+    const Ea_BlockConfigurationType* BlockCfg; /** block info*/
+} Ea_BlockCfgType;
+
+/**
+ * @brief     Definition of the Api Pointer used by the EA to request the EEP to perform the task
+ */
+typedef struct Ea_EepApiTypeTag /* PRQA S 1536 */ /* VL_Ea_1536 */
+{
+    Std_ReturnType (*EepReadApi)(Eep_AddressType EepromAddress, uint8* DataBufferPtr, Eep_LengthType Length); /** Reads from EEPROM */
+    Std_ReturnType (*EepWriteApi)(Eep_AddressType EepromAddress, const uint8* DataBufferPtr, Eep_LengthType Length); /** Writes to EEPROM */
+    Std_ReturnType (*EepEraseApi)(Eep_AddressType EepromAddress, Eep_LengthType Length); /** Service for erasing EEPROM sections */
+    void (*EepCancelApi)(void); /** Cancels a running job */
+    MemIf_StatusType (*EepGetStatusApi)(void); /** Returns the EEPROM status */
+    MemIf_JobResultType (*EepGetJobResultApi)(void); /** This service returns the result of the last job */
+} Ea_EepApiType;
+
+/**
+ * @brief     Ea module config type
+ */
+typedef struct Ea_ConfigTypeTag /* PRQA S 1536 */ /* VL_Ea_1536 */
+{
+    uint8 DeviceNum; /** Total  Device number*/
+    const Ea_EepApiType* EepApiCfg; /** Device api*/
+    const Ea_BlockCfgType* BlockCfg; /** block info*/
+{% if EaGeneral.EaNvmJobEndNotification %}
+    Ea_VoidFunctionVoidPtr NvmJobEndNotification; /** Signal end of job with error */
+{% endif %}
+{% if EaGeneral.EaNvmJobErrorNotification %}
+    Ea_VoidFunctionVoidPtr NvmJobErrorNotification; /** Signal end of job without error */
+{% endif %}
+} Ea_ConfigType;
+
+/**
+ * @brief     Records the processing information of requests when status is pending
+ */
+typedef struct Ea_PendReqTypeTag /* PRQA S 1536 */ /* VL_Ea_1536 */
+{
+    uint16 BlockNumber; /** BlockNumber passed by upper layer */
+    uint16 BlockIndex; /** Index of the reqeuset block */
+    uint16 BlockOffset; /** Offset of the request block */
+    uint16 Length; /** Request operation length */
+    uint16 DealSize; /** Size of actualy operation */
+    uint16 DealOffset; /** Offset of during operation */
+    uint8* InterDataBufferPtr; /** Pointer to the internal data buffer */
+    uint8* DataBufferPtr; /** Pointer to the request buffer */
+    const uint8* DataWriteBufferPtr; /** Pointer to the write buffer */
+} Ea_PendReqType;
+
+/**
+ * @brief     Record runtime data information
+ */
+typedef struct Ea_RunTimeDataTypeTag /* PRQA S 1536 */ /* VL_Ea_1536 */
+{
+    MemIf_JobResultType LastJobResult; /** Last request job result */
+    Ea_RequestJobType RequestJob; /** Currently request job */
+    Ea_SubJobStatusType SubJobStatus; /** Request sub job status */
+    Ea_EepStateType EepState; /** State of the lower layer module */
+    Ea_PendReqType PendReq; /** Information for pending request */
+} Ea_RunTimeDataType;
+
+/**
+ * @brief     Record information about the block
+ */
+typedef struct Ea_BlockInfoTypeTag /* PRQA S 1536 */ /* VL_Ea_1536 */
+{
+    boolean IsOperated; /** Flag that indicate the block is operating */
+    MemIf_JobResultType BlockVaild; /** Flag that indicate the validity */
+    uint32 BlockWriteCycle; /** Write cycle counter for the block */
+} Ea_BlockInfoType;
+
+/* ========================================== internal function declarations ======================================== */
+
+/* ============================================ internal data definitions =========================================== */
+
+/* ============================================ external data definitions =========================================== */
+
+/* ========================================== external function definitions ========================================= */
+
+/* ========================================== internal function definitions ========================================= */
+
+#ifdef __cplusplus
+}
+#endif
+#endif

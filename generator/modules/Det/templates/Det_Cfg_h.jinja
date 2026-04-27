@@ -1,0 +1,124 @@
+{% import 'Template_Base.jinja' as Template_Base with context %}
+{% set Det = context.DetContext.Det %}
+{% set DetGeneral,DetModule = Det.DetGeneral,Det.DetModule %}
+{{Template_Base.Header_Description("config definitions for DET module","R23-11")}}
+
+/*******************************************************************************
+**                      Revision Control History                              **
+*******************************************************************************/
+
+#ifndef DET_CFG_H_
+#define DET_CFG_H_
+
+/* =================================================== inclusions =================================================== */
+#include "Std_Types.h"
+#include "Det_Types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* =============================================== version information ============================================== */
+ 
+/* ===================================================== macros ===================================================== */
+
+/*******************************************************************************
+*                          General Configuration
+*******************************************************************************/
+
+{# 从配置项 DetConfigSet->DetModule 获取编辑界面容器的设备配置列表的个数,如果用户没有创建“DetModule”容器,则生成为0 #}
+/* Indicate the number of non-BSW module configured by the Det user */
+#define DET_SIZE_OF_NON_BSW_MODULE_CFG              ({{ DetModule | length }}U)
+
+{# DetGeneral->DetVersionInfoApi 勾选时生成STD_ON,否则生成STD_OFF #}
+/* Check if get software version information from the DET module is enabled. */
+#define DET_VERSION_INFO_API                        {{ DetGeneral.DetVersionInfoApi }}
+
+{# DetGeneral->DetForwardToDlt 勾选时生成STD_ON,否则生成STD_OFF #}
+/* Used to error logging messages forward into the communication bus via DLT */
+/* Pre-restriction: Check if the compiler macro switch of Dlt_DetForwardErrorTrace is enabled */
+#define DET_FORWARD_TO_DLT                          {{ DetGeneral.DetForwardToDlt }}
+
+{# 统计 DetNotification->DetErrorHook->Add->ErrorHookFunction 下拉编辑框中ErrorHook通知回调函数的数量 #}
+#define DET_SIZE_OF_ERROR_HOOK_TABLE                ({{ Det.ErrorHookTable | length }}U)
+
+{# 统计 DetNotification->DetReportRuntimeErrorCallout->Add->CalloutFunction 下拉编辑框中RuntimeError通知回调函数的数量 #}
+#define DET_SIZE_OF_RUNTIME_ERROR_CALLOUT_TABLE     ({{ Det.RuntimeErrorCalloutTable | length }}U)
+
+{# 统计 DetNotification->DetReportTransientFaultCallout->Add->CalloutFunction 下拉编辑框中TransientFault通知回调函数的数量 #}
+/* Used to calculate the number of callout notification functions for transient fault */
+#define DET_SIZE_OF_TRANSIENT_FAULT_CALLOUT_TABLE   ({{ Det.TransientFaultCalloutTable | length }}U)
+
+/* ================================================ type definitions ================================================ */
+/* PRQA S 5004 ++ */ /* VL_Det_5004 */
+/* The type of function pointer used to call error hook callback in the DET module report development error */
+typedef Std_ReturnType (*Det_ErrorHookFncType)(uint16 moduleId, uint8 instanceId, uint8 apiId, uint8 errorId);
+/* The type of function pointer used by the DET module to call Callout callback in case of runtime error or transient
+ * fault */
+typedef Std_ReturnType (*Det_CalloutFncType)(uint16 moduleId, uint8 instanceId, uint8 apiId, uint8 errorId);
+
+/* The type is used to describe the error hook Notify in the DET module */
+typedef struct Det_ErrorHookNotifyTypeTag /* PRQA S 1536 */ /* VL_Det_1536 */
+{
+    uint8                ModuleIndex;
+    Det_ErrorHookFncType ErrorHookNotifyFnc;
+} Det_ErrorHookNotifyType;
+
+/* The type is used to describe the error callout in the DET module */
+typedef struct Det_ErrorCalloutTypeTag /* PRQA S 1536 */ /* VL_Det_1536 */
+{
+    uint8              ModuleIndex;
+    Det_CalloutFncType ErrorCalloutFnc;
+} Det_ErrorCalloutType;
+
+{% if (DetModule | length) > 0 %}
+/* The type is used to describe the module paramer in the DET module */
+typedef struct Det_ModuleTypeTag /* PRQA S 1536 */ /* VL_Det_1536 */
+{
+    uint16       ModuleId;
+    uint16       InstanceConfigNbr;
+    const uint8* InstanceConfigPtr;
+} Det_ModuleType;
+{% endif %}
+
+/* The type is used to describe the module configuration in the DET module */
+typedef struct Det_ConfigTypeTag /* PRQA S 1536 */ /* VL_Det_1536 */
+{
+    uint16 ModuleConfigNbr;
+{% if (DetModule | length) > 0 %}
+    const Det_ModuleType* ModuleConfigPtr;
+{% endif %}
+} Det_ConfigType;
+/* PRQA S 5004 -- */
+ 
+/* ========================================== internal function definitions ========================================= */
+ 
+/* =========================================== external data declarations =========================================== */
+{# 从配置项 DetNotification->DetErrorHook->Add->ErrorHookFunction 获取编辑输入框的每一个字符串的API函数名称 #}
+{% if Det.ErrorHookTable %}
+/* Check if the number of error hook notification callbacks is greater than 0. */
+/* Get the error hook function name string and generates function list based on the function prototype */
+extern const Det_ErrorHookFncType Det_GetErrorHookTable[{{ Det.ErrorHookTable | length }}];
+{% endif %}
+
+{# 从配置项 DetNotification->DetReportRuntimeErrorCallout->Add->CalloutFunction 获取编辑输入框的每一个字符串的API函数名称 #}
+{% if Det.RuntimeErrorCalloutTable %}
+/* Check if the number of runtime error callout callbacks is greater than 0. */
+/* Get the runtime error callout name string and generates function list based on the function prototype */
+extern const Det_CalloutFncType Det_GetRuntimeErrorCalloutTable[{{ Det.RuntimeErrorCalloutTable | length }}];
+{% endif %}
+
+{# 从配置项 DetNotification->DetReportTransientFaultCallout->Add->CalloutFunction 获取编辑输入框的每一个字符串的API函数名称 #}
+{% if Det.TransientFaultCalloutTable %}
+/* Check if the number of transient fault callout callbacks is greater than 0. */
+/* Get the transient fault callout name string and generates function list based on the function prototype */
+extern const Det_CalloutFncType Det_GetTransientFaultCalloutTable[{{ Det.TransientFaultCalloutTable | length }}];
+{% endif %}
+ 
+/* ========================================= external function declarations ========================================= */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* DET_CFG_H_ */
