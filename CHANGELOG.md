@@ -25,6 +25,15 @@
 - 没有 ARTOP / Sphinx 依赖，不需要 licensed jar
 - Java 25 上跑 Tycho 4 需要把 `jdk.xml.maxGeneralEntitySizeLimit` 放开
   （p2 元数据超 100k 字符），已在 `ide/.mvn/jvm.config` 处理
+- **e4 IEventBroker 启动失败已修复**：common plugin Require-Bundle 上
+  补 `e4.core.services` / `e4.ui.services` / `equinox.event`，否则
+  `CommandProcessingAddon` / `ContextProcessingAddon` 在 e3 IApplication
+  上 inject IEventBroker 会报 ENTRY 4。osascript 确认 `bswbuilder` 进
+  入可见 app 列表 → GUI 真起来了
+- `tools/ide_smoke.sh`：自动选当前平台 launcher → 启动 → 8s 后 kill →
+  检 `.metadata/.log` 是否 0 条 ERROR。本机 Mac aarch64 验证 [PASS]
+- `.github/workflows/ide.yml`：Tycho 矩阵（Java 17/21）+ p2 缓存 +
+  Linux 上用 xvfb-run 跑 `ide_smoke.sh`，4 平台 launcher 上传 artifacts
 
 ### M3.1 — D2 下午追加（提前 9 天）
 

@@ -57,6 +57,24 @@ jobs:
         working-directory: ide
         run: mvn -B clean verify
 
+      - name: Install xvfb + minimal GTK so the launcher can boot headless
+        if: matrix.java == '17'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgtk-3-0 libxtst6 libxrender1 libxi6 libxrandr2 \
+            libxcursor1 libxcomposite1 libxdamage1 libxfixes3 \
+            libnss3 libasound2t64 libxshmfence1 libdrm2 libgbm1 \
+            libpangocairo-1.0-0 libcairo-gobject2 libatk1.0-0 \
+            libatk-bridge2.0-0
+
+      - name: ide_smoke.sh (workbench boot test under xvfb)
+        if: matrix.java == '17'
+        run: |
+          chmod +x tools/ide_smoke.sh
+          xvfb-run --auto-servernum --server-args='-screen 0 1280x800x24' \
+            ./tools/ide_smoke.sh -k 15
+
       - name: List produced launcher artifacts
         working-directory: ide/product/cn.com.myorg.bswbuilder.product/target
         run: |
