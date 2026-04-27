@@ -107,6 +107,8 @@ class CodeGenerator:
             'DefaultMcu':         self._mcu,
             'DefaultLicense':     '',
             'DefaultCustomer':    self._customer,
+            # IncGen / user-code-block preservation: empty unless --inc-gen is wired
+            'UserCodeDefinitions': {},
         })
 
         files_list_text = env.get_template('FilesList.jinja').render(context=self.context).strip()

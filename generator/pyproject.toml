@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autosar-tool-generator"
+version = "0.1.0.dev"
+description = "bswgen — AUTOSAR ECUC code generator (replaces V25.10 ORIENTAISBswGen.exe)"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "autosar-tool-core",
+    "jinja2 >=3.0",
+    "lxml >=4.9",
+]
+
+[project.scripts]
+bswgen = "generator.__main__:main"
+
+[tool.setuptools]
+packages = ["generator", "generator.modules"]

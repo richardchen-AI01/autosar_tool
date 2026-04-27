@@ -55,15 +55,22 @@ class _DefRef:
 
 
 class _ParameterValue:
-    """ECUC-NUMERICAL-PARAM-VALUE / ECUC-TEXTUAL-PARAM-VALUE."""
-    __slots__ = ('definition_', 'ref_definition_', 'value', 'value_')
+    """ECUC-NUMERICAL-PARAM-VALUE / ECUC-TEXTUAL-PARAM-VALUE / ECUC-REFERENCE-VALUE.
 
-    def __init__(self, def_path: str, dest: str, value: str) -> None:
+    For numerical/textual: `value` is a string (the parameter value).
+    For reference: `value` is the target path string (from VALUE-REF).
+    `is_reference` flags reference-type params so getAttrValue can return list
+    semantics for them (matching V25.10 behavior).
+    """
+    __slots__ = ('definition_', 'ref_definition_', 'value', 'value_', 'is_reference')
+
+    def __init__(self, def_path: str, dest: str, value: str, is_reference: bool = False) -> None:
         d = _DefRef(def_path, dest)
         self.definition_ = d
         self.ref_definition_ = d
         self.value = value
         self.value_ = value
+        self.is_reference = is_reference
 
 
 class _Container:
@@ -139,8 +146,21 @@ def _parse_container(elem: ET.Element, parent: Optional[_Container] = None) -> _
                 value_elem = pv_elem.find(f'{NS}VALUE')
                 value = (value_elem.text or '').strip() if value_elem is not None else ''
                 cont.parameterValues_EcucParameterValue.append(
-                    _ParameterValue(pv_def_path, pv_dest, value)
+                    _ParameterValue(pv_def_path, pv_dest, value, is_reference=False)
                 )
+
+    # ECUC-REFERENCE-VALUE: e.g. NvMNameOfFeeBlock → /S32K148/Fee/FeeBlockConfig_X
+    refs_elem = elem.find(f'{NS}REFERENCE-VALUES')
+    if refs_elem is not None:
+        for ref_elem in refs_elem.findall(f'{NS}ECUC-REFERENCE-VALUE'):
+            rdef = ref_elem.find(f'{NS}DEFINITION-REF')
+            rdef_path = (rdef.text or '').strip() if rdef is not None else ''
+            rdest = rdef.get('DEST', '') if rdef is not None else ''
+            vref = ref_elem.find(f'{NS}VALUE-REF')
+            vref_target = (vref.text or '').strip() if vref is not None else ''
+            cont.parameterValues_EcucParameterValue.append(
+                _ParameterValue(rdef_path, rdest, vref_target, is_reference=True)
+            )
 
     sub_elem = elem.find(f'{NS}SUB-CONTAINERS')
     if sub_elem is not None:

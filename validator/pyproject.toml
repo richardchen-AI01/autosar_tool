@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autosar-tool-validator"
+version = "0.1.0.dev"
+description = "bswval — AUTOSAR ECUC validator (replaces V25.10 ORIENTAISBswVal.exe)"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "autosar-tool-core",
+    "lxml >=4.9",
+]
+
+[project.scripts]
+bswval = "validator.__main__:main"
+
+[tool.setuptools]
+packages = ["validator", "validator.Bsw"]

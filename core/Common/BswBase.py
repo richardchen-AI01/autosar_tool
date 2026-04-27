@@ -27,29 +27,48 @@ class BswBase:
 
     # ------------------------------------------------------------ public API
 
-    def getAttrValue(self, key: Any) -> Optional[str]:
-        """Look up a parameter value on the container by BswPath enum key.
+    def getAttrValue(self, key: Any) -> Any:
+        """Look up parameter value(s) on the container by BswPath enum key.
 
-        D1 stub: returns None unless real container walk is wired.
-        M2 must replace with real lookup — see docs §15 §2.4.1 for reasoning
-        why we cannot just pass a string here (the closed .pyd does
-        `key.value` internally, expects BP enum member).
+        Mirrors V25.10 behavior:
+          - Scalar params (numerical/textual): returns single string, or None.
+          - Reference params (ECUC-REFERENCE-VALUE): returns list of target
+            paths (possibly empty), so callers `for x in result` works.
+
+        Reference detection uses the loader-set `is_reference` flag on each
+        parameter value object.
         """
         if self.container is None:
             return None
-        # Walk container's parameter values directly (works regardless of key type)
         try:
             pvs = self.container.parameterValues_EcucParameterValue
         except AttributeError:
             return None
-        # Resolve key → short name
         short_name = self._extract_short_name(key)
         if not short_name:
             return None
+
+        matches: list = []
+        any_is_reference = False
         for pv in pvs:
             d = getattr(pv, 'ref_definition_', None) or getattr(pv, 'definition_', None)
             if d is not None and getattr(d, 'shortName', None) == short_name:
-                return getattr(pv, 'value_', None) or getattr(pv, 'value', None)
+                matches.append(getattr(pv, 'value_', None) or getattr(pv, 'value', None))
+                if getattr(pv, 'is_reference', False):
+                    any_is_reference = True
+
+        if any_is_reference:
+            return matches  # could be []; iteration-friendly
+        if len(matches) > 1:
+            return matches
+        if matches:
+            return matches[0]
+        # No matches: heuristic — if the key looks like a reference-type param
+        # (shortName ends in 'Ref' / 'Refs'), return [] rather than None so
+        # callers `for x in result:` works without None-checks. Mirrors V25.10
+        # closed-source behavior (Cython BswBase.pyd is schema-aware).
+        if short_name.endswith(('Ref', 'Refs')):
+            return []
         return None
 
     def getSubContainer(self, name: str) -> List[Any]:

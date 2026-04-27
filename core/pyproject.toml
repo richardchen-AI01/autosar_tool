@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autosar-tool-core"
+version = "0.1.0.dev"
+description = "AUTOSAR-tool core library — Common.* helpers (replaces V25.10 .pyd)"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "Proprietary; research only (see project LICENSE)" }
+authors = [{ name = "Autosar_tool contributors" }]
+dependencies = [
+    "jinja2 >=3.0",
+    "lxml >=4.9",
+]
+
+[tool.setuptools]
+packages = ["Common"]
+
+[tool.setuptools.package-data]
+"Common" = ["templates/*.jinja"]
