@@ -8,21 +8,22 @@
 
 ---
 
-## 总览：4 大里程碑 + 14 个每日检查点
+## 总览：4 大里程碑（MemIf-first）
 
 ```
 D1 ── D2 ── D3 ─────── D4 ── D5 ── D6 ── D7 ─────── D8 ── D9 ── D10 ── D11 ── D12 ── D13 ── D14
               │                                        │                      │              │
               ▼                                        ▼                      ▼              ▼
               M1                                       M2                     M3            M4
-       基础设施就位                                单模块端到端              30 模块 + 校验   v0.1 demo
+   MemIf walking skeleton                       MemIf 完美            5 核心 + 30 smoke   v0.1 demo
+   (链路通,diff 可不为 0)                  (diff = 0,补丁实战可重现)  (用 MemIf 模板复制)
 ```
 
 | Milestone | 截止 | 一句话验收 | 详细 |
 |---|---|---|---|
-| **M1** | D3 EOD | "13 个 native helper 可 import + IDE 能弹空白窗口" | [§M1](#m1--基础设施就位d3) |
-| **M2** | D7 EOD | "MemIf/Det/NvM 输出与 V25.10 reference 字节一致" | [§M2](#m2--单模块端到端d7) |
-| **M3** | D11 EOD | "30 个 BSW 模块都能 generate 不抛异常 + 校验器接入 IDE" | [§M3](#m3--30-模块--校验d11) |
+| **M1** | D3 EOD | **MemIf 单模块** 从 IDE 表单走到 .c/.h 文件输出（diff 可不为 0）| [§M1](#m1--memif-walking-skeletond3) |
+| **M2** | D7 EOD | **MemIf 完美**：diff = 0 + 校验联动 + docs §15 端到端补丁实战可重现 | [§M2](#m2--memif-完美--端到端补丁可重现d7) |
+| **M3** | D11 EOD | **5 核心模块用 MemIf 模板复制完成** + 30 模块 smoke + 校验器接入 IDE | [§M3](#m3--30-模块--校验d11) |
 | **M4** | D14 EOD | "一键打包 / 一键 demo 工程能在新机器上跑通" | [§M4](#m4--v01-demod14) |
 
 ---
@@ -97,63 +98,80 @@ ls $ROOT/clone/eclipse_plugins/modules/cn.com.myorg.bswbuilder.modules.memif/tar
 
 ---
 
-## M1 — 基础设施就位（D3）
+## M1 — MemIf walking skeleton（D3）
 
-### M1.1 全部 13 个 native helper 都可 import
+> 目标：MemIf **单模块** 从 IDE 表单走到 .c/.h 文件输出。所有架构性问题在 D3 EOD 暴露完毕。
+> 输出对不对不重要，**链路通**才重要。diff 不为 0 完全 OK，那是 M2 的事。
+
+### M1.1 MemIf 用到的 5 个 native helper 都可 import
+
+MemIf 实际只调 5 个 helper（剩余 8 个先 stub，D6 再补）：
 
 ```bash
 cd $ROOT && python3 -c "
 import importlib
-for m in ['BswBase','Public','CodeGenerator','Context','IncGen','J2Filters',
-         'main','ArgParser','ConfigParser','Constant','PerformanceMonitor',
-         'Utils','logger']:
+for m in ['BswBase','Public','CodeGenerator','Context','J2Filters']:
     importlib.import_module(f'clone.python_common.{m}')
     print(f'  ✓ {m}')
 "
 ```
 
-**通过条件**：13 行 ✓，无任何 ImportError。
+**通过条件**：5 行 ✓，无 ImportError。
 
-### M1.2 BswBase 的 6 个核心方法签名跟 V25.10 .pyd 对得上
+### M1.2 BswBase 暴露 MemIf 用到的方法
 
 ```bash
 cd $ROOT && python3 -c "
 from clone.python_common.BswBase import BswBase
-expected = ['getAttrValue', 'getSubContainer', 'getIndex', 'getWholeIndex', 'getParentContainer']
-b = BswBase.__init__.__code__
-for m in expected:
+for m in ['getAttrValue', 'getSubContainer', 'getIndex',
+          'getWholeIndex', 'getParentContainer']:
     assert hasattr(BswBase, m), f'missing {m}'
     print(f'  ✓ BswBase.{m}')
 "
 ```
 
-**通过条件**：5 行 ✓（5 个 public 方法都存在）。
+**通过条件**：5 行 ✓。
 
-### M1.3 Eclipse RCP product 能启动到空白窗口
+### M1.3 IDE 能启动 + MemIf 节点可见
 
 ```bash
 $ROOT/clone/eclipse_plugins/product/launcher/launch.sh -clean &
 sleep 8
-osascript -e 'tell application "System Events" to count windows of (every process whose name contains "java")'
+# 手测：导航树里能看到 MemIf 节点；不需要其他模块
 ```
 
-**通过条件**：返回值 ≥ 1（至少一个 Java 窗口存在）。也可手测看到 splash + 主窗口。
+**通过条件**：手测可见 MemIf 节点（独此一个），splash 后主窗口出现。
 
-### M1.4 OSGi bundle resolve 不报错
-
-启动 IDE 后，看 `workspace/.metadata/.log`：
+### M1.4 OSGi 接受 MemIf bundle，无 ClassFormatError
 
 ```bash
-tail -50 $ROOT/workspace_test/.metadata/.log | grep -iE 'BundleException|ClassNotFoundException|Error'
+tail -100 $ROOT/workspace_test/.metadata/.log | \
+    grep -iE 'BundleException|ClassFormatError|cn\.com\.myorg\.bswbuilder\.modules\.memif'
 ```
 
-**通过条件**：**空输出**（无错误日志）。
+**通过条件**：MemIf bundle 在日志里出现 `STARTED` 或 `RESOLVED` 关键字，**不**应该出现 `BundleException` 或 `ClassFormatError`。
 
-### M1.5 (M1 通过/不通过门)
+### M1.5 双击 MemIf → 表单显示 3 个原始参数
 
-四条都通过 → M1 PASS，进入 D4。
+手测：
 
-否则 D4-D5 用作 M1 修补缓冲，M2 自动延后。
+- 双击 NavigatorView 里的 MemIf 节点
+- 编辑器打开
+- 表单可见 3 个字段：`MemIfDevErrorDetect`、`MemIfNumberOfDevices`、`MemIfVersionInfoApi`
+
+**通过条件**：3 个字段都可见，schema 里默认值正确显示。
+
+### M1.6 IDE Generate 按钮能调起 bswgen.exe（哪怕输出错）
+
+手测：右键 MemIf → Generate
+
+**通过条件**：Console 视图打印 `**** Generator started ****`，最后 `Generator finished`，**`config/MemIf_Cfg.h` 文件被写出来**（内容对不对 D4 再说）。
+
+### M1.7 (M1 通过/不通过门)
+
+M1.1-M1.6 都通过 → **M1 PASS**：架构链路全通，进入 M2 bug bash。
+
+任何一条 fail：D4-D5 用作 M1 修补缓冲，M2 自动延后。
 
 ---
 
@@ -190,9 +208,11 @@ grep -c '^#define MEMIF_' /tmp/v01_out/MemIf_Cfg.h
 
 ---
 
-## M2 — 单模块端到端（D7）
+## M2 — MemIf 完美 + 端到端补丁可重现（D7）
 
-### M2.1 MemIf 输出与 V25.10 reference **字节一致**
+> 目标：MemIf 这条管线**任何细节** 跟 V25.10 等价，能充当后期复制的"金模板"。
+
+### M2.1 MemIf_Cfg.h 与 V25.10 reference **字节一致**
 
 ```bash
 cd $ROOT && python3 -m clone.python_generator \
@@ -205,31 +225,85 @@ echo "diff exit: $?"
 
 **通过条件**：`diff exit: 0`（去掉时间戳行后完全一致）。
 
-### M2.2 同样的 diff = 0 适用于 Det
+### M2.2 MemIf_Cfg.c 与 V25.10 reference 一致
+
+注意：仅当 `MemIfNumberOfDevices > 1 or MemIfDevErrorDetect == STD_ON` 时才生成 .c
+（详见 V25.10 `FilesList.jinja` 条件）。
 
 ```bash
-cd $ROOT && python3 -m clone.python_generator -i ... -g Det
-diff <(grep -v Generated /tmp/v01_out/Det_Cfg.h) \
-     <(grep -v Generated reference/.../Det_Cfg.h)
+diff <(grep -v Generated /tmp/v01_out/MemIf_Cfg.c) \
+     <(grep -v Generated reference/.../MemIf_Cfg.c)
 echo "diff exit: $?"
 ```
 
-**通过条件**：`0`。
+**通过条件**：`0`，或文件不生成（条件不满足时）但满足条件的 demo 工程必须 diff = 0。
 
-### M2.3 同样的 diff = 0 适用于 NvM
+### M2.3 跨模块校验 `Rule_BSW_MemIf_TCPP_2170` 工作
 
-同上替换为 `NvM`。**通过条件**：`0`。
+故意改 demo 工程：把 `MemIfNumberOfDevices` 改成 1，但 NvM 那边 NvMFeeRef + NvMEaRef 都存在。
 
-### M2.4 IDE Generate 按钮能正常调起 bswgen.exe
+```bash
+cd $ROOT && python3 -m clone.python_validator \
+    -i clone/test_workspace/Demo_S32K148_BAD_2170 \
+    -m MemIf 2>&1 | grep -c 'Rule_BSW_MemIf_TCPP_2170'
+```
 
-手测：IDE 中右键 MemIf → Generate → Console 视图打印 `**** Generator started ****`，
-最后 `Total Count: critical: 0 error: 0 warning: 0` + `Generator finished`。
+**通过条件**：≥ 1。
 
-**通过条件**：3 个核心模块全 0 critical 0 error 0 warning。
+### M2.4 跨模块校验 `Rule_BSW_MemIf_TCPP_2171` 工作
 
-### M2.5 (M2 通过门)
+故意改：`MemIfNumberOfDevices` ∈ {1,2}，但 NvM 那边 NvMFeeRef 和 NvMEaRef **都不存在**。
 
-M2.1 + M2.2 + M2.3 都通过 → M2 PASS。M2.4 是 nice to have，不通过的话延 D9 修。
+```bash
+python3 -m clone.python_validator -i bad_2171 -m MemIf 2>&1 | grep -c 'Rule_BSW_MemIf_TCPP_2171'
+```
+
+**通过条件**：≥ 1。
+
+### M2.5 docs §15 的端到端补丁实战可重现（**关键**）
+
+复刻 `/Users/richard/AI-MiniWorkspace/project/autosar-cfg/docs/04-recipes/15-add-new-param-end-to-end.md` 的实战：
+
+1. 在 `clone/eclipse_plugins/modules/.../MemIfDef.arxml` 加 `MemIfModuleVersion` STRING param 默认值 `TEST_PROBE_42_V25_10`
+2. `clone/bswmd/Common/MemIfDef.arxml` 同步加
+3. 重启 IDE → Model upgrade 对话框 → Yes → 表单显示新字段 → Save → Generate
+4. 看 `config/MemIf_Cfg.h`
+
+```bash
+grep '#define MEMIF_MODULE_VERSION' /tmp/v01_out/MemIf_Cfg.h
+```
+
+**通过条件**：输出 `#define MEMIF_MODULE_VERSION "TEST_PROBE_42_V25_10"`。**这条通过证明 schema → IDE → Save → 生成器 → C 输出整条链路与 V25.10 对齐**。
+
+### M2.6 全部 13 个 native helper 都到位
+
+```bash
+cd $ROOT && python3 -c "
+import importlib
+for m in ['BswBase','Public','CodeGenerator','Context','IncGen','J2Filters',
+         'main','ArgParser','ConfigParser','Constant','PerformanceMonitor',
+         'Utils','logger']:
+    importlib.import_module(f'clone.python_common.{m}')
+    print(f'  ✓ {m}')
+"
+```
+
+**通过条件**：13 行 ✓。M1 时 5 个就够，M2 必须全部 13 个（即使有 stub 也算"到位"，但调用现场不能炸）。
+
+### M2.7 一键回归脚本
+
+```bash
+$ROOT/tools/test_memif_full.sh
+echo "M2 exit: $?"
+```
+
+`tools/test_memif_full.sh` 顺序跑：generate → diff vs reference → validator on bad_2170 / bad_2171 → 端到端补丁实战。
+
+**通过条件**：`M2 exit: 0`。
+
+### M2.8 (M2 通过门)
+
+M2.1 + M2.2 + M2.3/2.4 至少一条 + M2.5 + M2.7 都过 → **M2 PASS**：MemIf 模板就绪，进入 M3 复制阶段。
 
 ---
 

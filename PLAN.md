@@ -192,46 +192,57 @@ docs/04-recipes/15-add-new-param-end-to-end.md   ← 端到端补丁实战经验
 
 ---
 
-## 5. 14 天逐日排期
+## 5. 14 天逐日排期 — MemIf-first / Walking Skeleton
 
-### 阶段 1：基础设施 + 替换 .pyd（D1-D3）
+> **核心策略**：先把 **MemIf 这一个模块端到端打透**（schema → IDE 表单 → 子进程生成 → 校验器 → docs §15 端到端补丁可重现）。第一个模块走通后，所有架构性问题（OSGi resolve、IDE 表单 binding、Python helper 调用、模板渲染、Generate 子进程通信）都暴露完毕，剩下模块就是机械复制。
 
-> 里程碑 **M1：能在 macOS / Windows 上各启动一个空白 Eclipse IDE，且 13 个 native helper 都已替换**。
+### 阶段 1：MemIf walking skeleton（D1-D3）
 
-| 天 | 任务 | 实例 | 验收 |
-|---|---|---|---|
-| **D1** | 立项目录骨架；从 V25.10 安装目录复制资产到 `clone/`；git init | You + 全员 | `clone/` 目录树就位，git 第一个 commit |
-| **D1** | 13 个 .pyd 的等价 Python 第一版（BswBase, Public, Context 优先）| A | `python_common/BswBase.py` + 单元测试通过 |
-| **D1-D2** | Eclipse RCP product.product 文件 + p2 repo（复用现成 jar）| C | `./launcher` 能弹空白 IDE 窗口 |
-| **D2** | 剩余 10 个 .pyd 的 Python 实现 | A | `python_common/*.py` 全部就位 |
-| **D2** | 把 V25.10 的 `data/<Module>/` 全量原样复制到 `python_generator/<Module>/`；patch import 路径指向 python_common | D | `python -m generator -g Det -i sample/` 能跑（哪怕生成出错）|
-| **D3** | 把 V25.10 的 `data/Bsw/<Module>/` 全量原样复制到 `python_validator/<Module>/`；patch import | D | `python -m validator -i sample/ -m Det` 能跑 |
-| **D3** | 解决 1-3 个核心 plugin jar 的 OSGi resolve（Det、MemIf、NvM）| B | IDE 启动 console 看到 3 个 module 的 bundle started |
+> 里程碑 **M1：MemIf 单模块能从 IDE 表单走到 .c/.h，哪怕 diff 不为 0**。
 
-### 阶段 2：第一个端到端打通（D4-D7）
-
-> 里程碑 **M2：MemIf 端到端跑通，输出与 V25.10 reference 100% 一致**。
+目标是**架构全链路打通**，不是输出正确。架构性问题在 D3 EOD 全部暴露。
 
 | 天 | 任务 | 实例 | 验收 |
 |---|---|---|---|
-| **D4** | 在 IDE 中导入 Demo_S32K148 工程（直接复制自 V25.10）| You + C | 工程出现在 NavigatorView |
-| **D4** | 双击 MemIf → BswModuleGeneralFormPage 出现 | C + B | 能看到 3 个原参数 |
-| **D5** | 点 Generate → 调 bswgen.exe → 输出 MemIf_Cfg.c/h | D | 文件生成，能编（哪怕 diff）|
-| **D5** | 跟 V25.10 reference diff，定位差异 | You + A + D | diff 报告 |
-| **D6** | 修 .pyd 复刻里的 bug、修模板里的 import 路径、修 jar manifest | A + B + D | diff = 0（仅 timestamp 等无关字段）|
-| **D7** | 同样跑通 Det / NvM | All | 3 个模块 diff = 0 |
+| **D1** | 立项目录骨架；从 V25.10 复制 **仅 MemIf 相关** 的资产到 `clone/`；git init | You + 全员 | `clone/` 目录就位，第一个 commit |
+| **D1** | 复刻 MemIf 实际用到的 5 个 native helper（**只**做 BswBase, Public, CodeGenerator, Context, J2Filters，其它 8 个先 stub）| A | `python_common/{BswBase,Public,CodeGenerator,Context,J2Filters}.py` 单测通过 |
+| **D1-D2** | Eclipse RCP product 最小骨架，仅注册 MemIf 一个 plugin | C | IDE 弹空白窗口 + MemIf 节点出现 |
+| **D2** | MemIf plugin jar 全套（`MemIfDef.arxml` / `MemIfDefaultRegistry` / `MemIfValidator` / `MemIfUpdateBswmd` / `plugin.xml`）| B | OSGi 启动后 MemIf bundle started，无 ClassFormatError |
+| **D2** | python_generator **只**含 MemIf；PyInstaller 第一次打 bswgen.exe | D | Windows 上 `bswgen.exe -g MemIf -i ... -o ...` 能产出**任意**输出（diff 不为 0 没关系）|
+| **D3** | python_validator **只**含 MemIf 校验规则 + Common 框架基类（直接搬 V25.10 反编结果）| D | `bswval.exe -m MemIf -i ...` 能跑 |
+| **D3** | IDE 接入：双击 MemIf → 表单 → Generate 按钮调起 bswgen.exe | All | **端到端走通**：表单 → 输出文件（diff 可以不为 0）|
 
-### 阶段 3：扩展到 30 个模块（D8-D11）
+### 阶段 2：MemIf 完美 + 端到端补丁可重现（D4-D7）
 
-> 里程碑 **M3：30 个常用 BSW 模块都能 generate 不报错，5 个核心模块跟 reference 一致**。
+> 里程碑 **M2：MemIf 输出与 V25.10 reference 字节一致 + docs §15 端到端补丁实战可重现**。
+
+D3 暴露的所有 bug 在这 4 天修干净。这是真正的 bug bash 阶段。完成后 MemIf 这条管线**任何细节**跟 V25.10 等价，可以充当后期复制的"金模板"。
 
 | 天 | 任务 | 实例 | 验收 |
 |---|---|---|---|
-| **D8** | 批量复制剩余 plugin jar 模板，自动化生成；解决 OSGi resolve 失败 | B | 30 个 module 都 bundle started |
-| **D8** | Ea / Fee / EcuM / Os / WdgM 跑通 | All | 5 个 NV 链相关 + 系统服务模块 generate 一致 |
-| **D9** | Com / PduR / CanIf 通信链 | All | 3 个通信模块跑通 |
-| **D10** | 校验器整套接入 IDE Validate 按钮 | C + D | Generate 之前先跑 Validate，错误显示在 ProblemView |
-| **D11** | 跨模块校验（NvM ↔ MemIf 那种）| A + D | `Rule_BSW_MemIf_TCPP_2170` 真的会触发 |
+| **D4** | MemIf_Cfg.h diff vs V25.10 reference | A + D | diff = 0 |
+| **D4** | MemIf_Cfg.c diff（NumberOfDevices > 1 才生成）| A + D | diff = 0 |
+| **D5** | MemIf_Bswmd.arxml diff（如生成）| D | diff = 0 或 known reason |
+| **D5** | 校验器跑 `Rule_BSW_MemIf_TCPP_2170` / `2171` 跨模块规则 | A + D | 故意改 NvMFeeRef + NvMEaRef 配对，校验器报错命中 |
+| **D6** | **重现 docs §15 的端到端补丁实战**：在 MemIfDef.arxml 加 `MemIfModuleVersion` STRING param → IDE 表单显示 → 编辑保存 → Generate 后 .h 含 `#define MEMIF_MODULE_VERSION "..."` | All | 跟 docs §15 输出 100% 等价 |
+| **D6** | 补齐剩余 8 个 native helper（IncGen 可继续 stub）：main、ArgParser、ConfigParser、Constant、PerformanceMonitor、Utils、logger、IncGen | A | 13 个 helper 全部 Python 化 |
+| **D7** | MemIf "全栈正确性" 自动回归脚本（一键跑 Generate + Validate + diff 对比 + 端到端补丁实战）| You + D | `tools/test_memif_full.sh` 退出 0 |
+
+### 阶段 3：用 MemIf 模板复制（D8-D11）
+
+> 里程碑 **M3：5 核心模块 diff = 0；30 模块 smoke 通过；校验器接入 IDE**。
+
+D8 起 MemIf 已经完美——把它当**模板**复制。每个新模块的工作量 ≈ MemIf 工作量 / 5（架构问题全解决，剩下只是模块特定逻辑）。
+
+| 天 | 任务 | 实例 | 验收 |
+|---|---|---|---|
+| **D8** | 复制 MemIf 模板到 NvM、Ea、Fee | B + D | 3 模块 diff = 0（NV 链完整）|
+| **D9** | 复制到 Det（最简单，单元测试用）| B + D | Det diff = 0 |
+| **D9** | 批量脚本化生成剩余 25 模块的 plugin jar 骨架 | B | 30 模块 OSGi resolve 全过 |
+| **D10** | python_generator 加入剩余 25 模块（直接搬 V25.10 反编代码 + 改 import 路径）| D | 30 模块 smoke：generate 不抛异常 |
+| **D10** | python_validator 加入对应规则文件 | D | 30 模块 validate smoke |
+| **D11** | 校验器整套接入 IDE Validate 按钮 + ProblemView 显示 | C | 故意改 ARXML 后 IDE 红色错误 |
+| **D11** | 跨模块校验集成测试（NvM ↔ MemIf ↔ Ea/Fee）| A + D | 跨模块规则在 IDE 中触发 |
 
 ### 阶段 4：打磨 + 文档 + Demo（D12-D14）
 
@@ -245,13 +256,13 @@ docs/04-recipes/15-add-new-param-end-to-end.md   ← 端到端补丁实战经验
 | **D13** | 自动化回归测试套件（5 核心模块的 reference diff CI）| You + A | CI 跑通 |
 | **D14** | README + 演示视频脚本 + 一键 demo 工程 | You | v0.1 release |
 
-### 里程碑总览
+### 里程碑总览（MemIf-first）
 
-| 里程碑 | 时间 | 验收 | 详细可执行检查 |
+| 里程碑 | 时间 | 一句话验收 | 详细可执行检查 |
 |---|---|---|---|
-| **M1** | D3 EOD | IDE 能启 + 13 个 native helper Python 化 | [MILESTONES §M1](MILESTONES.md#m1--基础设施就位d3) |
-| **M2** | D7 EOD | MemIf/Det/NvM 端到端，diff = 0 | [MILESTONES §M2](MILESTONES.md#m2--单模块端到端d7) |
-| **M3** | D11 EOD | 30 模块跑通，5 核心 reference 一致，校验器接入 | [MILESTONES §M3](MILESTONES.md#m3--30-模块--校验d11) |
+| **M1** | D3 EOD | **MemIf 单模块** 端到端走通（schema → IDE 表单 → Generate → 文件输出，diff 可不为 0）| [MILESTONES §M1](MILESTONES.md#m1--基础设施就位d3) |
+| **M2** | D7 EOD | **MemIf 完美**（diff = 0 + 校验联动 + docs §15 端到端补丁实战可重现）| [MILESTONES §M2](MILESTONES.md#m2--单模块端到端d7) |
+| **M3** | D11 EOD | **5 核心模块用 MemIf 模板复制完成**（NvM/Ea/Fee/Det diff = 0），30 模块 smoke 通过 | [MILESTONES §M3](MILESTONES.md#m3--30-模块--校验d11) |
 | **M4** | D14 EOD | v0.1 demo 可演示 | [MILESTONES §M4](MILESTONES.md#m4--v01-demod14) |
 
 > **每个里程碑的具体命令、期望输出、通过/不通过条件全部在 [MILESTONES.md](MILESTONES.md)**。
