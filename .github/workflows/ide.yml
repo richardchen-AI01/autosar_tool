@@ -1,0 +1,102 @@
+name: ide
+
+# Tycho build of the Eclipse RCP half (ide/). Independent from test.yml
+# because:
+#  - it needs Java + Maven (test.yml is Python-only)
+#  - it pulls ~150 MB Eclipse p2 metadata, so we cache it aggressively
+#  - first run is ~2 min; cached runs are ~5 s
+#
+# Triggers on changes under ide/ or workflow file itself, plus manual.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ide/**'
+      - '.github/workflows/ide.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ide/**'
+      - '.github/workflows/ide.yml'
+  workflow_dispatch: {}
+
+jobs:
+  tycho:
+    name: Tycho build (Java ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['17', '21']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java }} (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+
+      - name: Cache Maven local repo (incl. Tycho p2 cache)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.m2/wrapper
+          key: ${{ runner.os }}-maven-tycho-${{ matrix.java }}-${{ hashFiles('ide/**/pom.xml', 'ide/**/*.target') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-tycho-${{ matrix.java }}-
+            ${{ runner.os }}-maven-tycho-
+
+      - name: Maven version
+        run: mvn -version
+
+      - name: mvn -B clean verify (full reactor)
+        working-directory: ide
+        run: mvn -B clean verify
+
+      - name: List produced launcher artifacts
+        working-directory: ide/product/cn.com.myorg.bswbuilder.product/target
+        run: |
+          echo '--- Tycho output tree ---'
+          find products extraArtifacts -maxdepth 4 -type f 2>/dev/null | sort
+          echo
+          echo '--- Per-platform launcher sizes ---'
+          for d in products/cn.com.myorg.bswbuilder.product/*/*/*/; do
+            [ -d "$d" ] || continue
+            echo "  $(du -sh "$d" | awk '{print $1, $2}')"
+          done
+
+      - name: Upload Linux x86_64 launcher (java${{ matrix.java }})
+        if: matrix.java == '17'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bswbuilder-linux-x86_64
+          path: ide/product/cn.com.myorg.bswbuilder.product/target/products/cn.com.myorg.bswbuilder.product/linux/gtk/x86_64/
+          retention-days: 7
+
+      - name: Upload Windows x86_64 launcher (java${{ matrix.java }})
+        if: matrix.java == '17'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bswbuilder-win32-x86_64
+          path: ide/product/cn.com.myorg.bswbuilder.product/target/products/cn.com.myorg.bswbuilder.product/win32/win32/x86_64/
+          retention-days: 7
+
+      - name: Upload macOS aarch64 launcher (java${{ matrix.java }})
+        if: matrix.java == '17'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bswbuilder-macosx-aarch64
+          path: ide/product/cn.com.myorg.bswbuilder.product/target/products/cn.com.myorg.bswbuilder.product/macosx/cocoa/aarch64/
+          retention-days: 7
+
+      - name: Upload p2 site zip (java${{ matrix.java }})
+        if: matrix.java == '17'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bswbuilder-p2-site
+          path: ide/product/cn.com.myorg.bswbuilder.product/target/cn.com.myorg.bswbuilder.product-*.zip
+          retention-days: 7
