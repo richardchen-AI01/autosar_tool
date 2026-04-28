@@ -1,14 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <!--
-  Per-BSW-module plugin: in V25.10 these registered the schema, default
-  registry, metaModelDescriptor, and project upgrader. v0.1 leaves them as
-  placeholders since all real generation lives in the Python bswgen.
+  MemIf module registration. Mirrors the iSoft V25.10 contribution shape but
+  drops attributes whose Java backing class hasn't been written yet
+  (editor / generator / validator / moduleDescriptor / updateBswmd). Those
+  stay open so M3.4+ can fill them in without renaming the extension point.
 
-  When ARTOP integration lands (M3.3 / v0.2):
-    - register MemIfDef.arxml as the ECUC schema
-    - register MemIfDefaultRegistry for the form layout
-    - register MemIfMetaModelDescriptor for Sphinx
+  shortName        — "MemIf"
+  moduledefinition — bundle-relative arxml shipped next to plugin.xml
+  kind             — "MEM" (memory abstraction)
+  vendor / version — Autosar_tool / 0.1.0
 -->
 <plugin>
+   <extension
+         point="cn.com.myorg.bswbuilder.extensionpoints.module">
+      <module
+            shortName="MemIf"
+            moduledefinition="MemIfDef.arxml"
+            kind="MEM"
+            vendor="Autosar_tool"
+            version="0.1.0"
+            imageIdentifier="MemIf"/>
+   </extension>
 </plugin>

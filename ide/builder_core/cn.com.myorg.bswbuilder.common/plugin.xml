@@ -32,4 +32,23 @@
                 name="BSW Configurator"/>
     </extension>
 
+    <!-- Module registration extension point.
+         Mirrors iSoft V25.10's `cn.com.isoft.bswbuilder.extensionpoints.module`
+         so per-module bundles (modules.memif, modules.det, modules.nvm, ...)
+         each declare:
+           shortName        — module ECUC short name, e.g. "MemIf"
+           moduledefinition — bundle-relative path to the ECUC schema arxml
+           bswmd            — bundle-relative path to a BSWMD skeleton (optional)
+           kind             — coarse category, e.g. "MEM" / "COM" / "MCAL"
+           vendor / version — for display + traceability
+           imageIdentifier  — icon key for the tree view
+           editor / generator / validator / moduleDescriptor / updateBswmd
+                            — fully-qualified class names (optional until the
+                              corresponding Java side lands; left as open
+                              attributes for forward compatibility) -->
+    <extension-point
+            id="cn.com.myorg.bswbuilder.extensionpoints.module"
+            name="BSW Builder Module"
+            schema="schema/module.exsd"/>
+
 </plugin>
