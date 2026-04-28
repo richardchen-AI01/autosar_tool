@@ -7,6 +7,8 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.FocusAdapter;
+import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Color;
@@ -16,6 +18,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.TabFolder;
+import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
@@ -24,6 +28,7 @@ import cn.com.myorg.bswbuilder.modules.memif.data.MemIfArxmlReader;
 import cn.com.myorg.bswbuilder.modules.memif.data.MemIfArxmlWriter;
 import cn.com.myorg.bswbuilder.modules.memif.data.MemIfData;
 import cn.com.myorg.bswbuilder.modules.memif.data.MemIfDerivedCalculator;
+import cn.com.myorg.bswbuilder.modules.memif.data.MemIfParamMetadata;
 
 /**
  * Property form view — right-hand side of the EB-tresos style perspective.
@@ -88,6 +93,12 @@ public class PropertyFormView extends ViewPart {
     private Label statusLabel;
     private Label derivedHint;  // shown next to NumberOfDevices widget
 
+    // Phase E — bottom Properties tabs
+    private Text descriptionText;
+    private Text definitionText;
+    private Text statusTabText;
+    private Param focusedParam;
+
     @Override
     public void createPartControl(Composite parent) {
         parent.setBackground(BG);
@@ -131,7 +142,26 @@ public class PropertyFormView extends ViewPart {
                 .applyTo(formArea);
         GridDataFactory.fillDefaults().grab(true, true).applyTo(formArea);
 
+        // Phase E — bottom Properties tabs (Description / Definition / Status)
+        TabFolder tabs = new TabFolder(parent, SWT.BOTTOM);
+        GridDataFactory.fillDefaults().grab(true, false).hint(SWT.DEFAULT, 130).applyTo(tabs);
+
+        descriptionText = makeTabText(tabs, "Description");
+        definitionText  = makeTabText(tabs, "Definition");
+        statusTabText   = makeTabText(tabs, "Status");
+
         showPlaceholder();
+        setPropertyTabsFor(null);
+    }
+
+    private static Text makeTabText(TabFolder parent, String title) {
+        TabItem item = new TabItem(parent, SWT.NONE);
+        item.setText(title);
+        Text t = new Text(parent, SWT.MULTI | SWT.WRAP | SWT.READ_ONLY | SWT.V_SCROLL);
+        t.setBackground(BG);
+        t.setForeground(VALUE_FG);
+        item.setControl(t);
+        return t;
     }
 
     private void showPlaceholder() {
@@ -249,6 +279,14 @@ public class PropertyFormView extends ViewPart {
         }
         editors.put(param, widget);
 
+        // Phase E: focus listener — updates bottom Property tabs when this
+        // widget becomes the input focus.
+        widget.addFocusListener(new FocusAdapter() {
+            @Override public void focusGained(FocusEvent e) {
+                setPropertyTabsFor(param);
+            }
+        });
+
         // 3rd column: derived hint or empty filler. For NumberOfDevices we
         // stash the Label so updateDerivedHint() can rewrite it later.
         Label hint = new Label(formArea, SWT.NONE);
@@ -259,6 +297,59 @@ public class PropertyFormView extends ViewPart {
         if (param == Param.NUMBER_OF_DEVICES) {
             this.derivedHint = hint;
         }
+    }
+
+    /**
+     * Phase E: update the bottom 3 tabs to show metadata for the given
+     * parameter. {@code null} resets all tabs to empty placeholder text.
+     */
+    private void setPropertyTabsFor(Param param) {
+        focusedParam = param;
+        if (descriptionText == null || descriptionText.isDisposed()) return;
+
+        if (param == null) {
+            descriptionText.setText("(focus a parameter widget to see its description)");
+            definitionText.setText("(focus a parameter widget to see its schema definition)");
+            statusTabText.setText("(focus a parameter widget to see its current value / dirty flag)");
+            return;
+        }
+
+        MemIfParamMetadata.Entry meta = MemIfParamMetadata.get(param.shortName);
+        if (meta == null) {
+            descriptionText.setText("(no metadata for " + param.shortName + ")");
+            definitionText.setText("");
+            statusTabText.setText("");
+            return;
+        }
+
+        descriptionText.setText(
+                meta.description + "\n\n" + meta.introduction);
+
+        StringBuilder def = new StringBuilder();
+        def.append("Parameter: ").append(meta.shortName).append("\n");
+        def.append("Type:      ").append(meta.typeText).append("\n");
+        def.append("Origin:    ").append(meta.origin).append("\n");
+        def.append("Default:   ").append(meta.defaultValue);
+        definitionText.setText(def.toString());
+
+        StringBuilder st = new StringBuilder();
+        Control widget = editors.get(param);
+        String currentValue = widget != null ? widgetValue(widget) : "(unset)";
+        String origValue = originalValues.getOrDefault(param, "");
+        boolean dirty = !currentValue.equals(origValue);
+        st.append("Current value: ").append(currentValue).append("\n");
+        st.append("Original:      ").append(origValue).append("\n");
+        st.append("Dirty:         ").append(dirty ? "yes (unsaved)" : "no").append("\n");
+        if (param == Param.NUMBER_OF_DEVICES && currentSourcePath != null) {
+            try {
+                int derived = MemIfDerivedCalculator.calculateForMemIfFile(currentSourcePath);
+                st.append("Derived:       ").append(derived)
+                        .append(" ").append(MemIfDerivedCalculator.describe(derived));
+            } catch (Throwable ignored) {
+                st.append("Derived:       (error)");
+            }
+        }
+        statusTabText.setText(st.toString());
     }
 
     private String widgetValue(Control w) {
