@@ -2,17 +2,34 @@
 <?eclipse version="3.4"?>
 <plugin>
 
-    <!-- Module navigator view: lists configurable BSW modules. -->
+    <!-- Views: Configuration Editors / Property Form / Validation. Match
+         the EB-tresos / ORIENTAIS V25.10 style perspective layout (see
+         cn.com.myorg.bswbuilder.common.app.Perspective). -->
     <extension
             point="org.eclipse.ui.views">
         <category
                 id="cn.com.myorg.bswbuilder.ui.viewCategory"
                 name="BSW Builder"/>
+
         <view
                 category="cn.com.myorg.bswbuilder.ui.viewCategory"
-                class="cn.com.myorg.bswbuilder.ui.views.ModuleNavigatorView"
-                id="cn.com.myorg.bswbuilder.ui.views.ModuleNavigator"
-                name="BSW Modules"
+                class="cn.com.myorg.bswbuilder.ui.views.ConfigurationEditorsView"
+                id="cn.com.myorg.bswbuilder.ui.views.ConfigurationEditors"
+                name="Configuration Editors"
+                restorable="true"/>
+
+        <view
+                category="cn.com.myorg.bswbuilder.ui.viewCategory"
+                class="cn.com.myorg.bswbuilder.ui.views.PropertyFormView"
+                id="cn.com.myorg.bswbuilder.ui.views.PropertyForm"
+                name="Properties"
+                restorable="true"/>
+
+        <view
+                category="cn.com.myorg.bswbuilder.ui.viewCategory"
+                class="cn.com.myorg.bswbuilder.ui.views.ValidationView"
+                id="cn.com.myorg.bswbuilder.ui.views.Validation"
+                name="Validation"
                 restorable="true"/>
     </extension>
 
