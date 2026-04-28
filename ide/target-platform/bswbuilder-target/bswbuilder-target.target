@@ -3,9 +3,16 @@
 <!--
   Eclipse target platform for the Autosar_tool IDE.
 
-  Pulls Eclipse RCP 2024-09 from p2. ARTOP / Sphinx are intentionally NOT
-  in this target — they need licensed jars and we'll add them in M3.3 once
-  the walking skeleton is proven.
+  Two locations:
+    1. Eclipse RCP 2024-09 from p2 (workbench + SWT + JFace + e4 + forms)
+    2. local-plugins/ — Artop AAL + Eclipse Sphinx, populated by
+       tools/setup-artop.ps1 from a local ORIENTAIS_Studio install.
+
+  local-plugins/ is .gitignored. Without running setup-artop, Tycho will
+  log a "no bundles found" info for that location and the build will still
+  pass for non-Artop bundles (common, ui, modules.memif at v0.1) — but any
+  bundle that Require-Bundle's an Artop/Sphinx symbolic name needs the
+  directory populated first.
 
   Validate from CLI:    mvn -B -f ide/pom.xml validate
   In Eclipse IDE:       Window → Preferences → Plug-in Development → Target
@@ -38,5 +45,10 @@
                  even with an e3-style IApplication so the modern RCP boots cleanly. -->
             <unit id="org.eclipse.e4.ui.workbench.addons.swt" version="0.0.0"/>
         </location>
+
+        <!-- Artop AAL + Eclipse Sphinx — vendored locally from ORIENTAIS_Studio.
+             Populated by tools/setup-artop.ps1; see local-plugins/.gitignore.
+             Path is relative to this .target file's directory. -->
+        <location path="local-plugins" type="Directory"/>
     </locations>
 </target>

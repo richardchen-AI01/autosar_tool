@@ -46,6 +46,10 @@ target/
 .settings/
 bin/
 
+# Vendored Artop + Sphinx (~66MB) — populated by tools/setup-artop.ps1
+# from a local ORIENTAIS_Studio install. Never commit; license + size.
+ide/target-platform/bswbuilder-target/local-plugins/
+
 # Eclipse RCP runtime / Equinox cache (运行期产物，禁追)
 .metadata/
 configuration/org.eclipse.osgi/
@@ -79,3 +83,6 @@ dist/
 *.jpg
 !docs/**/*.png
 !docs/**/*.jpg
+
+# Claude Code 本地设置（个人覆盖，不入库；项目共享设置走 .claude/settings.json）
+.claude/settings.local.json
