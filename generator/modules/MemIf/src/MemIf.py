@@ -55,9 +55,11 @@ class MemIf:
             if NvMEaRef:
                 return True
         return False
-    
-    
-    
-    
-    
-    
+
+    @property
+    def derivedNumberOfDevices(self):
+        # Counterpart of iSoft's MemIfGeneralEaMapSupport / FeeMapSupportEnable
+        # function-extensions: count distinct lower-layer backends actually
+        # referenced from NvM. Future IDE form auto-fill consumes this; today
+        # it just lets callers compare against the user-configured value.
+        return int(self.checkFee) + int(self.checkEa)
