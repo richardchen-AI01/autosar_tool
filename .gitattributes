@@ -1,0 +1,40 @@
+# 行尾策略 — 整个仓库锁死 LF。
+#
+# 不加这个文件时，Windows 默认 core.autocrlf=true 会在 checkout 时把
+# LF → CRLF（工作树），commit 时再 CRLF → LF。结果：每个文本文件在
+# Windows 工作树上跟 index 永远不一致，`git status` 把 2000+ 文件标
+# modified。
+#
+# 加上 `* text=auto eol=lf` 之后：
+#   - 所有"看起来像文本"的文件都按 LF 存到 index
+#   - Windows 上 checkout 也按 LF 写工作树（不再 CRLF 化）
+#   - Windows 上的 git status 干净
+#
+# 唯一的"我们要 CRLF"的输出是 generator 渲染出来的 .c / .h / .arxml
+# （V25.10 兼容），但那些是运行时生成、放在 /tmp/ 或 build/dist/，
+# 不入仓库，不受这条规则影响。
+* text=auto eol=lf
+
+# 二进制 / 锁定行尾的特例
+*.png        binary
+*.jpg        binary
+*.jpeg       binary
+*.gif        binary
+*.ico        binary
+*.zip        binary
+*.gz         binary
+*.7z         binary
+*.tar        binary
+*.jar        binary
+*.exe        binary
+*.dll        binary
+*.so         binary
+*.dylib      binary
+*.pyd        binary
+*.pyc        binary
+*.class      binary
+
+# Windows 批处理必须 CRLF（否则 cmd.exe 可能误读）
+*.bat        text eol=crlf
+*.cmd        text eol=crlf
+*.ps1        text eol=crlf
