@@ -22,4 +22,28 @@
             version="0.1.0"
             imageIdentifier="MemIf"/>
    </extension>
+
+   <!-- Phase 1 deliverable: load an ARXML through Artop / EMF and surface
+        MemIfNumberOfDevices to the user. Single command, single toolbar
+        button; lives here (not in the ui bundle) because it's MemIf-specific
+        and depends on Artop classes which only this bundle requires. -->
+   <extension point="org.eclipse.ui.commands">
+      <command
+            id="cn.com.myorg.bswbuilder.modules.memif.commands.loadMemIfArxml"
+            name="Load MemIf ARXML (Artop)"
+            defaultHandler="cn.com.myorg.bswbuilder.modules.memif.handlers.LoadMemIfArxmlHandler"/>
+   </extension>
+
+   <extension point="org.eclipse.ui.menus">
+      <menuContribution
+            locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
+         <toolbar id="cn.com.myorg.bswbuilder.modules.memif.toolbar">
+            <command
+                  commandId="cn.com.myorg.bswbuilder.modules.memif.commands.loadMemIfArxml"
+                  label="Load MemIf ARXML"
+                  style="push"
+                  tooltip="Pick an ARXML file and read MemIfNumberOfDevices via Artop"/>
+         </toolbar>
+      </menuContribution>
+   </extension>
 </plugin>

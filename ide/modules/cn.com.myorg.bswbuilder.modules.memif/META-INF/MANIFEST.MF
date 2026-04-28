@@ -8,6 +8,11 @@ Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-ActivationPolicy: lazy
 Bundle-Activator: cn.com.myorg.bswbuilder.modules.memif.Activator
 Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.core.commands,
+ org.eclipse.ui,
+ org.eclipse.jface,
+ org.eclipse.emf.ecore,
+ org.eclipse.emf.ecore.xmi,
  cn.com.myorg.bswbuilder.common,
  org.artop.aal.autosar448,
  org.artop.aal.gautosar,
