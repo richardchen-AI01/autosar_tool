@@ -19,7 +19,10 @@ $ErrorActionPreference = 'Stop'
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Src = Join-Path $OrientaisRoot 'plugins'
-$Dst = Join-Path $RepoRoot 'ide/target-platform/bswbuilder-target/local-plugins'
+# Tycho's Directory target-platform location expects the standard Eclipse
+# install layout: <root>/plugins/*.jar and optionally <root>/features/*.jar.
+# Flat <root>/*.jar is silently ignored.
+$Dst = Join-Path $RepoRoot 'ide/target-platform/bswbuilder-target/local-plugins/plugins'
 
 if (-not (Test-Path $Src)) {
     Write-Error "ORIENTAIS plugins dir not found: $Src"

@@ -44,11 +44,36 @@
             <!-- e4 workbench addons (CommandProcessingAddon and friends) — needed
                  even with an e3-style IApplication so the modern RCP boots cleanly. -->
             <unit id="org.eclipse.e4.ui.workbench.addons.swt" version="0.0.0"/>
+
+            <!-- EMF runtime + Workspace + XMI — Artop/Sphinx transitively need
+                 the full EMF stack including emf.workspace and emf.ecore.xmi. -->
+            <unit id="org.eclipse.emf.sdk.feature.group" version="0.0.0"/>
+            <unit id="org.eclipse.emf.workspace" version="0.0.0"/>
+            <unit id="org.eclipse.emf.ecore.xmi" version="0.0.0"/>
+            <unit id="org.eclipse.emf.transaction.feature.group" version="0.0.0"/>
+
+            <!-- Sphinx + Artop transitives outside RCP/EMF: xerces, jdom, guava,
+                 xtend.lib (Sphinx imports them via Require-Bundle). The Orbit
+                 bundles all live in the 2024-09 release repo. -->
+            <unit id="org.apache.xerces" version="0.0.0"/>
+            <unit id="org.jdom" version="0.0.0"/>
+            <unit id="com.google.guava" version="0.0.0"/>
+            <unit id="org.eclipse.xtend.lib" version="0.0.0"/>
+            <unit id="org.eclipse.xtend.lib.macro" version="0.0.0"/>
+            <unit id="org.eclipse.xtext.xbase.lib" version="0.0.0"/>
+
+            <!-- Orbit utility bundles Sphinx imports. Add new ones as Tycho
+                 reports them; they all live in the 2024-09 release repo. -->
+            <unit id="org.apache.commons.cli" version="0.0.0"/>
+            <unit id="org.apache.commons.logging" version="0.0.0"/>
+            <unit id="org.apache.commons.lang3" version="0.0.0"/>
+            <unit id="org.apache.commons.io" version="0.0.0"/>
         </location>
 
         <!-- Artop AAL + Eclipse Sphinx — vendored locally from ORIENTAIS_Studio.
              Populated by tools/setup-artop.ps1; see local-plugins/.gitignore.
-             Path is relative to this .target file's directory. -->
-        <location path="local-plugins" type="Directory"/>
+             Path resolved relative to the reactor root (Tycho 4.x behavior;
+             not the .target file's own directory like vanilla Eclipse PDE). -->
+        <location path="ide/target-platform/bswbuilder-target/local-plugins/plugins" type="Directory"/>
     </locations>
 </target>
