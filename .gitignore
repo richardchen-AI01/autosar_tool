@@ -86,3 +86,7 @@ dist/
 
 # Claude Code 本地设置（个人覆盖，不入库；项目共享设置走 .claude/settings.json）
 .claude/settings.local.json
+
+# MemIf 复刻反编试探 scratch（ADR 0006 后已废弃；保留 ignore 以防有人本机重试）
+tools/_decompile/
+docs/reference/decompiled-memif/
