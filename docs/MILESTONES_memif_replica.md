@@ -9,16 +9,21 @@
 
 ## 总览
 
-| Phase | 目标 | 状态 |
-|---|---|---|
-| A | 只读看（demo → tree 节点 → 表单显示 4 参数当前值）| ⬜ pending |
-| B | 可编辑 + 保存（值修改 → ARXML 序列化 → 重启不丢）| ⬜ pending |
-| C | Auto-fill（NvM EA/FEE 引用变化 → MemIfNumberOfDevices 联动）| ⬜ pending |
-| D | Validate / Generate 按钮真用（Python 子进程 + Problems View IMarker）| ⬜ pending |
-| E | Properties 面板 (Description / Definition / Status 三 tab)| ⬜ pending |
-| F | Round-trip 兼容性（5 份 ARXML 双向 byte-equal）| ⬜ pending |
+| Phase | 目标 | 状态 | Auto | Manual | 关键 commit |
+|---|---|---|---|---|---|
+| A | 只读看（demo → tree 节点 → 表单显示 4 参数当前值）| 🟡 auto-only | ✅ 10/10 | ⬜ A.4-A.6 待手测 | edd2785 |
+| B | 可编辑 + 保存（值修改 → ARXML 序列化 → 重启不丢）| 🟡 auto-only | ✅ 10/10 | ⬜ B.4 ORIENTAIS 双向待手测 | ba7c7af |
+| C | Auto-fill（NvM EA/FEE 引用变化 → MemIfNumberOfDevices 联动）| 🟡 auto-only | ✅ 10/10 | ⬜ C 手测 4 组合 | f2c9a09 |
+| D | Validate / Generate 按钮真用（Python 子进程 + Problems View IMarker）| 🟡 auto-only | ✅ 11/11 | ⬜ D.3 IMarker UI 手测 | 5064224 |
+| E | Properties 面板 (Description / Definition / Status 三 tab)| 🟡 auto-only | ✅ 9/9 | ⬜ E.6 视觉手测 | 1364e99 |
+| F | Round-trip 兼容性（5 份 ARXML 双向 byte-equal）| ✅ DONE | ✅ 34/34 | F.2 算法层全 byte-equal；ORIENTAIS 双向手测可选 | fe25bdf |
 
-每个 Phase 全过则 ✅ + 完成日期；任何 fail 保持 ⬜ 并在对应章节补失败原因。
+🟡 = 算法/实现已 auto 验过，但 GUI 行为靠手测（ide_smoke 8 秒 kill 不够点 button）
+✅ = 完全无依赖手测的项目
+
+**算法 / 实现层合计：84 / 84 PASS**（10 + 10 + 10 + 11 + 9 + 34）
+
+剩余手测全部需要前台 RCP（`open ide/product/.../Eclipse.app`）+ 用户点击。
 
 ---
 
