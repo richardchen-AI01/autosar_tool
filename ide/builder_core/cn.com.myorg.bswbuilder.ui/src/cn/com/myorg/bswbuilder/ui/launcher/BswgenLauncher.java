@@ -58,8 +58,34 @@ public final class BswgenLauncher {
     public static int run(Tool tool, List<String> extraArgs,
                           MessageConsole console,
                           IProgressMonitor monitor) throws IOException {
+        return runAndCapture(tool, extraArgs, console, monitor, null).exitCode;
+    }
+
+    /** Result tuple: exit code + captured stdout/stderr lines (in arrival order). */
+    public static final class Result {
+        public final int exitCode;
+        public final List<String> capturedLines;
+        public Result(int exitCode, List<String> capturedLines) {
+            this.exitCode = exitCode;
+            this.capturedLines = capturedLines;
+        }
+    }
+
+    /**
+     * Run the CLI and additionally return every emitted line. Used by the
+     * Validate flow which then parses lines for findings to turn into
+     * IMarkers.
+     *
+     * @param sink optional pre-allocated list to populate (so callers can
+     *             share the buffer); a new ArrayList is used if {@code null}.
+     */
+    public static Result runAndCapture(Tool tool, List<String> extraArgs,
+                                       MessageConsole console,
+                                       IProgressMonitor monitor,
+                                       List<String> sink) throws IOException {
         Path repoRoot = locateRepoRoot();
         List<String> command = buildCommand(tool, repoRoot, extraArgs);
+        List<String> captured = (sink != null) ? sink : new ArrayList<>();
 
         try (MessageConsoleStream out = console.newMessageStream()) {
             out.println("$ " + String.join(" ", command));
@@ -67,7 +93,6 @@ public final class BswgenLauncher {
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.directory(repoRoot.toFile());
             pb.redirectErrorStream(true);
-            // For source-mode: PYTHONPATH=core
             pb.environment().merge("PYTHONPATH", repoRoot.resolve("core").toString(),
                     (existing, ours) -> ours + File.pathSeparator + existing);
 
@@ -79,19 +104,20 @@ public final class BswgenLauncher {
                     if (monitor != null && monitor.isCanceled()) {
                         p.destroy();
                         out.println("[CANCELLED]");
-                        return -1;
+                        return new Result(-1, captured);
                     }
                     out.println(line);
+                    captured.add(line);
                 }
             }
             try {
                 int exit = p.waitFor();
                 out.println("[exit " + exit + "]");
-                return exit;
+                return new Result(exit, captured);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 out.println("[INTERRUPTED]");
-                return -2;
+                return new Result(-2, captured);
             }
         }
     }
