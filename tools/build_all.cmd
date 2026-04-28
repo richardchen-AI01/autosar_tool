@@ -2,7 +2,7 @@
 REM tools\build_all.cmd - Windows build of bswgen.exe + bswval.exe
 REM
 REM Usage:
-REM   cd D:\dev\Autosar_tool
+REM   cd D:\dev\autosar_tool
 REM   tools\build_all.cmd
 REM
 REM Outputs land in build\dist\bswgen.exe and build\dist\bswval.exe.

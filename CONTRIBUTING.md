@@ -1,4 +1,4 @@
-# Contributing to Autosar_tool
+# Contributing to autosar_tool
 
 Thanks for picking this up. This guide gets you from a fresh clone to a
 green test run, then walks you through the contribution flow.
@@ -32,8 +32,8 @@ editable installs once we publish the pyprojects.)
 Clone, then run the regression:
 
 ```bash
-git clone git@github.com:richardchen-AI01/Autosar_tool.git
-cd Autosar_tool
+git clone git@github.com:richardchen-AI01/autosar_tool.git
+cd autosar_tool
 
 # 30-second smoke check
 PYTHONPATH=core:. python3 -m pytest core/tests generator/tests validator/tests -q
@@ -166,8 +166,8 @@ Cover it with a BAD- workspace + a test asserting it fires.
 ## 11. Where to ask
 
 - Architecture questions: `docs/ARCHITECTURE.md` first, then open an issue.
-- Sprint context: `docs/sprint_logs/D*.md`.
-- Reverse-engineering notes on V25.10: `docs/v25_pyz_source_reference/`
-  (read-only, syntax-incomplete, but useful for "how did V25.10 do X").
+- Sprint context: `docs/sprint-logs/D*.md`.
+- Reverse-engineering notes on V25.10: `reference/v25_pyz_source_reference/`
+  (gitignored, read-only, syntax-incomplete, but useful for "how did V25.10 do X").
 
 Welcome aboard.

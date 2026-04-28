@@ -17,7 +17,7 @@
             point="org.eclipse.core.runtime.products">
         <product
                 application="cn.com.myorg.bswbuilder.common.application"
-                name="BSW Configurator (Autosar_tool)">
+                name="BSW Configurator (autosar_tool)">
             <property name="appName"   value="BSW Configurator"/>
             <property name="windowImages" value=""/>
         </product>

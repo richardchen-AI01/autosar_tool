@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: BSW Builder Module — MemIf
 Bundle-SymbolicName: cn.com.myorg.bswbuilder.modules.memif;singleton:=true
 Bundle-Version: 0.1.0.qualifier
-Bundle-Vendor: Autosar_tool
+Bundle-Vendor: autosar_tool
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-ActivationPolicy: lazy
 Bundle-Activator: cn.com.myorg.bswbuilder.modules.memif.Activator

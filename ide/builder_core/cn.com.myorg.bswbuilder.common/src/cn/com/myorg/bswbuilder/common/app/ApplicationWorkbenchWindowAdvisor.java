@@ -25,6 +25,6 @@ public class ApplicationWorkbenchWindowAdvisor extends WorkbenchWindowAdvisor {
         configurer.setShowMenuBar(true);
         configurer.setShowStatusLine(true);
         configurer.setShowProgressIndicator(true);
-        configurer.setTitle("BSW Configurator (Autosar_tool)");
+        configurer.setTitle("BSW Configurator (autosar_tool)");
     }
 }

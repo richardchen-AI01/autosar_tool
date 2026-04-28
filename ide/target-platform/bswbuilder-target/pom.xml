@@ -14,5 +14,5 @@
     <artifactId>bswbuilder-target</artifactId>
     <packaging>eclipse-target-definition</packaging>
 
-    <name>Autosar_tool IDE — target platform</name>
+    <name>autosar_tool IDE — target platform</name>
 </project>

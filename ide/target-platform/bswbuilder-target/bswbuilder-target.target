@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?pde?>
 <!--
-  Eclipse target platform for the Autosar_tool IDE.
+  Eclipse target platform for the autosar_tool IDE.
 
   Two locations:
     1. Eclipse RCP 2024-09 from p2 (workbench + SWT + JFace + e4 + forms)

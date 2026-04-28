@@ -123,7 +123,7 @@ public final class BswgenLauncher {
     /**
      * Walk up from the Eclipse process cwd until a directory containing both
      * {@code generator/__main__.py} and {@code core/Common/} is found. That is
-     * the Autosar_tool repo root.
+     * the autosar_tool repo root.
      */
     private static Path locateRepoRoot() throws IOException {
         Path cwd = Paths.get(System.getProperty("user.dir")).toAbsolutePath();
@@ -140,7 +140,7 @@ public final class BswgenLauncher {
         if (override != null) {
             return Paths.get(override);
         }
-        throw new IOException("Cannot locate Autosar_tool repo root from cwd=" + cwd
+        throw new IOException("Cannot locate autosar_tool repo root from cwd=" + cwd
                 + ". Pass -Dautosar.repoRoot=<path> in the launch config.");
     }
 

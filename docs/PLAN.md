@@ -288,7 +288,7 @@ D8 起 MemIf 已经完美——把它当**模板**复制。每个新模块的工
 ## 7. 项目目录骨架（D1 第一件事）
 
 ```
-/Users/richard/AI-MiniWorkspace/project/Autosar_tool/
+/Users/richard/AI-MiniWorkspace/project/autosar_tool/
 ├── PLAN.md                              ← 本文档
 ├── CHANGELOG.md
 ├── README.md
@@ -381,7 +381,7 @@ D8 起 MemIf 已经完美——把它当**模板**复制。每个新模块的工
 ### 8.1 一键建骨架
 
 ```bash
-cd /Users/richard/AI-MiniWorkspace/project/Autosar_tool
+cd /Users/richard/AI-MiniWorkspace/project/autosar_tool
 mkdir -p {ide/{product,frameworks,builder_core,modules},core/Common/arxmlparse/constant,generator/modules,validator/modules,schemas/{common,std},samples}
 mkdir -p tools docs reference
 

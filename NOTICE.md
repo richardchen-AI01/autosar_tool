@@ -1,4 +1,4 @@
-# NOTICE — Autosar_tool
+# NOTICE — autosar_tool
 
 ## Status: research / internal demo only
 

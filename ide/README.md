@@ -1,6 +1,6 @@
 # Eclipse RCP IDE — `ide/`
 
-Java / Tycho / OSGi half of Autosar_tool: a minimal Eclipse RCP shell that
+Java / Tycho / OSGi half of autosar_tool: a minimal Eclipse RCP shell that
 hosts the BSW configuration GUI and shells out to Python `bswgen` / `bswval`
 for the actual code generation and validation.
 
@@ -84,7 +84,7 @@ Plus per-platform .zip archives in
 open ide/product/cn.com.myorg.bswbuilder.product/target/products/cn.com.myorg.bswbuilder.product/macosx/cocoa/aarch64/Eclipse.app
 ```
 
-The window title should read **"BSW Configurator (Autosar_tool)"**, with:
+The window title should read **"BSW Configurator (autosar_tool)"**, with:
 
 - **BSW** menu (Generate MemIf / Validate MemIf)
 - Toolbar buttons for the same
@@ -118,7 +118,7 @@ PYTHONPATH=core python3 -m generator -g MemIf -i <workspace> -o <output>
 `BswgenLauncher.locateRepoRoot()` walks up from the JVM `user.dir` until it
 finds both `generator/__main__.py` AND `core/Common/`. So launching from the
 repo root works automatically. If you're launching from elsewhere, pass
-`-Dautosar.repoRoot=/path/to/Autosar_tool` to the JVM.
+`-Dautosar.repoRoot=/path/to/autosar_tool` to the JVM.
 
 ## Bundle / package naming
 

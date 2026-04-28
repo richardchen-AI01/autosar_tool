@@ -9,7 +9,7 @@
   shortName        — "MemIf"
   moduledefinition — bundle-relative arxml shipped next to plugin.xml
   kind             — "MEM" (memory abstraction)
-  vendor / version — Autosar_tool / 0.1.0
+  vendor / version — autosar_tool / 0.1.0
 -->
 <plugin>
    <extension
@@ -18,7 +18,7 @@
             shortName="MemIf"
             moduledefinition="MemIfDef.arxml"
             kind="MEM"
-            vendor="Autosar_tool"
+            vendor="autosar_tool"
             version="0.1.0"
             imageIdentifier="MemIf"/>
    </extension>

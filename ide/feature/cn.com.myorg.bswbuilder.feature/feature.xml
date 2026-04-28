@@ -3,10 +3,10 @@
         id="cn.com.myorg.bswbuilder.feature"
         label="BSW Builder Feature"
         version="0.1.0.qualifier"
-        provider-name="Autosar_tool">
+        provider-name="autosar_tool">
 
     <description>
-        Walking-skeleton feature that bundles all Autosar_tool RCP plugins:
+        Walking-skeleton feature that bundles all autosar_tool RCP plugins:
         common (RCP shell), ui (handlers + views), and the MemIf module
         plugin. ARTOP / Sphinx integration will be added once the build is
         proven.

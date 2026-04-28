@@ -20,7 +20,7 @@ if [ -z "$DAY" ]; then
 fi
 
 echo "=================================================================="
-echo "  Autosar_tool · Day $DAY / 14   (sprint start $SPRINT_START)"
+echo "  autosar_tool · Day $DAY / 14   (sprint start $SPRINT_START)"
 echo "=================================================================="
 
 PASS=0

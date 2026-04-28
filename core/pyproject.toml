@@ -9,7 +9,7 @@ description = "AUTOSAR-tool core library — Common.* helpers (replaces V25.10 .
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "Proprietary; research only (see project LICENSE)" }
-authors = [{ name = "Autosar_tool contributors" }]
+authors = [{ name = "autosar_tool contributors" }]
 dependencies = [
     "jinja2 >=3.0",
     "lxml >=4.9",

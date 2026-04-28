@@ -4,7 +4,7 @@
 > 适合用作每日 standup 核对、CI 阻塞门、PR review checklist。
 
 > 日期约定：D1 = 2026-04-27，D14 = 2026-05-11。
-> 路径约定：`$ROOT = /Users/richard/AI-MiniWorkspace/project/Autosar_tool`，`$REF = $ROOT/reference`（软链到 V25.10 反编结果）。
+> 路径约定：`$ROOT = /Users/richard/AI-MiniWorkspace/project/autosar_tool`，`$REF = $ROOT/reference`（软链到 V25.10 反编结果）。
 
 ---
 
@@ -262,7 +262,7 @@ python3 -m validator -i bad_2171 -m MemIf 2>&1 | grep -c 'Rule_BSW_MemIf_TCPP_21
 
 ### M2.5 docs §15 的端到端补丁实战可重现（**关键**）
 
-复刻 `/Users/richard/AI-MiniWorkspace/project/autosar-cfg/docs/04-recipes/15-add-new-param-end-to-end.md` 的实战：
+复刻 `docs/reference/04-recipes/01-add-new-param-end-to-end.md` 的实战：
 
 1. 在 `ide/modules/.../MemIfDef.arxml` 加 `MemIfModuleVersion` STRING param 默认值 `TEST_PROBE_42_V25_10`
 2. `schemas/common/MemIfDef.arxml` 同步加
@@ -386,7 +386,7 @@ $ROOT/tools/build_all.sh   # macOS
 # 在 Windows 上：tools\build_all.cmd
 ```
 
-**通过条件**：`dist/Autosar_tool-v0.1-{macos,win}.zip` 文件生成，size > 200 MB（包含 ARTOP + Sphinx + Eclipse RCP runtime）。
+**通过条件**：`dist/autosar_tool-v0.1-{macos,win}.zip` 文件生成，size > 200 MB（包含 ARTOP + Sphinx + Eclipse RCP runtime）。
 
 ---
 
@@ -398,8 +398,8 @@ $ROOT/tools/build_all.sh   # macOS
 
 ```bash
 # 在一台从未碰过这个项目的机器上
-unzip dist/Autosar_tool-v0.1-macos.zip -d /tmp/demo
-/tmp/demo/Autosar_tool/run.sh
+unzip dist/autosar_tool-v0.1-macos.zip -d /tmp/demo
+/tmp/demo/autosar_tool/run.sh
 # 等待 IDE 启动 → 自动打开内置 Demo 工程 → 自动选中 MemIf → 点 Generate
 ```
 

@@ -1,4 +1,4 @@
-# Autosar_tool
+# autosar_tool
 
 AUTOSAR ECUC code generator + cross-module validator + IDE skeleton, modeled on
 ORIENTAIS Configurator V25.10. Currently at v0.1 — research / internal demo.
@@ -53,7 +53,7 @@ tools\build_all.cmd                  # → build\dist\bswgen.exe, build\dist\bsw
 ## 目录布局
 
 ```
-Autosar_tool/
+autosar_tool/
 ├── README.md                ← 本文件
 ├── CHANGELOG.md             变更记录
 ├── docs/
@@ -147,5 +147,5 @@ ARTOP / Sphinx jar 因为我们的合法 V25.10 用户身份才能本机使用�
 | Det / NvM diff = 0 | Det_Bswmd.arxml + NvM_Bswmd.arxml byte-equal vs V25.10 |
 | Ea 模块未配置时 | bswgen 优雅退出 rc=0 |
 | CI | `.github/workflows/test.yml`（Linux/macOS pytest 矩阵 + M2.7 + PyInstaller smoke）|
-| GitHub | https://github.com/richardchen-AI01/Autosar_tool (private) |
-| Win 测试机 | `ssh win-automotive` → DESKTOP-DVNJ925 (`D:\Autosar_tool` 是运行沙盒) |
+| GitHub | https://github.com/richardchen-AI01/autosar_tool (private) |
+| Win 测试机 | `ssh win-automotive` → DESKTOP-DVNJ925 (`D:\Autosar_tool` 是运行沙盒,Win 端未 rename) |

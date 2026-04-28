@@ -177,7 +177,7 @@
   的 V25.10 closed-source 行为还原细节。
 
 ### Notes
-- 项目代号：**Autosar_tool**
+- 项目代号：**autosar_tool**
 - 起源：基于 ORIENTAIS Configurator V25.10 的反编结果（详见
   `/Users/richard/AI-MiniWorkspace/project/autosar-cfg/`）作为种子工程
 - 当前定位：研究 / 内部 demo（v0.1、v0.2 阶段）；商业化路径见

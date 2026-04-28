@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Tycho parent pom for the Eclipse RCP IDE half of Autosar_tool.
+  Tycho parent pom for the Eclipse RCP IDE half of autosar_tool.
 
   Build:
       cd ide
@@ -28,7 +28,7 @@
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Autosar_tool IDE — parent</name>
+    <name>autosar_tool IDE — parent</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

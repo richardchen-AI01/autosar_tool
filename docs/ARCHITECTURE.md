@@ -1,4 +1,4 @@
-# Architecture · Autosar_tool v0.1
+# Architecture · autosar_tool v0.1
 
 A condensed map of how this project is organised, what each part does, and why
 we made the design choices we did. For the sprint timeline, see
