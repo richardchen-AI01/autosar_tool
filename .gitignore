@@ -63,7 +63,8 @@ workspace_test/
 *.tmp
 
 # 软链 reference (指向 V25.10 反编结果, 不入库)
-reference/
+# 注意 anchor 到 / 防止把 docs/reference/ 也吞掉
+/reference/
 
 # 二进制制品
 dist/
