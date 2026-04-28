@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Run PowerShell on the win-automotive host without zsh/cmd/PowerShell quoting hell.
+#
+# Usage:
+#   winrun '<powershell script>'        inline (single arg, single-quote it on the shell side)
+#   winrun -f path/to/script.ps1        from file
+#   echo '<script>' | winrun -          from stdin
+#
+# Env:
+#   WINRUN_HOST  override ssh alias (default: win-automotive)
+#
+# Why: zsh eats backslashes, cmd mangles & | > and quotes, and PowerShell -Command -
+# (stdin) is unreliable over non-interactive ssh. base64 -EncodedCommand is the only
+# layer-safe transport. This wrapper also bakes in UTF-8 console output, silences
+# the first-run CLIXML progress noise, and sets $ErrorActionPreference=Stop.
+
+set -euo pipefail
+
+HOST="${WINRUN_HOST:-win-automotive}"
+
+read_script() {
+  case "${1:-}" in
+    -f) [[ -n "${2:-}" && -r "${2}" ]] || { echo "winrun: -f needs a readable path" >&2; exit 2; }
+        cat "$2" ;;
+    -)  cat ;;
+    "") echo "winrun: no script given (pass inline arg, '-f file', or '-' for stdin)" >&2; exit 2 ;;
+    *)  printf '%s' "$1" ;;
+  esac
+}
+
+PRELUDE='$ProgressPreference="SilentlyContinue"
+[Console]::OutputEncoding=[System.Text.Encoding]::UTF8
+$ErrorActionPreference="Stop"
+'
+
+SCRIPT="${PRELUDE}$(read_script "$@")"
+B64=$(printf '%s' "$SCRIPT" | iconv -f UTF-8 -t UTF-16LE | base64 | tr -d '\n')
+
+exec ssh "$HOST" "powershell -NoProfile -EncodedCommand $B64"

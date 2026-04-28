@@ -110,7 +110,7 @@ Autosar_tool/
 │   ├── test_memif_full.sh       M2.7 一键回归
 │   ├── reference_diff.py        M2.1 / M3.1 diff 检查
 │   ├── build_all.{sh,cmd}       PyInstaller 打 bswgen/bswval
-│   └── sync_to_smb.sh           Mac → SMB 同步
+│   └── winrun                   Mac → win-automotive 远端 PowerShell（SSH）
 │
 ├── reference/               V25.10 反编结果（gitignored 软链）
 │   └── autosar-cfg → /Users/richard/AI-MiniWorkspace/project/autosar-cfg
@@ -149,4 +149,4 @@ ARTOP / Sphinx jar 因为我们的合法 V25.10 用户身份才能本机使用�
 | Ea 模块未配置时 | bswgen 优雅退出 rc=0 |
 | CI | `.github/workflows/test.yml`（Linux/macOS pytest 矩阵 + M2.7 + PyInstaller smoke）|
 | GitHub | https://github.com/richardchen-AI01/Autosar_tool (private) |
-| SMB mirror | smb://192.168.1.44/Autosar_tool |
+| Win 测试机 | `ssh win-automotive` → DESKTOP-DVNJ925 (`D:\Autosar_tool` 是运行沙盒) |

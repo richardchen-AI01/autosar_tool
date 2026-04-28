@@ -390,8 +390,8 @@ ln -s /Users/richard/AI-MiniWorkspace/project/autosar-cfg/ORIENTAISBswGen.exe re
 ln -s /Users/richard/AI-MiniWorkspace/project/autosar-cfg/ORIENTAISBswVal.exe reference/ORIENTAISBswVal.exe
 
 # 复制可直接搬的资产
-SRC=/Volumes/ORIENTAIS_Studio/ORIENTAIS_Configurator_for_EasyXMen_V25.10
-cp -r $SRC/bswmd/* schemas/
+# bswmd 从 win-automotive (D:\ORIENTAIS_Studio\...) 用 scp 拉一次
+scp -r 'win-automotive:D:/ORIENTAIS_Studio/ORIENTAIS_Configurator_for_EasyXMen_V25.10/bswmd/*' schemas/
 cp -r reference/ORIENTAISBswGen.exe/data/* generator/modules/    # 80 个模块
 cp -r reference/ORIENTAISBswVal.exe/data/Bsw/* validator/modules/ # 47 个模块
 

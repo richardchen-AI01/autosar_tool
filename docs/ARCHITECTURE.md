@@ -234,9 +234,14 @@ echo "ALL PASS"
 | IDE runtime test | partial (Eclipse RCP runs but iSoft .pyd not portable) | ✓ full |
 | Final integration test | — | ✓ recommended |
 
-Sync mechanism: `tools/sync_to_smb.sh` mirrors the Mac project tree to
-`/Volumes/AUTOSAR_tool/` (an SMB share at `192.168.1.44`). Windows mounts
-that share as a network drive and runs the test path from there.
+Sync mechanism: pure git over SSH. Mac is the only place code is edited;
+GitHub `main` is the source of truth. Windows pulls via
+`./tools/winrun 'Set-Location D:\Autosar_tool; git pull; <build / test>'`,
+runs the test path locally, and reports results back through stdout —
+Windows never commits. For ad-hoc remote PowerShell use
+`./tools/winrun '<script>'` (SSH alias `win-automotive` →
+`AUTOMOTIVE@192.168.1.44`; base64 EncodedCommand transport so quoting
+can't bite).
 
 GitHub remote is the ultimate source of truth. Branch: `main` (private).
 
