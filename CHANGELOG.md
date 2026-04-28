@@ -123,7 +123,7 @@
 - **文档**：
   - `docs/ARCHITECTURE.md` — 三层架构地图（Tier 1 IDE / Tier 2 apps /
     Tier 3 common-lib）+ 数据流 + 测试策略 + 兼容性约定
-  - `docs/sprint_logs/D2.md` — D2 当日进度记录
+  - `docs/sprint-logs/D2.md` — D2 当日进度记录
   - `docs/v25_pyz_source_reference/` — V25.10 反编结果归档
   - `ide/README.md` — Eclipse RCP 后续实现指南
 - **基础设施**：
@@ -186,9 +186,9 @@
 ## [D1] — 2026-04-27
 
 ### Added
-- 项目立项与方案设计：`README.md`、`PLAN.md`、`MILESTONES.md`、`PLAN_v0.2.md`
+- 项目立项与方案设计：`README.md`、`PLAN.md`、`MILESTONES.md`
 - v0.1 sprint 14 天计划与 4 个里程碑（M1-M4）
-- v0.2 sprint 计划：UI 重设计为 EB tresos 风格 + 80 模块全覆盖
+- v0.2 路线（UI 重设计 + 80 模块覆盖）合并进 `PLAN.md` §9
 - `.gitignore` 覆盖 Python / Java / Eclipse / macOS / 大二进制制品
 
 ## 模板（供未来 release 使用）

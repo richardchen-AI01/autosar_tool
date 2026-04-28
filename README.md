@@ -57,12 +57,10 @@ Autosar_tool/
 ├── README.md                ← 本文件
 ├── CHANGELOG.md             变更记录
 ├── docs/
-│   ├── PLAN.md              v0.1 sprint 完整方案
-│   ├── PLAN_v0.2.md         v0.2 UI 重设计 + 80 模块覆盖
+│   ├── PLAN.md              v0.1 sprint 完整方案 + v0.2/v0.3 路线（§9）
 │   ├── MILESTONES.md        可执行里程碑清单
-│   ├── sprint_logs/D1.md    Day 1 sprint log
-│   ├── assets/              UI 参考图
-│   └── v25_pyz_source_reference/  V25.10 反编出来的参考代码（含 syntax errors，仅供阅读）
+│   ├── sprint-logs/D1.md    Day 1 sprint log
+│   └── assets/              UI 参考图
 │
 ├── core/                    Common.* 共享库（替代 V25.10 的 13 个 .pyd）
 │   ├── pyproject.toml
@@ -112,8 +110,9 @@ Autosar_tool/
 │   ├── build_all.{sh,cmd}       PyInstaller 打 bswgen/bswval
 │   └── winrun                   Mac → win-automotive 远端 PowerShell（SSH）
 │
-├── reference/               V25.10 反编结果（gitignored 软链）
-│   └── autosar-cfg → /Users/richard/AI-MiniWorkspace/project/autosar-cfg
+├── reference/               V25.10 反编 / 私有参考资料（gitignored，本地）
+│   ├── autosar-cfg → /Users/richard/AI-MiniWorkspace/project/autosar-cfg
+│   └── v25_pyz_source_reference/  V25.10 反编出来的参考代码（含 syntax errors，仅供阅读）
 │
 └── build/                   构建产物（gitignored）
     └── dist/{bswgen, bswval}

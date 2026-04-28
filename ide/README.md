@@ -145,7 +145,8 @@ external sharing.
 | ProblemView integration | Needs Sphinx + a problem-marker producer |
 
 Tracking: see [PLAN.md](../docs/PLAN.md) M3.3 ("Validator → IDE Validate
-button") and [PLAN_v0.2.md](../docs/PLAN_v0.2.md) for the form editor.
+button") and [PLAN.md §9.2](../docs/PLAN.md#92-v02-之-ui-重设计eb-tresos-风) for
+the form editor.
 
 ## Reference: V25.10 plugin layout (for cloning)
 

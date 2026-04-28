@@ -58,8 +58,8 @@ distributing this code.
 
 ## 4. Intent of the v0.3 clean-room rewrite
 
-The published roadmap (see `docs/PLAN.md` and `docs/PLAN_v0.2.md`) lists
-**v0.3** as a clean-room rewrite milestone. v0.3 is intended to:
+The published roadmap (see `docs/PLAN.md` §9) lists **v0.3** as a clean-room
+rewrite milestone. v0.3 is intended to:
 
 1. Remove all V25.10-derived module sources (`generator/modules/<Module>/`,
    `validator/Bsw/<Module>/`).

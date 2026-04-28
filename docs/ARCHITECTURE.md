@@ -268,4 +268,4 @@ Sprint plan: [PLAN.md](PLAN.md) §5 has the 14-day timeline.
 
 Per-day checkable milestones: [MILESTONES.md](MILESTONES.md).
 
-Post-v0.1 work: [PLAN_v0.2.md](PLAN_v0.2.md).
+Post-v0.1 work: [PLAN.md §9](PLAN.md#9-v01-之后的路线).

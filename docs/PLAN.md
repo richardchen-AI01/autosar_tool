@@ -57,7 +57,7 @@ ORIENTAISBswVal.exe/        校验器整套：
   pyz_source/                   ← 2408 个反编 .py（含 Common.ArxmlValidator,
                                    Common.base.BaseClass, BaseDecorator 等核心框架，全明文）
 
-docs/04-recipes/15-add-new-param-end-to-end.md   ← 端到端补丁实战经验
+docs/reference/04-recipes/01-add-new-param-end-to-end.md   ← 端到端补丁实战经验
 ```
 
 **真正要从零写的只剩 13 个 .pyd 的 Python 等价实现**。其它都是搬。
@@ -412,27 +412,166 @@ git add . && git commit -m "Initial scaffolding from V25.10 extracts"
 
 ---
 
-## 9. 后续路线（v0.1 之后）
+## 9. v0.1 之后的路线
 
-| 版本 | 时间 | 重点 | 详细 |
-|---|---|---|---|
-| **v0.1** | 2 周 | 现 sprint：5 核心模块端到端 + 30 模块 smoke + iSoft 风 UI | 本文档 |
-| **v0.2** | +10-12 天 | **UI 重设计**为 EB tresos 风（三栏 + 分类导航 + 面包屑 + Properties + Validation） + **80 模块全覆盖** | [PLAN_v0.2.md](PLAN_v0.2.md) |
-| **v0.3** | +2-4 周 | **Clean-room 重写**所有 V25.10 派生代码；自家 license（简单 RSA 签名）| 等 v0.2 收尾时再细化 |
-| **v0.5** | +1-2 月 | 完成第一个 OEM 客户实际项目跑通（这一步卡在 AUTOSAR 领域知识，AI 帮不了）| - |
-| **v1.0** | +3-6 月 | 商业级稳定性、回归测试矩阵、多 MCU/OS 支持、完整文档 | - |
+### 9.1 总路线图
+
+| 版本 | 时间 | 重点 |
+|---|---|---|
+| **v0.1** | 2 周 | 现 sprint：5 核心模块端到端 + 30 模块 smoke + iSoft 风 UI |
+| **v0.2** | +10-12 天 | UI 重设计为 EB tresos 风（详见 §9.2）+ 80 模块全覆盖（详见 §9.3）|
+| **v0.3** | +2-4 周 | **Clean-room 重写**所有 V25.10 派生代码；自家 license（简单 RSA 签名）|
+| **v0.5** | +1-2 月 | 完成第一个 OEM 客户实际项目跑通（这一步卡在 AUTOSAR 领域知识，AI 帮不了）|
+| **v1.0** | +3-6 月 | 商业级稳定性、回归测试矩阵、多 MCU/OS 支持、完整文档 |
 
 **v0.1 / v0.2 都是 "研究 / 内部 demo"**，含 V25.10 派生代码，不能商业发布。
 **v0.3 是商业化的法律分水岭**：必须 clean-room 重写所有 iSoft 派生的 Python / Java 代码，
 参考 V25.10 接口但不直接复制。AI 加速比从 v0.1/v0.2 的 5-10x 降到 v0.3 的 1.5-2x，
 因为变成"看接口写实现"——不能再"复制粘贴 + 改 import"。
 
-**为什么 UI 重设计放 v0.2 而不是 v0.1**：
+> v0.2 / v0.3 / v0.5 / v1.0 sprint 不立即开。v0.1 release 之后再根据实际进度
+> （特别是是否有延期）和市场反馈决定起跑日和细节排期。下面 §9.2 / §9.3 是
+> 提前对齐的**目标 spec**，不是已 frozen 的 sprint plan。
 
-- v0.1 sprint 14 天里**功能管线打通**已经满载（M1-M4），不能再背 UI 重做
-- UI 重做要新 perspective + 4 个 view + selection 同步，Eclipse RCP 这块 AI 加速比反而低
-- v0.1 出来后能立刻演示 "generate 出来的 .c/.h"，UI 风格内部知道就行
-- v0.2 阶段 UI 重做和 80 模块扩展可以并行（4 实例 → A/B/C 做 UI、D 做模块）
+### 9.2 v0.2 之 UI 重设计（EB tresos 风）
+
+为什么放在 v0.2 而不是 v0.1：v0.1 sprint 14 天里**功能管线打通**已经满载（M1-M4），
+不能再背 UI 重做；UI 重做要新 perspective + 4 个 view + selection 同步，Eclipse RCP
+这块 AI 加速比反而低；v0.1 出来后能立刻演示 "generate 出来的 .c/.h"，UI 风格内部知道
+就行。
+
+#### 目标布局（三栏 + 底部 Properties + 右下 Validation）
+
+```
+┌──────────────┬─────────────────────────┬──────────────────────────────────────────┐
+│ Configuration│  CanTp > CanTpGeneral   │ Safe Bsw Checks                  ✓        │
+│ Editors      │ ┌─────────────────────┐ │ Single Rx Buffer Optim           ☐ *      │
+│ <Filter>     │ │<Filter>             │ │ Split Main Function              ☐ *      │
+│              │ ├─────────────────────┤ │ Support Addressing 'Extended'    ☐ *      │
+│ ▾ Base Svc  │ │  ▸ BswMGeneral      │ │ Support Addressing 'Mixed11'     ☐ *      │
+│   Det       │ │  ▾ Can              │ │ Support Addressing 'Standard'    ✓ *      │
+│   Crc       │ │    CanConfigSet     │ │ Support CAN-FD                   ☐ *      │
+│ ▾ Communic. │ │    CanGeneral       │ │ Support Long First Frames        ☐ *      │
+│   Can       │ │  ▾ CanIf            │ │ Synchronous Transmission         ✓        │
+│   CanIf     │ │    CanIfCtrlDrvCfgs │ │ Transmit Cancellation            ☐ *      │
+│   CanTp ◀───┼─┼─▾ CanTp            │ │ Transmit Queue                   ☐ *      │
+│   ...       │ │    CanTpConfig      │ │ Use Only First Fc                ✓        │
+│ ▸ Diagnostic│ │    CanTpGeneral ◀───┼─│ User Config File                 [...]    │
+│ ▸ I/O       │ │  ▸ CanSM           │ │ Version Info Api                 ☐ *      │
+│ ▸ Memory    │ │  ...                │ │                                            │
+│ ▸ Mode Mgmt │ └─────────────────────┘ │                                            │
+│ ▸ Network   │                         │                                            │
+│ ▸ Runtime   │                         │                                            │
+├──────────────┴─────────────────────────┼──────────────────────────────────────────┤
+│ Properties [User Config File]          │ Validation                  50 messages  │
+│ ▸ Description: Reference to external...│  ⚠ Rule_BSW_MemIf_TCPP_2170 ...           │
+│   Definition: ECUC-STRING-PARAM-DEF... │  ⚠ Rule_BSW_CanTp_..., ...                 │
+│   Status:     <empty>                  │  filter: [ All ▼ ] [Errors] [Warn] [Info] │
+└────────────────────────────────────────┴──────────────────────────────────────────┘
+```
+
+#### 8 处变化点对照（vs iSoft V25.10）
+
+| # | 变化点 | iSoft V25.10 | EB tresos 风 | 实现 |
+|---|---|---|---|---|
+| 1 | 左栏分类导航 | Project Explorer 平铺 | 8 大类折叠 | 自定义 ContentProvider + taxonomy |
+| 2 | 左栏 `<Filter>` | 无 | 实时过滤 | JFace `FilteredTree` |
+| 3 | 中栏容器树 | 嵌在 MasterDetail | 独立 view | 抠出 tree 部分成 standalone view |
+| 4 | 中栏面包屑 | 无 | `CanTp > CanTpGeneral` | ToolBar + selection listener |
+| 5 | 中栏 `<Filter>` | 无 | 当前模块的容器过滤 | 同 #2 |
+| 6 | 右栏参数表单 | 嵌在 MasterDetail | 独立 view，跟随选择 | 抠出 form 部分；监听中栏 selection |
+| 7 | 底部 Properties | 简易 | Description / Definition / Status 三 tab | IPropertySource + ECUC ParamDef 元数据 |
+| 8 | 右下 Validation | 现有 view 但风格不同 | 紧凑 + 严重级筛选 | view 重 layout + filter toolbar |
+
+#### 模块分类 taxonomy（8 大类）
+
+```yaml
+Base Services:
+  - Det
+  - Crc
+  - IStdLib
+
+Communication:
+  - Can, CanIf, CanTp, CanNm, CanSM, CanTSyn, CanTrcv
+  - LinIf, LinTp, LinSM
+  - Eth, EthIf, EthSM, EthTSyn, EthTrcv
+  - SoAd, TcpIp, DoIP
+  - Com, ComM, IpduM, PduR, SecOC, LdCom, J1939Tp, J1939Nm, J1939Rm, J1939Dcm
+  - CDD_*
+
+Diagnostics:
+  - Dcm, Dem, FiM, Dlt, IdsM, Xcp
+
+I/O:
+  - Adc, Pwm, Spi, Dio, Port, Gpt, Icu
+
+Memory:
+  - NvM, MemIf, Ea, Eep_62, Fee_62, MemMap, MemLayout, FlsTst, RamTst
+
+Mode Management:
+  - BswM, EcuM
+
+Network Management:
+  - Nm, OsekNm
+
+Runtime System:
+  - Rte, Os, WdgM, WdgIf, AppStub, Sd, StbM, Csm, CryIf, Crypto_62, KeyM, Tm, E2E, Bfx
+```
+
+每个模块归类后需标"显示顺序权重"（数字越小越靠前），保证 OEM 习惯的视觉顺序。
+
+#### v0.2 UI 风险
+
+| # | 风险 | 应对 |
+|---|---|---|
+| R1 | 跨 view selection 同步是 Eclipse RCP 老大难，AI 加速比低 | 起 sprint 之前先打通最小 4-view 联动；如果 sprint 第 5 天还没好，砍掉 #4 面包屑、#5 中栏 filter 这种锦上添花的 |
+| R2 | EB tresos 的 ☐ * 这种"非默认值"标记可能涉及商业产品 UI 的 trade dress | 用我们自己的视觉语言（比如用 ▴ 或灰色背景）表达"非默认值"，不直接抄星号 |
+| R3 | OEM 看到新 UI 觉得"不像他们熟悉的 Vector / EB"，回退要求 | v0.1 那套保留作为 alternative perspective，运行时 Window → Open Perspective → "iSoft Classic" 仍可切回 |
+
+### 9.3 v0.2 之 80 模块全覆盖
+
+#### v0.1 已覆盖 30 个
+
+```
+Det, MemIf, NvM, Ea, Fee, EcuM, Os, WdgM,           # 8 系统服务/内存
+Com, PduR, CanIf, Can, CanTp, BswM,                  # 6 通信
+Crc, Dem, Dcm, Mcu, Port, Dio, Gpt, Wdg, IpduM,     # 9 driver/诊断
+LinIf, LinSM, Nm, CanNm, CanSM, ComM, Rte           # 7 NM/Rte
+```
+
+#### v0.2 新增 50 个（按优先级）
+
+| 优先级 | 类别 | 模块 |
+|---|---|---|
+| P1 | 通信 | CanTSyn, CanTrcv, LinTp, EthIf, EthSM, EthTSyn, SoAd, TcpIp, DoIP, SecOC, LdCom |
+| P1 | 加密 | Csm, CryIf, Crypto_62, KeyM, IdsM |
+| P2 | 通信扩展 | J1939Tp, J1939Nm, J1939Rm, J1939Dcm, Sd, StbM, Tm |
+| P2 | 内存扩展 | Eep_62, MemMap, MemLayout, FlsTst, RamTst |
+| P2 | 诊断扩展 | FiM, Dlt, Xcp |
+| P3 | I/O 扩展 | Adc, Pwm, Spi, Icu |
+| P3 | 工具/CDD | AppStub, Bfx, E2E, IStdLib, OsekNm, WdgIf |
+| P3 | CDD 套件 | CDD_CanIds, CDD_DcmClient, CDD_DoIPClient, CDD_FVM |
+
+#### 工作量估算
+
+| 子任务 | 工时 |
+|---|---|
+| 50 模块的 plugin jar 骨架（每个 ~30 分钟）| 25 工时 ≈ 3 天 |
+| 50 模块的 Python 代码 import 路径调整（已有 V25.10 reference）| 12 工时 ≈ 1.5 天 |
+| 50 模块跑通 smoke（generate 不抛异常）| 16 工时 ≈ 2 天 |
+| **小计** | **6-7 天**（一个实例并行可压到 3-4 天）|
+
+### 9.4 v0.2 启动门槛
+
+v0.2 sprint 不立即开。v0.1 release 当天的 retrospective 输出几条决策点之后再启动：
+
+1. AI 加速比实际是多少？（比预期更高就压 v0.2 工期，更低就放宽）
+2. 哪些模块 v0.1 没覆盖好但 v0.2 优先要补？
+3. 客户 / 老板看到 v0.1 demo 后对 UI 风格的真实反馈
+4. v0.3 clean-room 是否要并行在 v0.2 同步启动
+
+带着这些信息再正式启动 v0.2，比现在提前规划得更细更准。具体 checkable 命令清单等
+v0.2 sprint 启动当天再写（参考 v0.1 [MILESTONES.md](MILESTONES.md) 格式）。
 
 ---
 
