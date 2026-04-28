@@ -23,6 +23,7 @@ import org.eclipse.ui.part.ViewPart;
 import cn.com.myorg.bswbuilder.modules.memif.data.MemIfArxmlReader;
 import cn.com.myorg.bswbuilder.modules.memif.data.MemIfArxmlWriter;
 import cn.com.myorg.bswbuilder.modules.memif.data.MemIfData;
+import cn.com.myorg.bswbuilder.modules.memif.data.MemIfDerivedCalculator;
 
 /**
  * Property form view — right-hand side of the EB-tresos style perspective.
@@ -83,7 +84,9 @@ public class PropertyFormView extends ViewPart {
     private final Map<Param, String> originalValues = new LinkedHashMap<>();
 
     private Button saveButton;
+    private Button recomputeButton;
     private Label statusLabel;
+    private Label derivedHint;  // shown next to NumberOfDevices widget
 
     @Override
     public void createPartControl(Composite parent) {
@@ -117,11 +120,12 @@ public class PropertyFormView extends ViewPart {
         breadcrumbContainer.setBackground(BG);
         breadcrumbContainer.setForeground(LABEL_FG);
 
-        // Form area (mutable)
+        // Form area (mutable). 3 columns: label | widget | derived-hint.
+        // Most rows leave the hint column empty.
         formArea = new Composite(parent, SWT.NONE);
         formArea.setBackground(BG);
         GridLayoutFactory.fillDefaults()
-                .numColumns(2)
+                .numColumns(3)
                 .margins(20, 10)
                 .spacing(8, 8)
                 .applyTo(formArea);
@@ -140,7 +144,7 @@ public class PropertyFormView extends ViewPart {
         placeholder.setText("Select a module from the left to view its parameters.");
         placeholder.setForeground(PLACEHOLDER_FG);
         placeholder.setBackground(BG);
-        GridDataFactory.fillDefaults().span(2, 1).grab(true, false).applyTo(placeholder);
+        GridDataFactory.fillDefaults().span(3, 1).grab(true, false).applyTo(placeholder);
         formArea.layout(true, true);
     }
 
@@ -171,7 +175,7 @@ public class PropertyFormView extends ViewPart {
         addEditableRow(Param.VERSION_INFO_API,    data.getMemIfVersionInfoApi());
         addEditableRow(Param.MODULE_VERSION,      data.getMemIfModuleVersion());
 
-        // Save row
+        // Action row: Save + Recompute from NvM
         saveButton = new Button(formArea, SWT.PUSH);
         saveButton.setText("Save");
         GridDataFactory.fillDefaults()
@@ -181,6 +185,18 @@ public class PropertyFormView extends ViewPart {
         saveButton.addSelectionListener(new SelectionAdapter() {
             @Override public void widgetSelected(SelectionEvent e) {
                 onSave();
+            }
+        });
+
+        recomputeButton = new Button(formArea, SWT.PUSH);
+        recomputeButton.setText("Recompute from NvM");
+        GridDataFactory.fillDefaults()
+                .align(SWT.BEGINNING, SWT.CENTER)
+                .indent(0, 12)
+                .applyTo(recomputeButton);
+        recomputeButton.addSelectionListener(new SelectionAdapter() {
+            @Override public void widgetSelected(SelectionEvent e) {
+                onRecomputeFromNvM();
             }
         });
 
@@ -194,7 +210,10 @@ public class PropertyFormView extends ViewPart {
         src.setText("source: " + data.getSourcePath());
         src.setForeground(SUBTLE);
         src.setBackground(BG);
-        GridDataFactory.fillDefaults().span(2, 1).grab(true, false).indent(0, 12).applyTo(src);
+        GridDataFactory.fillDefaults().span(3, 1).grab(true, false).indent(0, 12).applyTo(src);
+
+        // Auto-compute the NvM-derived NumberOfDevices once on initial show.
+        updateDerivedHint();
 
         formArea.layout(true, true);
     }
@@ -229,6 +248,17 @@ public class PropertyFormView extends ViewPart {
                 break;
         }
         editors.put(param, widget);
+
+        // 3rd column: derived hint or empty filler. For NumberOfDevices we
+        // stash the Label so updateDerivedHint() can rewrite it later.
+        Label hint = new Label(formArea, SWT.NONE);
+        hint.setText("");
+        hint.setForeground(SUBTLE);
+        hint.setBackground(BG);
+        GridDataFactory.fillDefaults().grab(true, false).applyTo(hint);
+        if (param == Param.NUMBER_OF_DEVICES) {
+            this.derivedHint = hint;
+        }
     }
 
     private String widgetValue(Control w) {
@@ -278,6 +308,42 @@ public class PropertyFormView extends ViewPart {
             } catch (Throwable t) {
                 statusLabel.setText("Saved but reload failed: " + t.getMessage());
             }
+        }
+    }
+
+    /**
+     * Re-read the workspace's NvM.arxml and update the derived-hint label
+     * next to the NumberOfDevices widget. Called once on showMemIf, and
+     * each time the user clicks "Recompute from NvM".
+     */
+    private void updateDerivedHint() {
+        if (derivedHint == null || derivedHint.isDisposed() || currentSourcePath == null) {
+            return;
+        }
+        try {
+            int derived = MemIfDerivedCalculator.calculateForMemIfFile(currentSourcePath);
+            String configuredStr = widgetValue(editors.get(Param.NUMBER_OF_DEVICES));
+            int configured;
+            try { configured = Integer.parseInt(configuredStr.trim()); }
+            catch (NumberFormatException nfe) { configured = -1; }
+
+            String tag = (configured == derived)
+                    ? String.format("(derived from NvM: %d ✓)", derived)
+                    : String.format("(derived from NvM: %d  — configured value differs)", derived);
+            derivedHint.setText(tag);
+        } catch (Throwable t) {
+            derivedHint.setText("(derived: error " + t.getClass().getSimpleName() + ")");
+        }
+        derivedHint.getParent().layout();
+    }
+
+    private void onRecomputeFromNvM() {
+        if (currentSourcePath == null) {
+            return;
+        }
+        updateDerivedHint();
+        if (statusLabel != null && !statusLabel.isDisposed()) {
+            statusLabel.setText("Recomputed derived NumberOfDevices from NvM.");
         }
     }
 
