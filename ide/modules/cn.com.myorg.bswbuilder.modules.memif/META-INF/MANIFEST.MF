@@ -17,4 +17,5 @@ Require-Bundle: org.eclipse.core.runtime,
  org.artop.aal.autosar448,
  org.artop.aal.gautosar,
  org.eclipse.sphinx.emf
+Export-Package: cn.com.myorg.bswbuilder.modules.memif.data
 Automatic-Module-Name: cn.com.myorg.bswbuilder.modules.memif

@@ -4,20 +4,25 @@ import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Text;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
+
+import cn.com.myorg.bswbuilder.modules.memif.data.MemIfData;
 
 /**
  * Property form view — right-hand side of the EB-tresos style perspective.
  *
- * <p>Shows a sample container's parameter form (Label + widget + required '*'),
- * mirroring the reference UI's "Safe Bsw Checks: ☑ *" pattern. v0.1 ships
- * a static mock-up so the layout polish is visible without needing ARTOP
- * integration; v0.2 will wire to the actual selected ECUC container.
+ * <p>Phase A delivery: data-driven, read-only. Default state shows a
+ * placeholder; {@link #showMemIf(MemIfData)} repopulates the form with the
+ * four MemIfGeneral parameters from a loaded ARXML.
+ *
+ * <p>Sphinx auto-render of an EMF Forms editor is the longer-term path
+ * (Phase B+); for read-only Phase A we manually render the four rows so
+ * we don't need a TransactionalEditingDomain yet.
  */
 public class PropertyFormView extends ViewPart {
 
@@ -27,102 +32,143 @@ public class PropertyFormView extends ViewPart {
     private static final Color BG = new Color(Display.getDefault(), 255, 255, 255);
     private static final Color LABEL_FG = new Color(Display.getDefault(), 70, 70, 70);
     private static final Color SUBTLE = new Color(Display.getDefault(), 120, 120, 120);
-    private static final Color REQUIRED_RED = new Color(Display.getDefault(), 200, 80, 80);
+    private static final Color VALUE_FG = new Color(Display.getDefault(), 25, 25, 25);
+    private static final Color PLACEHOLDER_FG = new Color(Display.getDefault(), 160, 160, 160);
+
+    private Composite breadcrumbArea;
+    private Composite formArea;
+    private Label breadcrumbModule;
+    private Label breadcrumbContainer;
 
     @Override
     public void createPartControl(Composite parent) {
         parent.setBackground(BG);
         GridLayoutFactory.fillDefaults().margins(0, 0).spacing(0, 0).applyTo(parent);
 
-        // Breadcrumb row
-        Composite breadcrumb = new Composite(parent, SWT.NONE);
-        breadcrumb.setBackground(BG);
+        // Breadcrumb row (mutable)
+        breadcrumbArea = new Composite(parent, SWT.NONE);
+        breadcrumbArea.setBackground(BG);
         GridLayoutFactory.fillDefaults().numColumns(5).margins(12, 8).spacing(6, 0)
-                .applyTo(breadcrumb);
-        GridDataFactory.fillDefaults().grab(true, false).applyTo(breadcrumb);
+                .applyTo(breadcrumbArea);
+        GridDataFactory.fillDefaults().grab(true, false).applyTo(breadcrumbArea);
 
-        Label home = new Label(breadcrumb, SWT.NONE);
+        Label home = new Label(breadcrumbArea, SWT.NONE);
         home.setText("◀ ▸ ");
         home.setBackground(BG);
         home.setForeground(SUBTLE);
-        Label memif = makeBreadcrumbLink(breadcrumb, "MemIf");
-        Label arrow = new Label(breadcrumb, SWT.NONE);
+
+        breadcrumbModule = new Label(breadcrumbArea, SWT.NONE);
+        breadcrumbModule.setText("(no module)");
+        breadcrumbModule.setBackground(BG);
+        breadcrumbModule.setForeground(LABEL_FG);
+
+        Label arrow = new Label(breadcrumbArea, SWT.NONE);
         arrow.setText(" ▸ ");
         arrow.setBackground(BG);
         arrow.setForeground(SUBTLE);
-        Label memifGen = makeBreadcrumbLink(breadcrumb, "MemIfGeneral");
 
-        // Form rows
-        Composite form = new Composite(parent, SWT.NONE);
-        form.setBackground(BG);
+        breadcrumbContainer = new Label(breadcrumbArea, SWT.NONE);
+        breadcrumbContainer.setText("");
+        breadcrumbContainer.setBackground(BG);
+        breadcrumbContainer.setForeground(LABEL_FG);
+
+        // Form area (mutable)
+        formArea = new Composite(parent, SWT.NONE);
+        formArea.setBackground(BG);
         GridLayoutFactory.fillDefaults()
-                .numColumns(3)
+                .numColumns(2)
                 .margins(20, 10)
                 .spacing(8, 8)
-                .applyTo(form);
-        GridDataFactory.fillDefaults().grab(true, true).applyTo(form);
+                .applyTo(formArea);
+        GridDataFactory.fillDefaults().grab(true, true).applyTo(formArea);
 
-        // Sample: real MemIfGeneral parameter set (from MemIfDef.arxml)
-        addCheckRow(form, "Memif Dev Error Detect:",         true,  true);
-        addCheckRow(form, "Memif Number Of Devices:",        false, false);
-        addCheckRow(form, "Memif Version Info Api:",         false, true);
-        addCheckRow(form, "Memif Module Version:",           false, false);
-        addTextRow (form, "User Config File:",               "",    false);
-        addCheckRow(form, "Safe Bsw Checks:",                true,  false);
-        addCheckRow(form, "Single Rx Buffer Optimization:",  false, false);
-        addCheckRow(form, "Split Main Function:",            false, false);
-        addCheckRow(form, "Synchronous Transmission:",       true,  false);
-        addCheckRow(form, "Transmit Cancellation:",          false, false);
-        addCheckRow(form, "Transmit Queue:",                 false, false);
+        showPlaceholder();
     }
 
-    private Label makeBreadcrumbLink(Composite parent, String text) {
+    private void showPlaceholder() {
+        clearForm();
+        Label placeholder = new Label(formArea, SWT.NONE);
+        placeholder.setText("Select a module from the left to view its parameters.");
+        placeholder.setForeground(PLACEHOLDER_FG);
+        placeholder.setBackground(BG);
+        GridDataFactory.fillDefaults().span(2, 1).grab(true, false).applyTo(placeholder);
+        formArea.layout(true, true);
+    }
+
+    private void clearForm() {
+        if (formArea == null || formArea.isDisposed()) return;
+        for (Control c : formArea.getChildren()) {
+            c.dispose();
+        }
+    }
+
+    /**
+     * Populate the form with the four MemIfGeneral parameters from a loaded
+     * ARXML. Phase A delivery — read-only labels.
+     */
+    public void showMemIf(MemIfData data) {
+        if (formArea == null || formArea.isDisposed()) return;
+
+        breadcrumbModule.setText("MemIf");
+        breadcrumbContainer.setText("MemIfGeneral");
+        breadcrumbArea.layout(true, true);
+
+        clearForm();
+        addReadOnlyRow(formArea, "Memif Dev Error Detect:",  formatValue(data.getMemIfDevErrorDetect()));
+        addReadOnlyRow(formArea, "Memif Number Of Devices:", formatValue(data.getMemIfNumberOfDevices()));
+        addReadOnlyRow(formArea, "Memif Version Info Api:",  formatValue(data.getMemIfVersionInfoApi()));
+        addReadOnlyRow(formArea, "Memif Module Version:",    formatValue(data.getMemIfModuleVersion()));
+
+        Label src = new Label(formArea, SWT.NONE);
+        src.setText("source: " + data.getSourcePath());
+        src.setForeground(SUBTLE);
+        src.setBackground(BG);
+        GridDataFactory.fillDefaults().span(2, 1).grab(true, false).indent(0, 12).applyTo(src);
+
+        formArea.layout(true, true);
+    }
+
+    private static String formatValue(String raw) {
+        return (raw == null || raw.isEmpty()) ? "(unset)" : raw;
+    }
+
+    private void addReadOnlyRow(Composite parent, String label, String value) {
         Label l = new Label(parent, SWT.NONE);
-        l.setText(text);
-        l.setBackground(BG);
-        l.setForeground(LABEL_FG);
-        return l;
-    }
-
-    private void addCheckRow(Composite form, String label, boolean checked, boolean required) {
-        Label l = new Label(form, SWT.NONE);
         l.setText(label);
         l.setForeground(LABEL_FG);
         l.setBackground(BG);
-        GridDataFactory.fillDefaults().grab(true, false).align(SWT.END, SWT.CENTER).applyTo(l);
+        GridDataFactory.fillDefaults().align(SWT.END, SWT.CENTER).applyTo(l);
 
-        Button cb = new Button(form, SWT.CHECK);
-        cb.setBackground(BG);
-        cb.setSelection(checked);
-        GridDataFactory.fillDefaults().hint(80, SWT.DEFAULT).applyTo(cb);
-
-        Label req = new Label(form, SWT.NONE);
-        req.setText(required ? "*" : "");
-        req.setForeground(REQUIRED_RED);
-        req.setBackground(BG);
-        GridDataFactory.fillDefaults().hint(10, SWT.DEFAULT).applyTo(req);
-    }
-
-    private void addTextRow(Composite form, String label, String value, boolean required) {
-        Label l = new Label(form, SWT.NONE);
-        l.setText(label);
-        l.setForeground(LABEL_FG);
-        l.setBackground(BG);
-        GridDataFactory.fillDefaults().grab(true, false).align(SWT.END, SWT.CENTER).applyTo(l);
-
-        Text t = new Text(form, SWT.BORDER);
-        t.setText(value);
-        GridDataFactory.fillDefaults().hint(180, SWT.DEFAULT).applyTo(t);
-
-        Label req = new Label(form, SWT.NONE);
-        req.setText(required ? "*" : "");
-        req.setForeground(REQUIRED_RED);
-        req.setBackground(BG);
-        GridDataFactory.fillDefaults().hint(10, SWT.DEFAULT).applyTo(req);
+        Label v = new Label(parent, SWT.NONE);
+        v.setText(value);
+        v.setForeground(VALUE_FG);
+        v.setBackground(BG);
+        GridDataFactory.fillDefaults().grab(true, false).applyTo(v);
     }
 
     @Override
     public void setFocus() {
         // no-op
+    }
+
+    /**
+     * Convenience: locate the singleton PropertyFormView in the active
+     * workbench page, opening it (creating if necessary) and pushing the
+     * given MemIfData. Returns null if no active workbench window exists.
+     */
+    public static PropertyFormView showAndPopulate(MemIfData data) {
+        try {
+            org.eclipse.ui.IWorkbenchPage page = PlatformUI.getWorkbench()
+                    .getActiveWorkbenchWindow().getActivePage();
+            org.eclipse.ui.IViewPart view = page.showView(ID);
+            if (view instanceof PropertyFormView) {
+                PropertyFormView v = (PropertyFormView) view;
+                v.showMemIf(data);
+                return v;
+            }
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
+        return null;
     }
 }

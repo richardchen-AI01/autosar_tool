@@ -23,9 +23,15 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.part.ViewPart;
+import org.eclipse.jface.dialogs.MessageDialog;
+
+import cn.com.myorg.bswbuilder.modules.memif.data.MemIfArxmlReader;
+import cn.com.myorg.bswbuilder.modules.memif.data.MemIfData;
 
 /**
  * Configuration Editors view — EB tresos / ORIENTAIS V25.10-style left panel.
@@ -262,9 +268,51 @@ public class ConfigurationEditorsView extends ViewPart {
                 // .exclude on it during filter.
                 GridDataFactory.fillDefaults().grab(true, false).applyTo(l);
                 moduleLabels.add(l);
+
+                // Phase A: only MemIf is wired. Click → file dialog → load
+                // ARXML → populate PropertyFormView. Other modules ignore
+                // clicks until each gets its own data layer.
+                if (m.startsWith("MemIf")) {
+                    l.addMouseListener(new MouseAdapter() {
+                        @Override public void mouseUp(MouseEvent e) {
+                            openMemIfFromUser(l.getShell());
+                        }
+                    });
+                    l.addMouseTrackListener(new MouseTrackAdapter() {
+                        @Override public void mouseEnter(MouseEvent e) {
+                            l.setBackground(CATEGORY_HOVER);
+                        }
+                        @Override public void mouseExit(MouseEvent e) {
+                            l.setBackground(BG_WHITE);
+                        }
+                    });
+                }
             }
 
             expanded = false;
+        }
+
+        /**
+         * Phase A flow: ask the user for an ARXML file via {@link FileDialog},
+         * load it via {@link MemIfArxmlReader}, push the result into
+         * {@link PropertyFormView#showAndPopulate(MemIfData)}.
+         */
+        private static void openMemIfFromUser(Shell shell) {
+            FileDialog dialog = new FileDialog(shell, SWT.OPEN);
+            dialog.setFilterExtensions(new String[] { "*.arxml" });
+            dialog.setText("Select a MemIf ARXML (e.g. samples/Demo_S32K148/.../MemIf.arxml)");
+            String path = dialog.open();
+            if (path == null) {
+                return;
+            }
+            try {
+                MemIfData data = MemIfArxmlReader.read(path);
+                PropertyFormView.showAndPopulate(data);
+            } catch (Throwable t) {
+                t.printStackTrace();
+                MessageDialog.openError(shell, "MemIf ARXML load failed",
+                        t.getClass().getSimpleName() + ": " + t.getMessage());
+            }
         }
 
         void setExpanded(boolean exp) {

@@ -13,7 +13,9 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.core.commands,
  org.eclipse.core.expressions,
  org.eclipse.jface,
- cn.com.myorg.bswbuilder.common
+ org.eclipse.swt,
+ cn.com.myorg.bswbuilder.common,
+ cn.com.myorg.bswbuilder.modules.memif
 Export-Package: cn.com.myorg.bswbuilder.ui,
  cn.com.myorg.bswbuilder.ui.handlers,
  cn.com.myorg.bswbuilder.ui.launcher,
