@@ -38,3 +38,7 @@
 *.bat        text eol=crlf
 *.cmd        text eol=crlf
 *.ps1        text eol=crlf
+
+# Phase F round-trip fixtures 必须保留 CRLF（V25.10 风格 / byte-equal 验收用）
+docs/reference/roundtrip-fixtures/*.arxml  text eol=crlf
+samples/**/*.arxml                          text eol=crlf
