@@ -4,7 +4,7 @@ Bundle-Name: BSW Builder Module — MemIf
 Bundle-SymbolicName: cn.com.myorg.bswbuilder.modules.memif;singleton:=true
 Bundle-Version: 0.1.0.qualifier
 Bundle-Vendor: autosar_tool
-Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy
 Bundle-Activator: cn.com.myorg.bswbuilder.modules.memif.Activator
 Require-Bundle: org.eclipse.core.runtime,
@@ -16,6 +16,7 @@ Require-Bundle: org.eclipse.core.runtime,
  cn.com.myorg.bswbuilder.common,
  org.artop.aal.autosar448,
  org.artop.aal.gautosar,
- org.eclipse.sphinx.emf
+ org.eclipse.sphinx.emf,
+ org.apache.xerces
 Export-Package: cn.com.myorg.bswbuilder.modules.memif.data
 Automatic-Module-Name: cn.com.myorg.bswbuilder.modules.memif

@@ -72,7 +72,7 @@ public final class MemIfDerivedCalculator {
         if (!Files.isDirectory(bswBuilder)) {
             return null;
         }
-        try (var stream = Files.list(bswBuilder)) {
+        try (java.util.stream.Stream<Path> stream = Files.list(bswBuilder)) {
             for (Path mcuDir : (Iterable<Path>) stream::iterator) {
                 if (!Files.isDirectory(mcuDir)) continue;
                 Path candidate = mcuDir.resolve("NvM.arxml");

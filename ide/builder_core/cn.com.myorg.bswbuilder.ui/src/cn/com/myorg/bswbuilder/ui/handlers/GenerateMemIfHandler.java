@@ -46,7 +46,7 @@ public class GenerateMemIfHandler extends AbstractHandler {
             try {
                 int exit = BswgenLauncher.run(
                         BswgenLauncher.Tool.BSWGEN,
-                        List.of("-g", "MemIf", "-i", workspace, "-o", output),
+                        java.util.Arrays.asList("-g", "MemIf", "-i", workspace, "-o", output),
                         console, monitor);
                 if (exit != 0) {
                     return new Status(IStatus.ERROR, Activator.PLUGIN_ID,

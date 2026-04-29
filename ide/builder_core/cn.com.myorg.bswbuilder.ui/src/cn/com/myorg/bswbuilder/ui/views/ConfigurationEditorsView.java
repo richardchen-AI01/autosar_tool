@@ -329,8 +329,8 @@ public class ConfigurationEditorsView extends ViewPart {
                 String text = l.getText().toLowerCase(Locale.ROOT);
                 boolean match = q.isEmpty() || text.contains(q);
                 Object ld = l.getLayoutData();
-                if (ld instanceof GridData gd) {
-                    gd.exclude = !match;
+                if (ld instanceof GridData) {
+                    ((GridData) ld).exclude = !match;
                 }
                 l.setVisible(match);
                 if (match) anyMatch = true;

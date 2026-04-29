@@ -8,7 +8,6 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
-import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 
 /**
  * Loads an ARXML file via the EMF / Artop stack and extracts the four
@@ -25,12 +24,22 @@ import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
  */
 public final class MemIfArxmlReader {
 
-    /** Tried in order; first one that loads wins. */
+    /** EPackage classes tried in order; first one that loads wins. */
     private static final String[] CANDIDATE_AUTOSAR_PACKAGES = new String[] {
             "autosar40.util.Autosar40Package",
             "autosar40.Autosar40Package",
             "autosar448.util.Autosar448Package",
             "autosar448.Autosar448Package",
+    };
+
+    /** Resource.Factory.Impl classes tried in order; first one that loads wins.
+     *  These are AUTOSAR-aware factories that map ARXML element names like
+     *  {@code <AR-PACKAGES>} to EMF features like {@code arPackages} (the
+     *  generic XMIResourceFactoryImpl does NOT do this and trips on
+     *  "Feature 'AR-PACKAGES' not found"). */
+    private static final String[] CANDIDATE_ARXML_FACTORIES = new String[] {
+            "autosar40.util.Autosar40ResourceFactoryImpl",
+            "org.artop.aal.common.resource.impl.AutosarResourceFactoryImpl",
     };
 
     private MemIfArxmlReader() {
@@ -44,20 +53,169 @@ public final class MemIfArxmlReader {
      * @throws RuntimeException if the file cannot be loaded as a Resource
      */
     public static MemIfData read(String path) {
-        ResourceSet rs = new ResourceSetImpl();
-        rs.getResourceFactoryRegistry()
-          .getExtensionToFactoryMap()
-          .put("arxml", new XMIResourceFactoryImpl());
-        registerAutosarPackages(rs);
+        // JDK 17+ pitfall: Sphinx 0.11.2 was written for Java 8 and assumes
+        // SAXParserFactory.newInstance() returns Apache Xerces. On modern JDKs
+        // it returns the JDK-internal Xerces, which then ClassCast's on
+        // Sphinx's ExtendedErrorHandlerWrapper. Force the JAXP factory to
+        // Apache and switch the TCCL to our bundle (which Require-Bundles
+        // org.apache.xerces) so the factory class is visible.
+        ClassLoader savedTccl = Thread.currentThread().getContextClassLoader();
+        String savedSaxFactoryProp = System.getProperty("javax.xml.parsers.SAXParserFactory");
+        String savedDomFactoryProp = System.getProperty("javax.xml.parsers.DocumentBuilderFactory");
+        try {
+            Thread.currentThread().setContextClassLoader(MemIfArxmlReader.class.getClassLoader());
+            System.setProperty("javax.xml.parsers.SAXParserFactory",
+                    "org.apache.xerces.jaxp.SAXParserFactoryImpl");
+            System.setProperty("javax.xml.parsers.DocumentBuilderFactory",
+                    "org.apache.xerces.jaxp.DocumentBuilderFactoryImpl");
 
-        Resource resource = rs.getResource(URI.createFileURI(path), true);
+            ResourceSet rs = new ResourceSetImpl();
+            registerAutosarFactory(rs);
+            registerAutosarPackages(rs);
 
-        return new MemIfData(
-                path,
-                findParam(resource, "MemIfDevErrorDetect"),
-                findParam(resource, "MemIfNumberOfDevices"),
-                findParam(resource, "MemIfVersionInfoApi"),
-                findParam(resource, "MemIfModuleVersion"));
+            Resource resource = rs.getResource(URI.createFileURI(path), true);
+
+            return new MemIfData(
+                    path,
+                    findParam(resource, "MemIfDevErrorDetect"),
+                    findParam(resource, "MemIfNumberOfDevices"),
+                    findParam(resource, "MemIfVersionInfoApi"),
+                    findParam(resource, "MemIfModuleVersion"));
+        } finally {
+            Thread.currentThread().setContextClassLoader(savedTccl);
+            restoreOrClear("javax.xml.parsers.SAXParserFactory", savedSaxFactoryProp);
+            restoreOrClear("javax.xml.parsers.DocumentBuilderFactory", savedDomFactoryProp);
+        }
+    }
+
+    /**
+     * Headless debug helper — dumps every EObject's EClass name + a few
+     * features to System.out, prefixed with "A0_DUMP:". Called by Application
+     * when {@code --test-load} is set. Production code never invokes this.
+     */
+    private static String truncate(String s, int max) {
+        if (s == null) return "null";
+        s = s.replace('\n', ' ').replace('\r', ' ');
+        return s.length() > max ? s.substring(0, max) + "..." : s;
+    }
+
+    public static void debugDump(String path) {
+        ClassLoader savedTccl = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(MemIfArxmlReader.class.getClassLoader());
+            System.setProperty("javax.xml.parsers.SAXParserFactory",
+                    "org.apache.xerces.jaxp.SAXParserFactoryImpl");
+            ResourceSet rs = new ResourceSetImpl();
+            registerAutosarFactory(rs);
+            registerAutosarPackages(rs);
+            Resource resource = rs.getResource(URI.createFileURI(path), true);
+            System.out.println("A0_DUMP: top-level EObject count = "
+                    + resource.getContents().size());
+            int count = 0;
+            TreeIterator<EObject> iter = resource.getAllContents();
+            while (iter.hasNext() && count < 50) {
+                EObject obj = iter.next();
+                String className = obj.eClass().getName();
+                if (className.toLowerCase().contains("paramvalue")) {
+                    // Full feature list + value probe for these specifically
+                    StringBuilder sb = new StringBuilder("A0_DUMP_PARAM: ");
+                    sb.append(className).append(" allFeatures=[");
+                    int f = 0;
+                    for (EStructuralFeature feat : obj.eClass().getEAllStructuralFeatures()) {
+                        if (f++ > 0) sb.append(",");
+                        sb.append(feat.getName());
+                    }
+                    sb.append("]");
+                    System.out.println(sb.toString());
+                    // Try common names for "definition" + "value"
+                    for (String fName : new String[]{"definition", "value"}) {
+                        EStructuralFeature feat = obj.eClass().getEStructuralFeature(fName);
+                        if (feat == null) continue;
+                        Object raw = obj.eGet(feat, false);
+                        if (raw instanceof EObject) {
+                            EObject ref = (EObject) raw;
+                            if (ref.eIsProxy()) {
+                                org.eclipse.emf.common.util.URI u =
+                                        ((org.eclipse.emf.ecore.InternalEObject) ref).eProxyURI();
+                                System.out.println("A0_DUMP_PARAM:   " + fName + " = proxy fragment='"
+                                        + (u == null ? "null" : u.fragment()) + "'");
+                            } else {
+                                // It's a contained EObject (e.g. NumericalValueVariationPoint)
+                                // — dump its features too
+                                System.out.println("A0_DUMP_PARAM:   " + fName + " = EObject("
+                                        + ref.eClass().getName() + ")");
+                                for (EStructuralFeature inner : ref.eClass().getEAllStructuralFeatures()) {
+                                    Object innerRaw = ref.eGet(inner, false);
+                                    if (innerRaw == null) continue;
+                                    String summary = innerRaw.getClass().getSimpleName()
+                                            + " = " + truncate(innerRaw.toString(), 80);
+                                    System.out.println("A0_DUMP_PARAM:     ." + inner.getName()
+                                            + " <" + summary + ">");
+                                }
+                            }
+                        } else if (raw != null) {
+                            System.out.println("A0_DUMP_PARAM:   " + fName + " = "
+                                    + raw.getClass().getSimpleName() + "='" + raw + "'");
+                        }
+                    }
+                } else {
+                    System.out.println("A0_DUMP: " + className);
+                }
+                count++;
+            }
+            System.out.println("A0_DUMP: traversed " + count + " EObjects");
+        } catch (Throwable t) {
+            System.out.println("A0_DUMP: error " + t.getClass().getSimpleName() + ": " + t.getMessage());
+        } finally {
+            Thread.currentThread().setContextClassLoader(savedTccl);
+        }
+    }
+
+    private static void restoreOrClear(String key, String saved) {
+        if (saved == null) {
+            System.clearProperty(key);
+        } else {
+            System.setProperty(key, saved);
+        }
+    }
+
+    /**
+     * Register the AUTOSAR-aware Resource.Factory for the {@code arxml}
+     * extension by reflecting on Artop's classes. We can't import them
+     * directly because Artop versions ship slightly different class names.
+     *
+     * <p>Falls back silently to whatever the global registry has — by the
+     * time this runs inside the OSGi-activated RCP, Artop's bundle has
+     * already registered factories on
+     * {@link org.eclipse.emf.ecore.resource.Resource.Factory.Registry#INSTANCE}.
+     */
+    private static void registerAutosarFactory(ResourceSet rs) {
+        for (String fqn : CANDIDATE_ARXML_FACTORIES) {
+            // Try the INSTANCE singleton field first (preferred — Artop's
+            // factory classes initialize themselves once via static init).
+            try {
+                Class<?> cls = Class.forName(fqn);
+                Object instance;
+                try {
+                    instance = cls.getField("INSTANCE").get(null);
+                } catch (NoSuchFieldException nsfe) {
+                    instance = cls.getDeclaredConstructor().newInstance();
+                }
+                if (instance instanceof Resource.Factory) {
+                    rs.getResourceFactoryRegistry()
+                      .getExtensionToFactoryMap()
+                      .put("arxml", (Resource.Factory) instance);
+                    return;
+                }
+                System.err.println("[MemIfArxmlReader] " + fqn
+                        + " is not a Resource.Factory (got "
+                        + (instance == null ? "null" : instance.getClass().getName()) + ")");
+            } catch (Throwable t) {
+                Throwable cause = t.getCause() != null ? t.getCause() : t;
+                System.err.println("[MemIfArxmlReader] cannot use " + fqn
+                        + ": " + cause.getClass().getSimpleName() + ": " + cause.getMessage());
+            }
+        }
     }
 
     private static void registerAutosarPackages(ResourceSet rs) {
@@ -86,7 +244,6 @@ public final class MemIfArxmlReader {
         while (iter.hasNext()) {
             EObject obj = iter.next();
             String typeName = obj.eClass().getName().toLowerCase();
-            // We want either numerical or textual ECUC param-value subtypes
             if (!typeName.contains("paramvalue")) {
                 continue;
             }
@@ -94,7 +251,15 @@ public final class MemIfArxmlReader {
             if (defRef == null) {
                 defRef = stringValueOf(obj, "definitionRef");
             }
-            if (defRef == null || !defRef.endsWith(paramShortName)) {
+            if (defRef == null) {
+                continue;
+            }
+            // Sphinx writes proxy URI fragments like
+            //   /AUTOSAR/MemIf/MemIfGeneral/MemIfDevErrorDetect?type=EcucBooleanParamDef
+            // Strip the ?type=... suffix before suffix-matching the short name.
+            int q = defRef.indexOf('?');
+            String defPath = (q >= 0) ? defRef.substring(0, q) : defRef;
+            if (!defPath.endsWith(paramShortName)) {
                 continue;
             }
             return stringValueOf(obj, "value");
@@ -102,12 +267,53 @@ public final class MemIfArxmlReader {
         return null;
     }
 
+    /**
+     * Read a feature value as String. For cross-reference features (e.g.
+     * {@code definition} on EcucParameterValue) we **don't** resolve the
+     * proxy — Sphinx's proxy resolver maps ECUC instance paths to a custom
+     * {@code ar:} URI scheme that EMF's plain URL parser rejects on
+     * isolated ARXML loads (no project context). Reading the proxy URI
+     * fragment instead gives us the path string directly without triggering
+     * resolution.
+     */
     private static String stringValueOf(EObject obj, String featureName) {
         EStructuralFeature feature = obj.eClass().getEStructuralFeature(featureName);
         if (feature == null) {
             return null;
         }
-        Object raw = obj.eGet(feature);
+        // Pass resolve=false so cross-references stay as proxies (no
+        // MalformedURLException: unknown protocol: ar).
+        Object raw = obj.eGet(feature, /* resolve */ false);
+        if (raw instanceof EObject) {
+            EObject ref = (EObject) raw;
+            if (ref.eIsProxy()) {
+                org.eclipse.emf.common.util.URI uri =
+                        ((org.eclipse.emf.ecore.InternalEObject) ref).eProxyURI();
+                if (uri != null) {
+                    String frag = uri.fragment();
+                    return (frag != null) ? frag : uri.toString();
+                }
+                return ref.toString();
+            }
+            // Contained EObject (e.g. NumericalValueVariationPoint) — drill into
+            // its `mixed` FeatureMap to find the actual text content
+            //   <VALUE>2</VALUE>  →  mixed[text]=2
+            //   <VALUE>false</VALUE> → mixed[text]=false
+            EStructuralFeature mixedFeat = ref.eClass().getEStructuralFeature("mixed");
+            if (mixedFeat != null) {
+                Object mixed = ref.eGet(mixedFeat);
+                if (mixed instanceof org.eclipse.emf.ecore.util.FeatureMap) {
+                    for (org.eclipse.emf.ecore.util.FeatureMap.Entry entry
+                            : (org.eclipse.emf.ecore.util.FeatureMap) mixed) {
+                        if ("text".equals(entry.getEStructuralFeature().getName())) {
+                            Object v = entry.getValue();
+                            return v != null ? v.toString() : null;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
         return raw != null ? raw.toString() : null;
     }
 }

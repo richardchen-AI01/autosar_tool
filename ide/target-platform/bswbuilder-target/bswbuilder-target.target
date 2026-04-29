@@ -3,8 +3,13 @@
 <!--
   Eclipse target platform for the autosar_tool IDE.
 
+  Aligned with the reference ORIENTAIS V25.10 stack:
+    Eclipse 4.10 / 2018-12 (org.eclipse.core.runtime_3.15.100), Java 8.
+  Newer Eclipse / JDK 17+ break Sphinx 0.11.2 (ClassCast on JDK-internal
+  Xerces). See ADR or risks-memif R8.
+
   Two locations:
-    1. Eclipse RCP 2024-09 from p2 (workbench + SWT + JFace + e4 + forms)
+    1. Eclipse RCP 2018-12 from p2 (workbench + SWT + JFace + e4 + forms)
     2. local-plugins/ — Artop AAL + Eclipse Sphinx, populated by
        tools/setup-artop.ps1 from a local ORIENTAIS_Studio install.
 
@@ -22,7 +27,7 @@
     <locations>
         <location includeAllPlatforms="false" includeConfigurePhase="true"
                   includeMode="planner" includeSource="false" type="InstallableUnit">
-            <repository location="https://download.eclipse.org/releases/2024-09/"/>
+            <repository location="https://download.eclipse.org/releases/2018-12/"/>
 
             <!-- Core RCP runtime (workbench + SWT + JFace + commands) -->
             <unit id="org.eclipse.rcp.feature.group" version="0.0.0"/>

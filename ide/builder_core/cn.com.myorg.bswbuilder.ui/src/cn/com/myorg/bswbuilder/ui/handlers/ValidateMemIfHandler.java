@@ -79,7 +79,7 @@ public class ValidateMemIfHandler extends AbstractHandler {
                 List<String> lines = new ArrayList<>();
                 BswgenLauncher.Result res = BswgenLauncher.runAndCapture(
                         BswgenLauncher.Tool.BSWVAL,
-                        List.of("-m", "MemIf", "-i", workspace),
+                        java.util.Arrays.asList("-m", "MemIf", "-i", workspace),
                         console, monitor, lines);
 
                 int created = createMarkers(lines, workspace);

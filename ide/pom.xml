@@ -32,8 +32,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
 
         <tycho.version>4.0.8</tycho.version>
     </properties>
@@ -69,9 +69,10 @@
                         </artifact>
                     </target>
                     <environments>
-                        <environment>
-                            <os>macosx</os><ws>cocoa</ws><arch>aarch64</arch>
-                        </environment>
+                        <!-- Mac aarch64 dropped: Eclipse 2018-12 (matched to
+                             reference V25.10) predates Apple Silicon launcher
+                             support. Mac M1/M2 dev runs Rosetta x86_64 image
+                             of the product. -->
                         <environment>
                             <os>macosx</os><ws>cocoa</ws><arch>x86_64</arch>
                         </environment>
@@ -90,8 +91,8 @@
                 <artifactId>tycho-compiler-plugin</artifactId>
                 <version>${tycho.version}</version>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
         </plugins>

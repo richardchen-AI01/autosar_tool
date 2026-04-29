@@ -19,8 +19,8 @@ public final class ConsoleAccess {
     public static MessageConsole getConsole() {
         IConsoleManager manager = ConsolePlugin.getDefault().getConsoleManager();
         for (IConsole c : manager.getConsoles()) {
-            if (CONSOLE_NAME.equals(c.getName()) && c instanceof MessageConsole mc) {
-                return mc;
+            if (CONSOLE_NAME.equals(c.getName()) && c instanceof MessageConsole) {
+                return (MessageConsole) c;
             }
         }
         MessageConsole created = new MessageConsole(CONSOLE_NAME, null);
