@@ -163,9 +163,24 @@ public class AutosarExplorerView extends ViewPart {
     }
 
     /**
-     * Fill the right-click menu based on what's selected. Currently only
-     * BSW module ARXML files (e.g. MemIf.arxml under BSW_Builder/&lt;MCU&gt;/)
-     * get the 4 action set. Other tree nodes get an empty menu (suppressed).
+     * Fill the right-click menu based on what's selected. Mirrors the
+     * actual nested structure the reference V25.10 uses on a BSW module
+     * node (decompiled from
+     * {@code cn.com.isoft.bswbuilder.ui.actionproviders.BswModuleConfigurationActionProvider},
+     * see docs/reference/decompiled-memif/isoft-impl-notes.md §3):
+     *
+     * <pre>
+     *   Validate
+     *   Generate ▸
+     *      Generate
+     *      Generate RTE Code With Stub
+     *      Update Bswmd
+     *   Delete
+     * </pre>
+     *
+     * v0.1 wires Validate / Generate for MemIf only; the RTE-stub /
+     * Bswmd-update entries surface so the menu shape matches the reference,
+     * but they message-dialog "deferred" until v0.2 when those engines land.
      */
     private void fillContextMenu(IMenuManager mgr) {
         TreeNode selected = currentSelection();
@@ -174,47 +189,50 @@ public class AutosarExplorerView extends ViewPart {
         if (!f.isFile() || !f.getName().toLowerCase().endsWith(".arxml")) {
             return;
         }
-        // Derive module short name from file name: "MemIf.arxml" → "MemIf"
         final String fileName = f.getName();
         final String moduleName = fileName.substring(0, fileName.length() - ".arxml".length());
         final File arxmlFile = f;
+        final org.eclipse.swt.widgets.Shell shell = treeViewer.getControl().getShell();
 
         mgr.add(new Action("Validate") {
-            @Override
-            public void run() {
-                runValidateOnModule(moduleName, arxmlFile);
+            @Override public void run() { runValidateOnModule(moduleName, arxmlFile); }
+        });
+
+        MenuManager generateSubmenu = new MenuManager("Generate");
+        generateSubmenu.add(new Action("Generate") {
+            @Override public void run() { runGenerateOnModule(moduleName, arxmlFile); }
+        });
+        generateSubmenu.add(new Action("Generate RTE Code With Stub") {
+            @Override public void run() {
+                MessageDialog.openInformation(shell,
+                        "Generate RTE Code With Stub",
+                        "RTE stub generation is deferred to v0.2 — the RTE module "
+                      + "isn't part of the v0.1 replication scope (MemIf only).");
             }
         });
-        mgr.add(new Action("Generate") {
-            @Override
-            public void run() {
-                runGenerateOnModule(moduleName, arxmlFile);
-            }
-        });
-        mgr.add(new Separator());
-        mgr.add(new Action("Update Bswmd") {
-            @Override
-            public void run() {
-                MessageDialog.openInformation(treeViewer.getControl().getShell(),
+        generateSubmenu.add(new Action("Update Bswmd") {
+            @Override public void run() {
+                MessageDialog.openInformation(shell,
                         "Update Bswmd",
-                        "Update Bswmd is deferred to a future version.\n\n"
+                        "Update Bswmd is deferred to v0.2.\n\n"
                       + "v0.1 ships a fixed schema; the bswmd skeleton is regenerated\n"
                       + "automatically by 'Generate', so you don't need this in the\n"
                       + "common case.");
             }
         });
+        mgr.add(generateSubmenu);
+
         mgr.add(new Separator());
         mgr.add(new Action("Delete") {
-            @Override
-            public void run() {
-                boolean ok = MessageDialog.openConfirm(treeViewer.getControl().getShell(),
+            @Override public void run() {
+                boolean ok = MessageDialog.openConfirm(shell,
                         "Delete " + moduleName,
                         "Permanently delete " + arxmlFile.getName() + " from the workspace?\n\n"
                       + "This is a v0.1 stub — the file will NOT actually be deleted; the\n"
                       + "operation is left to the user via the file system. A future version\n"
                       + "will properly unregister the module from the workspace metadata.");
                 if (ok) {
-                    MessageDialog.openInformation(treeViewer.getControl().getShell(),
+                    MessageDialog.openInformation(shell,
                             "Delete deferred",
                             "v0.1 doesn't perform the delete to avoid data loss; please\n"
                           + "remove the file via your OS file manager if you really intend\n"
