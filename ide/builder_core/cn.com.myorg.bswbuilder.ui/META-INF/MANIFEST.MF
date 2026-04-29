@@ -10,6 +10,7 @@ Bundle-Activator: cn.com.myorg.bswbuilder.ui.Activator
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.core.resources,
  org.eclipse.ui,
+ org.eclipse.ui.forms,
  org.eclipse.ui.console,
  org.eclipse.core.commands,
  org.eclipse.core.expressions,
@@ -18,6 +19,8 @@ Require-Bundle: org.eclipse.core.runtime,
  cn.com.myorg.bswbuilder.common,
  cn.com.myorg.bswbuilder.modules.memif
 Export-Package: cn.com.myorg.bswbuilder.ui,
+ cn.com.myorg.bswbuilder.ui.editors,
+ cn.com.myorg.bswbuilder.ui.editors.pages,
  cn.com.myorg.bswbuilder.ui.handlers,
  cn.com.myorg.bswbuilder.ui.launcher,
  cn.com.myorg.bswbuilder.ui.views

@@ -40,6 +40,8 @@ import org.eclipse.ui.handlers.IHandlerService;
 
 import cn.com.myorg.bswbuilder.modules.memif.data.MemIfArxmlReader;
 import cn.com.myorg.bswbuilder.modules.memif.data.MemIfData;
+import cn.com.myorg.bswbuilder.ui.editors.LocalFileEditorInput;
+import cn.com.myorg.bswbuilder.ui.editors.MemIfModuleManagerEditor;
 
 /**
  * Autosar Explorer — left-side project tree, mirrors the reference
@@ -299,15 +301,25 @@ public class AutosarExplorerView extends ViewPart {
 
     private void openArxml(File arxmlFile) {
         try {
-            MemIfData data = MemIfArxmlReader.read(arxmlFile.getAbsolutePath());
-            // U2 will replace this with MemIfModuleManagerEditor.openOn(arxmlFile)
-            PropertyFormView.showAndPopulate(data);
+            // U2: open in MemIfModuleManagerEditor (FormEditor). The editor's
+            // own init() reads the file via MemIfArxmlReader and surfaces the
+            // 4 MemIfGeneral params in a master/detail form page.
+            PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage()
+                    .openEditor(new LocalFileEditorInput(arxmlFile),
+                            MemIfModuleManagerEditor.ID);
         } catch (Throwable t) {
             t.printStackTrace();
-            org.eclipse.jface.dialogs.MessageDialog.openError(
-                    treeViewer.getControl().getShell(),
-                    "ARXML load failed",
-                    t.getClass().getSimpleName() + ": " + t.getMessage());
+            // Fallback: show whatever MemIfArxmlReader can extract in the
+            // legacy PropertyFormView so the user isn't left empty-handed.
+            try {
+                MemIfData data = MemIfArxmlReader.read(arxmlFile.getAbsolutePath());
+                PropertyFormView.showAndPopulate(data);
+            } catch (Throwable t2) {
+                org.eclipse.jface.dialogs.MessageDialog.openError(
+                        treeViewer.getControl().getShell(),
+                        "ARXML load failed",
+                        t.getClass().getSimpleName() + ": " + t.getMessage());
+            }
         }
     }
 

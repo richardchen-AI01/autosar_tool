@@ -45,6 +45,23 @@
                 restorable="true"/>
     </extension>
 
+    <!-- Editors — U2: MemIf Module Manager. Registers on *.arxml so a
+         double-click in Autosar Explorer opens this editor. The editor
+         decides at init() whether the file is a MemIf-shape ARXML; for
+         non-MemIf ARXMLs in v0.1 it just shows the form populated with
+         whatever MemIfArxmlReader extracted (or none if it's an unrelated
+         module — v0.2 will dispatch to per-module editors). -->
+    <extension
+            point="org.eclipse.ui.editors">
+        <editor
+                id="cn.com.myorg.bswbuilder.ui.editors.MemIfModuleManagerEditor"
+                name="MemIf Module Manager"
+                extensions="arxml"
+                class="cn.com.myorg.bswbuilder.ui.editors.MemIfModuleManagerEditor"
+                default="true"
+                contributorClass="org.eclipse.ui.part.EditorActionBarContributor"/>
+    </extension>
+
     <!-- Commands: Generate / Validate. Still registered so the BSW menu
          and the right-click context menu can both invoke them. The old
          toolbar contributions are gone — user feedback #2: actions live
