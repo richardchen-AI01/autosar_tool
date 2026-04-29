@@ -37,6 +37,9 @@ public class Perspective implements IPerspectiveFactory {
     public static final String VALIDATION_VIEW =
             "cn.com.myorg.bswbuilder.ui.views.Validation";
 
+    public static final String DETAIL_VIEW =
+            "cn.com.myorg.bswbuilder.ui.views.Detail";
+
     public static final String CONSOLE_VIEW = "org.eclipse.ui.console.ConsoleView";
 
     @Override
@@ -59,15 +62,17 @@ public class Perspective implements IPerspectiveFactory {
                 "bottom-left", IPageLayout.BOTTOM, 0.7f, editorArea);
         bottomLeft.addView(CONSOLE_VIEW);
 
-        // BOTTOM-RIGHT: Validation
+        // BOTTOM-RIGHT: Autosar Validation + Detail (folder, multiple tabs)
         IFolderLayout bottomRight = layout.createFolder(
                 "bottom-right", IPageLayout.RIGHT, 0.55f, "bottom-left");
         bottomRight.addView(VALIDATION_VIEW);
+        bottomRight.addView(DETAIL_VIEW);
 
         // Make all views available in Window → Show View
         layout.addShowViewShortcut(AUTOSAR_EXPLORER_VIEW);
         layout.addShowViewShortcut(PROPERTY_FORM_VIEW);
         layout.addShowViewShortcut(VALIDATION_VIEW);
+        layout.addShowViewShortcut(DETAIL_VIEW);
         layout.addShowViewShortcut(CONSOLE_VIEW);
     }
 }

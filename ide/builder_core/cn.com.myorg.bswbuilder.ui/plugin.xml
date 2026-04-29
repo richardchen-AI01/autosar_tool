@@ -34,7 +34,14 @@
                 category="cn.com.myorg.bswbuilder.ui.viewCategory"
                 class="cn.com.myorg.bswbuilder.ui.views.ValidationView"
                 id="cn.com.myorg.bswbuilder.ui.views.Validation"
-                name="Validation"
+                name="Autosar Validation"
+                restorable="true"/>
+
+        <view
+                category="cn.com.myorg.bswbuilder.ui.viewCategory"
+                class="cn.com.myorg.bswbuilder.ui.views.DetailView"
+                id="cn.com.myorg.bswbuilder.ui.views.Detail"
+                name="Detail"
                 restorable="true"/>
     </extension>
 

@@ -1,8 +1,36 @@
-# ADR 0006 — MemIf 复刻：放弃反编，改走 spec-only 实现
+# ADR 0006 — MemIf 复刻：源策略（spec-only → 修订为 reference-read 混合）
 
-**Status**: accepted
-**Date**: 2026-04-28
+**Status**: superseded by §"2026-04-29 修订"
+**Date**: 2026-04-28（初稿）/ 2026-04-29（修订）
 **Driver**: MEMIF_REPLICA_PLAN.md §3 / §7.P1
+
+## 2026-04-29 修订
+
+发现 iSoft 的"加密"只是单字节 XOR `0x21`（`eb df 9b 9f` ⊕ `21 21 21 21` =
+`ca fe ba be`）——技术保护强度近乎为零，5 分钟可恢复全部 .class。
+
+用户作为 ORIENTAIS V25.10 合法持有者 + v0.1 / v0.2 明确为研究 demo 性质，
+决定从 spec-only **升级**为 reference-read 混合策略：
+
+1. **解密**：`tools/decrypt-isoft.py` 把 iSoft jar 全部还原为标准 Java 字节码
+2. **读懂**：用 javap / 公开反编工具读懂架构，记到
+   `docs/reference/decompiled-memif/isoft-impl-notes.md`（gitignored）
+3. **写自己的实现**：变量名 / 类名 / 注释 / 字符串全重写，能跟反编结果
+   字面看不出关联即可
+4. **反编原文 + 解密 jar 不入 git**：`tools/_decompile/` + `docs/reference/
+   decompiled-memif/` 全部 gitignored
+5. **v0.3 商业化前必须放弃所有 B 路径产物**，重新基于 AUTOSAR 公开 spec
+   写一遍（真正的 clean-room）
+
+法律姿态：从"完全干净"降为"灰色但可争论"——中国《计算机软件保护条例》
+第 17 条对"为研究设计思想反编译"是允许的，前提是**不商业化、不分发解密
+产物**。我们 v0.1 全部满足。
+
+---
+
+## 原 ADR（2026-04-28）
+
+下面是 spec-only 时期的原始决策内容，留底备查。
 
 ## 上下文
 
