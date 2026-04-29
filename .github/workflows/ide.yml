@@ -6,19 +6,19 @@ name: ide
 #  - it pulls ~150 MB Eclipse p2 metadata, so we cache it aggressively
 #  - first run is ~2 min; cached runs are ~5 s
 #
-# Triggers on changes under ide/ or workflow file itself, plus manual.
+# v0.1 现状：手动触发 only。
+# 原因：build 需要 ARTOP / Sphinx 这些商业 jar (~63MB)，它们由
+# ORIENTAIS_Studio 安装包提供，shipped via tools/setup-artop.ps1，
+# .gitignored 不入仓库——干净的 GitHub Linux runner 拿不到，
+# 必然挂在 "Missing requirement: org.artop.aal.autosar448"。
+#
+# 真正的 IDE 验证发生在 Win 本地（D:\ORIENTAIS_Studio 已装），
+# CI 这边目前没法增加价值。等 v0.3 商业化对外发布前，再决定
+# ARTOP 走 git-lfs / 公开 release / Eclipse Artop p2 repo 哪条路。
+#
+# 想跑：Actions 页面点 "Run workflow" 手动触发。
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'ide/**'
-      - '.github/workflows/ide.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'ide/**'
-      - '.github/workflows/ide.yml'
   workflow_dispatch: {}
 
 jobs:
