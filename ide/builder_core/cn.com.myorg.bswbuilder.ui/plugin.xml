@@ -2,9 +2,14 @@
 <?eclipse version="3.4"?>
 <plugin>
 
-    <!-- Views: Configuration Editors / Property Form / Validation. Match
-         the EB-tresos / ORIENTAIS V25.10 style perspective layout (see
-         cn.com.myorg.bswbuilder.common.app.Perspective). -->
+    <!-- Views — match the reference V25.10 perspective:
+           Autosar Explorer (left, project tree)
+           Property Form (right, ECUC parameter editor — will become an
+                          EditorPart "MemIf Module Manager" in U2)
+           Validation (bottom-left, table)
+         The old "Configuration Editors" flat-label view is removed in U1
+         in favor of Autosar Explorer; clear UI break, no point keeping
+         both. -->
     <extension
             point="org.eclipse.ui.views">
         <category
@@ -13,9 +18,9 @@
 
         <view
                 category="cn.com.myorg.bswbuilder.ui.viewCategory"
-                class="cn.com.myorg.bswbuilder.ui.views.ConfigurationEditorsView"
-                id="cn.com.myorg.bswbuilder.ui.views.ConfigurationEditors"
-                name="Configuration Editors"
+                class="cn.com.myorg.bswbuilder.ui.views.AutosarExplorerView"
+                id="cn.com.myorg.bswbuilder.ui.views.AutosarExplorer"
+                name="Autosar Explorer"
                 restorable="true"/>
 
         <view
@@ -33,7 +38,11 @@
                 restorable="true"/>
     </extension>
 
-    <!-- Commands: Generate / Validate -->
+    <!-- Commands: Generate / Validate. Still registered so the BSW menu
+         and the right-click context menu can both invoke them. The old
+         toolbar contributions are gone — user feedback #2: actions live
+         on the right-click menu of the module ARXML node, mirroring the
+         reference V25.10. -->
     <extension
             point="org.eclipse.ui.commands">
         <category
@@ -51,7 +60,8 @@
                 name="Validate MemIf"/>
     </extension>
 
-    <!-- Surface them in the BSW menu (provided by .common's ActionBarAdvisor). -->
+    <!-- BSW menu (top-bar) entries. Tree-node right-click menu is built
+         programmatically in AutosarExplorerView.fillContextMenu(). -->
     <extension
             point="org.eclipse.ui.menus">
         <menuContribution
@@ -67,22 +77,6 @@
                     commandId="cn.com.myorg.bswbuilder.commands.validateMemIf"
                     label="Validate MemIf"
                     style="push"/>
-        </menuContribution>
-        <!-- Toolbar buttons too. -->
-        <menuContribution
-                locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
-            <toolbar id="cn.com.myorg.bswbuilder.toolbar">
-                <command
-                        commandId="cn.com.myorg.bswbuilder.commands.generateMemIf"
-                        label="Generate MemIf"
-                        style="push"
-                        tooltip="Run bswgen for MemIf on the current workspace"/>
-                <command
-                        commandId="cn.com.myorg.bswbuilder.commands.validateMemIf"
-                        label="Validate MemIf"
-                        style="push"
-                        tooltip="Run bswval for MemIf on the current workspace"/>
-            </toolbar>
         </menuContribution>
     </extension>
 
