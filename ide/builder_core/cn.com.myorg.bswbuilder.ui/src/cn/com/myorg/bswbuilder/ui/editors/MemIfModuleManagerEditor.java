@@ -7,7 +7,6 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
-import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IPathEditorInput;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.forms.editor.FormEditor;
@@ -66,14 +65,12 @@ public class MemIfModuleManagerEditor extends FormEditor {
     }
 
     private static File resolveFile(IEditorInput input) {
+        // v0.1: only IPathEditorInput. Autosar Explorer always opens via
+        // LocalFileEditorInput which is IPathEditorInput. IFileEditorInput
+        // would need org.eclipse.ui.ide bundle — defer to v0.2 if a workspace-
+        // backed flow is added.
         if (input instanceof IPathEditorInput) {
             return ((IPathEditorInput) input).getPath().toFile();
-        }
-        if (input instanceof IFileEditorInput) {
-            org.eclipse.core.resources.IFile rf = ((IFileEditorInput) input).getFile();
-            if (rf != null && rf.getLocation() != null) {
-                return rf.getLocation().toFile();
-            }
         }
         return null;
     }

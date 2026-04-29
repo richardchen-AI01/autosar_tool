@@ -77,11 +77,15 @@
 
         <!-- Artop AAL + Eclipse Sphinx — vendored locally from ORIENTAIS_Studio.
              Populated by tools/setup-artop.ps1; see local-plugins/.gitignore.
-             Path is relative to this .target file's own directory (Eclipse
-             PDE convention, also honored by Tycho 4.x). The previous absolute
-             form "ide/target-platform/.../local-plugins/plugins" got resolved
-             a second time relative to the reactor root (= ide/) under Tycho,
-             producing "ide/ide/..." and a "directory does not exist" warning. -->
-        <location path="local-plugins/plugins" type="Directory"/>
+             Path is relative to the Tycho reactor root (= ide/, where the
+             root pom.xml lives), not the .target file's own dir like vanilla
+             Eclipse PDE. So jar 实际位置 ide/target-platform/.../local-plugins/plugins
+             写成 "target-platform/bswbuilder-target/local-plugins/plugins"
+             才对。前面两版写法都错过：
+               * "ide/target-platform/.../local-plugins/plugins"
+                  → 双重 ide/ 拼成 ide/ide/...，找不到
+               * "local-plugins/plugins" (相对 .target 文件)
+                  → Tycho 看成相对 reactor root = ide/local-plugins/plugins，找不到 -->
+        <location path="target-platform/bswbuilder-target/local-plugins/plugins" type="Directory"/>
     </locations>
 </target>
