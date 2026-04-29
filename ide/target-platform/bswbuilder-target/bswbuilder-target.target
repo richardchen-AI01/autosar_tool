@@ -77,8 +77,11 @@
 
         <!-- Artop AAL + Eclipse Sphinx — vendored locally from ORIENTAIS_Studio.
              Populated by tools/setup-artop.ps1; see local-plugins/.gitignore.
-             Path resolved relative to the reactor root (Tycho 4.x behavior;
-             not the .target file's own directory like vanilla Eclipse PDE). -->
-        <location path="ide/target-platform/bswbuilder-target/local-plugins/plugins" type="Directory"/>
+             Path is relative to this .target file's own directory (Eclipse
+             PDE convention, also honored by Tycho 4.x). The previous absolute
+             form "ide/target-platform/.../local-plugins/plugins" got resolved
+             a second time relative to the reactor root (= ide/) under Tycho,
+             producing "ide/ide/..." and a "directory does not exist" warning. -->
+        <location path="local-plugins/plugins" type="Directory"/>
     </locations>
 </target>
