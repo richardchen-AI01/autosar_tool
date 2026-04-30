@@ -3,28 +3,32 @@ package cn.com.myorg.bswbuilder.ui.navigator;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.sphinx.emf.explorer.ExtendedCommonNavigator;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.navigator.CommonNavigator;
 
 import cn.com.myorg.mal.model.ModuleModel;
 
 /**
- * AUTOSAR Explorer view — custom {@link CommonNavigator} subclass that
- * binds our mal model navigatorContent and adds double-click semantics
- * (open the matching BSW module FormEditor when a {@link ModuleModel} leaf
- * is activated).
+ * AUTOSAR Explorer view — custom {@link ExtendedCommonNavigator} subclass.
  *
- * <p>Reference: {@code cn.com.isoft.pal.ui.explorer.AutosarNavigator}.
+ * <p>Reference: {@code cn.com.isoft.pal.ui.explorer.AutosarNavigator}, which
+ * also extends Sphinx {@link ExtendedCommonNavigator} (one level above
+ * Eclipse {@code CommonNavigator}). Sphinx adds:
+ * <ul>
+ *   <li>SaveablesProvider integration with EMF EditingDomain dirty state</li>
+ *   <li>TreeViewer state persistence via IMemento</li>
+ *   <li>partListener that responds to active-editor changes</li>
+ * </ul>
  *
- * <p>Editor IDs are looked up dynamically via the workbench's editor
- * registry (using the file content type / extension), so this view does
- * not hard-code a per-module editor class — same pattern as the reference,
- * which dispatches to whichever module-specific FormEditor is registered.
+ * <p>For E3-B-5 we keep the double-click handler we added in E3-A. Reference
+ * also overrides {@code restoreState/saveState/createModelSaveablesProvider}
+ * — those are deferred (no current need; tree state persistence is a v0.3
+ * polish).
  */
-public class BswAutosarExplorerView extends CommonNavigator {
+public class BswAutosarExplorerView extends ExtendedCommonNavigator {
 
     public static final String VIEW_ID = "cn.com.myorg.bswbuilder.ui.bswExplorer";
 
