@@ -1,6 +1,5 @@
 package cn.com.myorg.bswbuilder.ui.navigator;
 
-import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.IMemento;
@@ -9,21 +8,14 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.navigator.ICommonContentExtensionSite;
 import org.eclipse.ui.navigator.ICommonLabelProvider;
 
+import cn.com.myorg.bswbuilder.ui.navigator.model.BswBuilderModel;
+import cn.com.myorg.bswbuilder.ui.navigator.model.EcuConfigurationModel;
+import cn.com.myorg.bswbuilder.ui.navigator.model.ModuleKindModel;
+import cn.com.myorg.bswbuilder.ui.navigator.model.ModuleModel;
+
 /**
- * Label provider for the BSW navigatorContent extension.
- *
- * <ul>
- *   <li>{@link KindGroupNode} → kind label ("MEM" / "COM" / …) + folder icon</li>
- *   <li>BSW module {@code IFile} (under BSW_Builder/&lt;MCU&gt;/) →
- *       file name with ".arxml" stripped, IDE element/puzzle icon</li>
- *   <li>Other elements → {@code null} (let other label providers handle)</li>
- * </ul>
- *
- * <p>Reference V25.10's {@code BswExplorerLabelProvider} extends
- * {@code StyledCellLabelProvider} and renders module nodes with a
- * styled "(MCU)" suffix and font tweaks. v0.1 keeps a plain text label;
- * styling polish is a v0.2 follow-up (matches the deferred font/color
- * polish task).
+ * Label provider for the AUTOSAR Explorer view's mal model nodes.
+ * Paired with {@link BswExplorerContentProvider}; one entry per POJO type.
  */
 public class BswExplorerLabelProvider extends LabelProvider implements ICommonLabelProvider {
 
@@ -34,29 +26,32 @@ public class BswExplorerLabelProvider extends LabelProvider implements ICommonLa
 
     @Override
     public String getText(Object element) {
-        if (element instanceof KindGroupNode) {
-            return ((KindGroupNode) element).getKind();
+        if (element instanceof BswBuilderModel) {
+            return ((BswBuilderModel) element).getName();
         }
-        if (element instanceof IFile) {
-            IFile f = (IFile) element;
-            if (BswExplorerContentProvider.isModuleConfigArxml(f)) {
-                return ModuleKindRegistry.stripArxml(f.getName());
-            }
+        if (element instanceof EcuConfigurationModel) {
+            return ((EcuConfigurationModel) element).getMcuName();
         }
-        return null; // let downstream providers label it
+        if (element instanceof ModuleKindModel) {
+            return ((ModuleKindModel) element).getKindName();
+        }
+        if (element instanceof ModuleModel) {
+            return ((ModuleModel) element).getModuleName();
+        }
+        return null; // let downstream providers (Project Explorer default) handle IProject etc.
     }
 
     @Override
     public Image getImage(Object element) {
         ISharedImages shared = PlatformUI.getWorkbench().getSharedImages();
-        if (element instanceof KindGroupNode) {
+        if (element instanceof BswBuilderModel) {
+            return shared.getImage(ISharedImages.IMG_OBJ_PROJECT);
+        }
+        if (element instanceof EcuConfigurationModel || element instanceof ModuleKindModel) {
             return shared.getImage(ISharedImages.IMG_OBJ_FOLDER);
         }
-        if (element instanceof IFile) {
-            IFile f = (IFile) element;
-            if (BswExplorerContentProvider.isModuleConfigArxml(f)) {
-                return shared.getImage(ISharedImages.IMG_OBJ_ELEMENT);
-            }
+        if (element instanceof ModuleModel) {
+            return shared.getImage(ISharedImages.IMG_OBJ_ELEMENT);
         }
         return null;
     }

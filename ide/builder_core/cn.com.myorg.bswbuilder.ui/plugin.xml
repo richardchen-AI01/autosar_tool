@@ -177,18 +177,27 @@
         </menuContribution>
     </extension>
 
-    <!-- navigatorContent — 给 Eclipse Project Explorer 注入 KIND 分组 +
-         模块名 label。参考 iSoft V25.10 同款扩展点
-         (cn.com.isoft.bswbuilder.ui.navigatorContent in
-         ui-extracted/plugin.xml)，思路一致：
-           - ContentProvider 拦截 MCU 文件夹 (.../BSW_Builder/<MCU>/)
-             把 .arxml 文件 children 按 kind 分组成虚拟节点
-           - LabelProvider 模块名剥 .arxml 后缀 + 蓝色 element 图标
-         区别: iSoft contentProvider extends Sphinx BasicExplorerContentProvider
-               (走 EMF model)；我们走 IPipelinedTreeContentProvider2 拦截
-               IResource (file-system 路线)，避免 v0.1 引 EMF model 层。 -->
-    <extension
-            point="org.eclipse.ui.navigator.navigatorContent">
+    <!-- AUTOSAR Explorer view — 自定义 CommonNavigator 子类。
+         参考: cn.com.isoft.pal.ui.explorer.AutosarNavigator
+              (view id cn.com.isoft.pal.views.autosarexplorer)。 -->
+    <extension point="org.eclipse.ui.views">
+        <category
+                id="cn.com.myorg.bswbuilder.ui.viewCategory"
+                name="BSW Builder"/>
+        <view
+                allowMultiple="false"
+                category="cn.com.myorg.bswbuilder.ui.viewCategory"
+                class="cn.com.myorg.bswbuilder.ui.navigator.BswAutosarExplorerView"
+                id="cn.com.myorg.bswbuilder.ui.bswExplorer"
+                name="AUTOSAR Explorer"
+                restorable="true"/>
+    </extension>
+
+    <!-- navigatorContent — mal model 树 (BswBuilderModel/EcuConfig/ModuleKind/Module)。
+         参考: cn.com.isoft.bswbuilder.ui plugin.xml (triggerPoints=BswBuilderModel)
+              + cn.com.isoft.pal plugin.xml (CustomExplorerContentProvider 桥接 IProject->BswBuilderModel)。
+         我们合并成单 provider：getChildren 处理 IWorkspaceRoot/IProject/4 个 mal model 类型。 -->
+    <extension point="org.eclipse.ui.navigator.navigatorContent">
         <navigatorContent
                 contentProvider="cn.com.myorg.bswbuilder.ui.navigator.BswExplorerContentProvider"
                 labelProvider="cn.com.myorg.bswbuilder.ui.navigator.BswExplorerLabelProvider"
@@ -198,31 +207,31 @@
                 activeByDefault="true">
             <triggerPoints>
                 <or>
-                    <and>
-                        <instanceof value="org.eclipse.core.resources.IFolder"/>
-                        <test
-                                property="org.eclipse.core.resources.path"
-                                value="*/BSW_Builder/*"/>
-                    </and>
-                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.KindGroupNode"/>
+                    <instanceof value="org.eclipse.core.resources.IWorkspaceRoot"/>
+                    <instanceof value="org.eclipse.core.resources.IProject"/>
+                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.BswBuilderModel"/>
+                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.EcuConfigurationModel"/>
+                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.ModuleKindModel"/>
+                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.ModuleModel"/>
                 </or>
             </triggerPoints>
             <possibleChildren>
                 <or>
-                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.KindGroupNode"/>
-                    <instanceof value="org.eclipse.core.resources.IFile"/>
+                    <instanceof value="org.eclipse.core.resources.IProject"/>
+                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.BswBuilderModel"/>
+                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.EcuConfigurationModel"/>
+                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.ModuleKindModel"/>
+                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.ModuleModel"/>
                 </or>
             </possibleChildren>
         </navigatorContent>
     </extension>
 
-    <extension
-            point="org.eclipse.ui.navigator.viewer">
-        <viewerContentBinding
-                viewerId="org.eclipse.ui.navigator.ProjectExplorer">
+    <extension point="org.eclipse.ui.navigator.viewer">
+        <viewer viewerId="cn.com.myorg.bswbuilder.ui.bswExplorer"/>
+        <viewerContentBinding viewerId="cn.com.myorg.bswbuilder.ui.bswExplorer">
             <includes>
-                <contentExtension
-                        pattern="cn.com.myorg.bswbuilder.ui.bswNavigatorContent"/>
+                <contentExtension pattern="cn.com.myorg.bswbuilder.ui.bswNavigatorContent"/>
             </includes>
         </viewerContentBinding>
     </extension>

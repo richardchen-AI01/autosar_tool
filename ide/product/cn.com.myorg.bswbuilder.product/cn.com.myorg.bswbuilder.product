@@ -19,6 +19,16 @@
         <vmArgsMac>-XstartOnFirstThread
             -Dorg.eclipse.swt.internal.carbon.smallFonts=
         </vmArgsMac>
+        <!-- Win deploy 写死，重新 mvn clean verify 不会丢。占位 D:\autosar_tool / D:\bswbuilder\workspace；
+             实际 deploy 时由 tools/winrun 脚本 sed 替换成 D:\bswbuilderN\workspace。
+             改 D:\autosar_tool 是因为 Win 端总是 git pull 到这固定路径（dev_workflow rule）。 -->
+        <vmArgsWin>-Xms512m -Xmx2048m -Xss2m
+            -XX:+UseParallelGC
+            -Xverify:none
+            -Dosgi.requiredJavaVersion=1.8
+            -Dautosar.repoRoot=D:\autosar_tool
+            -Dautosar.workspaceRoot=D:\bswbuilder\workspace
+        </vmArgsWin>
     </launcherArgs>
 
     <launcher name="bswbuilder">

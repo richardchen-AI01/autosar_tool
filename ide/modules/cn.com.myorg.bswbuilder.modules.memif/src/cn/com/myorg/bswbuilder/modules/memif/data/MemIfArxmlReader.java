@@ -83,13 +83,98 @@ public final class MemIfArxmlReader {
             // for any path inside the workspace and stack-overflow.
             return absPath != null ? readLegacy(absPath) : null;
         }
-        Resource resource = modelRoot.eResource();
-        return new MemIfData(
-                absPath,
-                findParam(resource, "MemIfDevErrorDetect"),
-                findParam(resource, "MemIfNumberOfDevices"),
-                findParam(resource, "MemIfVersionInfoApi"),
-                findParam(resource, "MemIfModuleVersion"));
+        // E2.5: 用 ARTOP typed API 读 — instanceof EcucModuleConfigurationValues
+        // / EcucContainerValue / EcucNumericalParamValue / EcucTextualParamValue,
+        // typed getValue() / getMixedText() / gGetShortName(), 不再走 untyped
+        // eClass.name.toLowerCase() walker (违反参考不变量 #1)。
+        return extractTyped(modelRoot, absPath);
+    }
+
+    /**
+     * Typed traversal of the loaded EMF model — uses ARTOP's strongly-typed
+     * Java classes per AUTOSAR ECUC schema. Mirrors the canonical pattern
+     * documented in {@code writeups/architecture/03-artop-analysis.md §4.3}.
+     */
+    private static MemIfData extractTyped(EObject modelRoot, String absPath) {
+        java.util.Map<String, String> values = new java.util.HashMap<>();
+
+        org.eclipse.emf.common.util.TreeIterator<EObject> iter = modelRoot.eAllContents();
+        while (iter.hasNext()) {
+            EObject obj = iter.next();
+            if (obj instanceof autosar40.ecucdescription.EcucModuleConfigurationValues) {
+                autosar40.ecucdescription.EcucModuleConfigurationValues mod =
+                        (autosar40.ecucdescription.EcucModuleConfigurationValues) obj;
+                for (autosar40.ecucdescription.EcucContainerValue c : mod.getContainers()) {
+                    walkContainer(c, values);
+                }
+            }
+        }
+
+        return new MemIfData(absPath,
+                values.get("MemIfDevErrorDetect"),
+                values.get("MemIfNumberOfDevices"),
+                values.get("MemIfVersionInfoApi"),
+                values.get("MemIfModuleVersion"));
+    }
+
+    private static void walkContainer(
+            autosar40.ecucdescription.EcucContainerValue c,
+            java.util.Map<String, String> values) {
+        for (autosar40.ecucdescription.EcucParameterValue p : c.getParameterValues()) {
+            String shortName = paramShortNameOf(p);
+            if (shortName == null) continue;
+            String stringValue = extractTypedValue(p);
+            if (stringValue != null) values.put(shortName, stringValue);
+        }
+        // recurse into sub-containers (typed)
+        for (autosar40.ecucdescription.EcucContainerValue sub : c.getSubContainers()) {
+            walkContainer(sub, values);
+        }
+    }
+
+    /**
+     * Get the parameter's definition short-name via typed cross-reference.
+     * Fallback to proxy-URI fragment parsing only if EMF resolve fails
+     * (e.g. ARXML loaded outside Sphinx EditingDomain → "ar:" protocol).
+     */
+    private static String paramShortNameOf(autosar40.ecucdescription.EcucParameterValue p) {
+        if (p == null) return null;
+        gautosar.gecucparameterdef.GConfigParameter def = p.getDefinition();
+        if (def == null) return null;
+        if (def.eIsProxy()) {
+            org.eclipse.emf.common.util.URI uri =
+                    ((org.eclipse.emf.ecore.InternalEObject) def).eProxyURI();
+            if (uri == null) return null;
+            String frag = uri.fragment();
+            if (frag == null) return null;
+            int q = frag.indexOf('?');
+            if (q >= 0) frag = frag.substring(0, q);
+            int slash = frag.lastIndexOf('/');
+            return slash >= 0 ? frag.substring(slash + 1) : frag;
+        }
+        return def.gGetShortName();  // typed
+    }
+
+    /**
+     * Get a parameter's value as a String, using typed casts. Mirrors
+     * iSoft's pattern: {@code setMixedText(String)} on the variation point
+     * (verified via decompiled {@code DataTypeFactory.testCreateSimpleImplementationDataType}).
+     */
+    private static String extractTypedValue(autosar40.ecucdescription.EcucParameterValue p) {
+        if (p instanceof autosar40.ecucdescription.EcucTextualParamValue) {
+            // String / enum 直接 typed accessor
+            return ((autosar40.ecucdescription.EcucTextualParamValue) p).getValue();
+        }
+        if (p instanceof autosar40.ecucdescription.EcucNumericalParamValue) {
+            // Numeric / boolean 走 NumericalValueVariationPoint.getMixedText()
+            // (FormulaExpression 接口提供, typed)
+            autosar40.genericstructure.varianthandling.attributevaluevariationpoints.NumericalValueVariationPoint vp =
+                    ((autosar40.ecucdescription.EcucNumericalParamValue) p).getValue();
+            return vp != null ? vp.getMixedText() : null;
+        }
+        // Other parameter value types (reference, instance ref) — N/A for
+        // MemIf 4 fields, return null.
+        return null;
     }
 
     /**
