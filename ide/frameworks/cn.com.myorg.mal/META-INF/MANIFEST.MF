@@ -13,6 +13,7 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.emf.common,
  org.eclipse.sphinx.emf,
  org.eclipse.sphinx.platform,
+ org.eclipse.jface,
  org.artop.aal.gautosar,
  org.artop.aal.autosar448,
  cn.com.myorg.mal.model;visibility:=reexport
@@ -21,5 +22,6 @@ Export-Package: cn.com.myorg.mal,
  cn.com.myorg.mal.exceptions,
  cn.com.myorg.mal.excel,
  cn.com.myorg.mal.generation,
- cn.com.myorg.mal.interfaces
+ cn.com.myorg.mal.interfaces,
+ cn.com.myorg.mal.modelutils
 Automatic-Module-Name: cn.com.myorg.mal

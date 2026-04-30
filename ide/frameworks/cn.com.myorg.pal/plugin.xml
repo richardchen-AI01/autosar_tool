@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<!--
+    pal extension points + a bundled vendor.
+
+    Reference: cn.com.isoft.pal/plugin.xml — same vendor.exsd schema (copied +
+    namespace adapted) + same registration pattern. Each
+    bswbuilder.modules.* contribution sets vendor="cn.com.myorg.pal.myorgvendor"
+    on its <module> element; AutocoreModuleDefinition.findVendor uses
+    Platform.getExtensionRegistry().getExtension(vendorExtId) to resolve.
+-->
+<plugin>
+   <extension-point id="vendor"
+                    name="Vendor Information"
+                    schema="schema/vendor.exsd"/>
+
+   <extension id="myorgvendor"
+              point="cn.com.myorg.pal.vendor">
+      <vendor
+            name="autosar_tool research project"
+            shortname="myorg"
+            country="CN"
+            city="—"/>
+   </extension>
+</plugin>

@@ -1,31 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <!--
-  MemIf module registration. Mirrors the iSoft V25.10 contribution shape but
-  drops attributes whose Java backing class hasn't been written yet
-  (editor / generator / validator / moduleDescriptor / updateBswmd). Those
-  stay open so M3.4+ can fill them in without renaming the extension point.
+  MemIf module IoC registration (E3-B-6).
 
-  shortName        — "MemIf"
-  moduledefinition — bundle-relative arxml shipped next to plugin.xml
-  kind             — "MEM" (memory abstraction)
-  vendor / version — autosar_tool / 0.1.0
+  Mirrors reference cn.com.isoft.bswbuilder.modules.memif/plugin.xml byte-for-byte
+  (modulo namespace). Each attribute resolves at runtime via
+  AutocoreModuleDefinition's createExecutableExtension calls:
+    editor           → DefaultRegistry impl (NOT EditorPart — image/name registry)
+    generator        → IModuleGenerator impl
+    validator        → IModuleValidator impl
+    moduleDescriptor → AutocoreMetaModelDescriptor subclass
+    updateBswmd      → IModuleUpdateBswmd impl
+    vendor           → ID of cn.com.myorg.pal.vendor extension (myorgvendor in pal)
 -->
 <plugin>
    <extension
          point="cn.com.myorg.bswbuilder.extensionpoints.module">
       <module
             shortName="MemIf"
-            moduledefinition="MemIfDef.arxml"
             kind="MEM"
-            vendor="autosar_tool"
+            moduledefinition="MemIfDef.arxml"
+            bswmd="MemIf_Bswmd.arxml"
+            vendor="cn.com.myorg.pal.myorgvendor"
             version="0.1.0"
-            imageIdentifier="MemIf"/>
+            imageIdentifier="MemIf"
+            editor="cn.com.myorg.bswbuilder.modules.memif.MemIfDefaultRegistry"
+            generator="cn.com.myorg.bswbuilder.modules.memif.generator.MemIfGenerator"
+            validator="cn.com.myorg.bswbuilder.modules.memif.validator.MemIfValidator"
+            moduleDescriptor="cn.com.myorg.bswbuilder.modules.memif.MemIfMetaModelDescriptor"
+            updateBswmd="cn.com.myorg.bswbuilder.modules.memif.bswmd.MemIfUpdateBswmd"/>
    </extension>
 
    <!-- "Load MemIf ARXML" 顶部 toolbar 已删 (用户反馈 #3, 2026-04-29)。
-        Phase 1 早期 smoke-test 用的快捷按钮，U2 起 ARXML 加载走
+        Phase 1 早期 smoke-test 用的快捷按钮, U2 起 ARXML 加载走
         "双击 Autosar Explorer 节点 → MemIfModuleManagerEditor.init()"
-        正式路径，不需要顶栏按钮。LoadMemIfArxmlHandler 类保留代码可用，
-        但不再通过 plugin.xml 注册成 UI 入口。 -->
+        正式路径, 不再通过 plugin.xml 注册成 UI 入口。
+        LoadMemIfArxmlHandler 类保留代码可用。 -->
 </plugin>

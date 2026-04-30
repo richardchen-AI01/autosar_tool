@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="cn.com.myorg.pal" xmlns="http://www.w3.org/2001/XMLSchema">
+<annotation>
+      <appinfo>
+         <meta.schema plugin="cn.com.myorg.pal" id="vendor" name="Vendor Information"/>
+      </appinfo>
+      <documentation>
+         [Enter description of this extension point.]
+      </documentation>
+   </annotation>
+
+   <element name="extension">
+      <annotation>
+         <appinfo>
+            <meta.element />
+         </appinfo>
+      </annotation>
+      <complexType>
+         <sequence>
+            <element ref="vendor" minOccurs="1" maxOccurs="unbounded"/>
+         </sequence>
+         <attribute name="point" type="string" use="required">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="name" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+               <appinfo>
+                  <meta.attribute translatable="true"/>
+               </appinfo>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <element name="vendor">
+      <complexType>
+         <attribute name="name" type="string">
+            <annotation>
+               <documentation>
+                  The name of the vendor. Usually a company name.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="icon" type="string">
+            <annotation>
+               <documentation>
+                  An image file of size 16x16 pixels to associate with this vendor. Usually a company logotype.
+               </documentation>
+               <appinfo>
+                  <meta.attribute kind="resource"/>
+               </appinfo>
+            </annotation>
+         </attribute>
+         <attribute name="country" type="string">
+            <annotation>
+               <documentation>
+                  The country of the vendor.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="city" type="string">
+            <annotation>
+               <documentation>
+                  The city of the vendor.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="street" type="string">
+            <annotation>
+               <documentation>
+                  The street of the vendor.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="zipcode" type="string">
+            <annotation>
+               <documentation>
+                  The zip code of the vendor.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="telephone" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="email" type="string">
+            <annotation>
+               <documentation>
+                  The email of the vendor.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="shortname" type="string" use="required">
+            <annotation>
+               <documentation>
+                  The name that the vendor uses to identify itself in the AUTOSAR arxml structure, i.e. the shortname that the vendor uses on the ARPACKAGE element of its module definitions.
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="since"/>
+      </appinfo>
+      <documentation>
+         [Enter the first release in which this extension point appears.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="examples"/>
+      </appinfo>
+      <documentation>
+         [Enter extension point usage example here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="apiinfo"/>
+      </appinfo>
+      <documentation>
+         [Enter API information here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="implementation"/>
+      </appinfo>
+      <documentation>
+         [Enter information about supplied implementation of this extension point.]
+      </documentation>
+   </annotation>
+
+
+</schema>
