@@ -129,13 +129,29 @@ public class GenerateMemIfHandler extends AbstractHandler {
         return null;
     }
 
-    /** Pull the first {@link IFile} out of the command's selection. */
+    /**
+     * Pull the first {@link IFile} out of the command's selection. Supports
+     * three selection types:
+     * <ul>
+     *   <li>raw IFile (Project Explorer right-click on .arxml)</li>
+     *   <li>IAdaptable that adapts to IFile</li>
+     *   <li>{@link cn.com.myorg.mal.model.ModuleModel} from AUTOSAR Explorer
+     *       (resolved via projectName + pathValue → IFile)</li>
+     * </ul>
+     */
     static IFile pickIFile(ExecutionEvent event) {
         IStructuredSelection sel =
                 HandlerUtil.getCurrentStructuredSelection(event);
         if (sel == null) return null;
         Object first = sel.getFirstElement();
         if (first instanceof IFile) return (IFile) first;
+        if (first instanceof cn.com.myorg.mal.model.ModuleModel) {
+            cn.com.myorg.mal.model.ModuleModel m =
+                    (cn.com.myorg.mal.model.ModuleModel) first;
+            return org.eclipse.core.resources.ResourcesPlugin.getWorkspace().getRoot()
+                    .getProject(m.getProjectName())
+                    .getFile(new org.eclipse.core.runtime.Path(m.getPathValue()));
+        }
         if (first instanceof org.eclipse.core.runtime.IAdaptable) {
             return ((org.eclipse.core.runtime.IAdaptable) first).getAdapter(IFile.class);
         }

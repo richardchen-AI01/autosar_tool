@@ -95,14 +95,17 @@
                     style="push">
                 <visibleWhen checkEnabled="false">
                     <iterate ifEmpty="false">
-                        <adapt type="org.eclipse.core.resources.IFile">
-                            <test
-                                    property="org.eclipse.core.resources.name"
-                                    value="*.arxml"/>
-                            <test
-                                    property="org.eclipse.core.resources.path"
-                                    value="*/BSW_Builder/*"/>
-                        </adapt>
+                        <or>
+                            <instanceof value="cn.com.myorg.mal.model.ModuleModel"/>
+                            <adapt type="org.eclipse.core.resources.IFile">
+                                <test
+                                        property="org.eclipse.core.resources.name"
+                                        value="*.arxml"/>
+                                <test
+                                        property="org.eclipse.core.resources.path"
+                                        value="*/BSW_Builder/*"/>
+                            </adapt>
+                        </or>
                     </iterate>
                 </visibleWhen>
             </command>
@@ -112,14 +115,17 @@
                     style="push">
                 <visibleWhen checkEnabled="false">
                     <iterate ifEmpty="false">
-                        <adapt type="org.eclipse.core.resources.IFile">
-                            <test
-                                    property="org.eclipse.core.resources.name"
-                                    value="*.arxml"/>
-                            <test
-                                    property="org.eclipse.core.resources.path"
-                                    value="*/BSW_Builder/*"/>
-                        </adapt>
+                        <or>
+                            <instanceof value="cn.com.myorg.mal.model.ModuleModel"/>
+                            <adapt type="org.eclipse.core.resources.IFile">
+                                <test
+                                        property="org.eclipse.core.resources.name"
+                                        value="*.arxml"/>
+                                <test
+                                        property="org.eclipse.core.resources.path"
+                                        value="*/BSW_Builder/*"/>
+                            </adapt>
+                        </or>
                     </iterate>
                 </visibleWhen>
             </command>
@@ -129,14 +135,17 @@
                     style="push">
                 <visibleWhen checkEnabled="false">
                     <iterate ifEmpty="false">
-                        <adapt type="org.eclipse.core.resources.IFile">
-                            <test
-                                    property="org.eclipse.core.resources.name"
-                                    value="*.arxml"/>
-                            <test
-                                    property="org.eclipse.core.resources.path"
-                                    value="*/BSW_Builder/*"/>
-                        </adapt>
+                        <or>
+                            <instanceof value="cn.com.myorg.mal.model.ModuleModel"/>
+                            <adapt type="org.eclipse.core.resources.IFile">
+                                <test
+                                        property="org.eclipse.core.resources.name"
+                                        value="*.arxml"/>
+                                <test
+                                        property="org.eclipse.core.resources.path"
+                                        value="*/BSW_Builder/*"/>
+                            </adapt>
+                        </or>
                     </iterate>
                 </visibleWhen>
             </command>
@@ -146,14 +155,17 @@
                     style="push">
                 <visibleWhen checkEnabled="false">
                     <iterate ifEmpty="false">
-                        <adapt type="org.eclipse.core.resources.IFile">
-                            <test
-                                    property="org.eclipse.core.resources.name"
-                                    value="*.arxml"/>
-                            <test
-                                    property="org.eclipse.core.resources.path"
-                                    value="*/BSW_Builder/*"/>
-                        </adapt>
+                        <or>
+                            <instanceof value="cn.com.myorg.mal.model.ModuleModel"/>
+                            <adapt type="org.eclipse.core.resources.IFile">
+                                <test
+                                        property="org.eclipse.core.resources.name"
+                                        value="*.arxml"/>
+                                <test
+                                        property="org.eclipse.core.resources.path"
+                                        value="*/BSW_Builder/*"/>
+                            </adapt>
+                        </or>
                     </iterate>
                 </visibleWhen>
             </command>
@@ -163,14 +175,17 @@
                     style="push">
                 <visibleWhen checkEnabled="false">
                     <iterate ifEmpty="false">
-                        <adapt type="org.eclipse.core.resources.IFile">
-                            <test
-                                    property="org.eclipse.core.resources.name"
-                                    value="*.arxml"/>
-                            <test
-                                    property="org.eclipse.core.resources.path"
-                                    value="*/BSW_Builder/*"/>
-                        </adapt>
+                        <or>
+                            <instanceof value="cn.com.myorg.mal.model.ModuleModel"/>
+                            <adapt type="org.eclipse.core.resources.IFile">
+                                <test
+                                        property="org.eclipse.core.resources.name"
+                                        value="*.arxml"/>
+                                <test
+                                        property="org.eclipse.core.resources.path"
+                                        value="*/BSW_Builder/*"/>
+                            </adapt>
+                        </or>
                     </iterate>
                 </visibleWhen>
             </command>
