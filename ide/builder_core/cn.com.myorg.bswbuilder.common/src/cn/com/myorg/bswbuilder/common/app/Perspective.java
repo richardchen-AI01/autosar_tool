@@ -51,11 +51,13 @@ public class Perspective implements IPerspectiveFactory {
         String editorArea = layout.getEditorArea();
         layout.setEditorAreaVisible(true);
 
-        // LEFT: AUTOSAR Explorer (mal model tree, primary nav) + Project Explorer (~22%)
+        // LEFT: Project Explorer (Eclipse 标准, primary — 跟参考 V25.10 一致)
+        // + AUTOSAR Explorer (mal model 视角, 副 tab)。
+        // 顺序决定默认显示哪个 — addView 先调用的是默认 active tab。
         IFolderLayout left = layout.createFolder(
                 "left", IPageLayout.LEFT, 0.22f, editorArea);
-        left.addView(AUTOSAR_EXPLORER_VIEW);
         left.addView(PROJECT_EXPLORER_VIEW);
+        left.addView(AUTOSAR_EXPLORER_VIEW);
 
         // BOTTOM-LEFT: BSW Builder console + Properties (Eclipse standard)
         IFolderLayout bottomLeft = layout.createFolder(
