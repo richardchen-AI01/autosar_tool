@@ -208,10 +208,11 @@
                 restorable="true"/>
     </extension>
 
-    <!-- navigatorContent — mal model 树 (BswBuilderModel/EcuConfig/ModuleKind/Module)。
-         参考: cn.com.isoft.bswbuilder.ui plugin.xml (triggerPoints=BswBuilderModel)
-              + cn.com.isoft.pal plugin.xml (CustomExplorerContentProvider 桥接 IProject->BswBuilderModel)。
-         我们合并成单 provider：getChildren 处理 IWorkspaceRoot/IProject/4 个 mal model 类型。 -->
+    <!-- navigatorContent — file-system 树 (跟 Project Explorer 一致全部显示)。
+         2026-05-01 user pivot: 之前驱动 mal model (BswBuilderModel/EcuConfig/
+         ModuleKind/Module) 只显示已注册插件, 用户报"工程缺东西"。改为
+         IResource walk + LabelProvider 给 BSW_Builder/ 和 bswmds/ 下的
+         .arxml 去后缀+加图标 (model 视角的"polish")。 -->
     <extension point="org.eclipse.ui.navigator.navigatorContent">
         <navigatorContent
                 contentProvider="cn.com.myorg.bswbuilder.ui.navigator.BswExplorerContentProvider"
@@ -224,19 +225,14 @@
                 <or>
                     <instanceof value="org.eclipse.core.resources.IWorkspaceRoot"/>
                     <instanceof value="org.eclipse.core.resources.IProject"/>
-                    <instanceof value="cn.com.myorg.mal.model.BswBuilderModel"/>
-                    <instanceof value="cn.com.myorg.mal.model.EcuConfigurationModel"/>
-                    <instanceof value="cn.com.myorg.mal.model.ModuleKindModel"/>
-                    <instanceof value="cn.com.myorg.mal.model.ModuleModel"/>
+                    <instanceof value="org.eclipse.core.resources.IFolder"/>
                 </or>
             </triggerPoints>
             <possibleChildren>
                 <or>
                     <instanceof value="org.eclipse.core.resources.IProject"/>
-                    <instanceof value="cn.com.myorg.mal.model.BswBuilderModel"/>
-                    <instanceof value="cn.com.myorg.mal.model.EcuConfigurationModel"/>
-                    <instanceof value="cn.com.myorg.mal.model.ModuleKindModel"/>
-                    <instanceof value="cn.com.myorg.mal.model.ModuleModel"/>
+                    <instanceof value="org.eclipse.core.resources.IFolder"/>
+                    <instanceof value="org.eclipse.core.resources.IFile"/>
                 </or>
             </possibleChildren>
         </navigatorContent>

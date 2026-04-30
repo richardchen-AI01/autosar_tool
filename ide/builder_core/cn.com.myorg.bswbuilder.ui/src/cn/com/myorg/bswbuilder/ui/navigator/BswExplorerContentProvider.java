@@ -2,8 +2,12 @@ package cn.com.myorg.bswbuilder.ui.navigator;
 
 import java.util.ArrayList;
 
+import org.eclipse.core.resources.IContainer;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.ecore.EClassifier;
 import org.eclipse.emf.ecore.EcorePackage;
 import org.eclipse.emf.transaction.NotificationFilter;
@@ -14,32 +18,22 @@ import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.sphinx.emf.explorer.BasicExplorerContentProvider;
 import org.eclipse.sphinx.platform.ui.util.ExtendedPlatformUI;
 
-import cn.com.myorg.mal.model.BswBuilderModel;
-import cn.com.myorg.mal.model.EcuConfigurationModel;
-import cn.com.myorg.mal.model.ModuleKindModel;
-import cn.com.myorg.mal.model.ModuleModel;
-import cn.com.myorg.pal.model.ModelManager;
-
 /**
- * AUTOSAR Explorer view content provider.
+ * AUTOSAR Explorer content provider — file-system tree (mirrors the standard
+ * Eclipse Project Explorer's IResource walk so the user sees the full project
+ * layout: BSW_Builder/, bswmds/, config/, ServiceComponents/, catch.xml,
+ * navigator.xml...).
  *
- * <p>Combines the responsibilities of two reference providers:
- * <ul>
- *   <li>{@code cn.com.isoft.pal.ui.contentproviders.CustomExplorerContentProvider} —
- *       IProject → BswBuilderModel bridge via {@link ModelManager#getBswBuilderByProject}</li>
- *   <li>{@code cn.com.isoft.bswbuilder.ui.contentproviders.BswExplorerContentProvider} —
- *       mal model walk (BswBuilderModel → EcuConfigurationModel → ModuleKindModel
- *       → ModuleModel) + EMF ResourceSetListener for auto-refresh</li>
- * </ul>
+ * <p>2026-05-01 user pivot: AUTOSAR Explorer was previously driven off the mal
+ * model + IoC chain (BswModuleManager / KindContainModule), which only surfaced
+ * registered plugin modules and hid all other project content. User wanted
+ * full Project-Explorer-equivalent visibility while preserving the polish
+ * (module name without .arxml suffix, module icon) — that polish now lives
+ * exclusively in {@link BswExplorerLabelProvider}.
  *
- * <p>We collapse them because we have a single bswbuilder.ui bundle (reference splits
- * across pal + bswbuilder.ui). External behavior is identical.
- *
- * <p>{@code createResourceChangedListener} returns a Sphinx ResourceSetListener watching
- * three EMF features (RESOURCES, CONTENTS, URI) — fires viewer.refresh() on the SWT
- * display thread when an Artop AUTOSAR Resource changes (load/save/edit). This is how
- * the navigator stays in sync with edits made via FormEditor — same exact pattern as
- * reference {@code BswExplorerContentProvider.createResourceChangedListener}.
+ * <p>The mal model + ModelManager remain alive for handler-side metadata
+ * access (Generate / Validate / Update Bswmd) via AutocoreCoordinator lookup,
+ * just no longer for tree rendering.
  */
 public class BswExplorerContentProvider
         extends BasicExplorerContentProvider
@@ -70,36 +64,59 @@ public class BswExplorerContentProvider
 
     @Override
     public Object[] getChildren(Object parentElement) {
-        // (1) Eclipse workbench root → registered IProjects
-        if (parentElement instanceof IWorkspaceRoot) {
-            return ((IWorkspaceRoot) parentElement).getProjects();
+        try {
+            if (parentElement instanceof IWorkspaceRoot) {
+                ArrayList<IProject> visible = new ArrayList<>();
+                for (IProject p : ((IWorkspaceRoot) parentElement).getProjects()) {
+                    if (p.isOpen()) visible.add(p);
+                }
+                return visible.toArray();
+            }
+            if (parentElement instanceof IContainer) {
+                IContainer c = (IContainer) parentElement;
+                if (!c.isAccessible()) return new Object[0];
+                ArrayList<Object> children = new ArrayList<>();
+                for (IResource child : c.members()) {
+                    // Hide Eclipse internals (.project / .settings / .classpath /
+                    // .arxmlHashFile) — Project Explorer hides them too via filters.
+                    if (!child.getName().startsWith(".")) {
+                        children.add(child);
+                    }
+                }
+                return children.toArray();
+            }
+            if (parentElement instanceof IFile) {
+                return new Object[0];
+            }
+        } catch (CoreException e) {
+            // Fall through to super (Sphinx EMF resource expansion etc.).
         }
-        // (2) IProject → BswBuilderModel bridge (reference: pal.CustomExplorerContentProvider)
-        if (parentElement instanceof IProject && ((IProject) parentElement).isOpen()) {
-            IProject project = (IProject) parentElement;
-            BswBuilderModel model = ModelManager.getBswBuilderByProject(project);
-            return model == null ? new Object[0] : new Object[]{ model };
-        }
-        // (3) mal model walk (reference: bswbuilder.ui.BswExplorerContentProvider)
-        if (parentElement instanceof BswBuilderModel) {
-            ArrayList<Object> children = new ArrayList<>();
-            children.addAll(((BswBuilderModel) parentElement).getEcuConfigurationModels());
-            return children.toArray();
-        }
-        if (parentElement instanceof EcuConfigurationModel) {
-            ArrayList<Object> children = new ArrayList<>();
-            children.addAll(((EcuConfigurationModel) parentElement).getModuleKindModels());
-            return children.toArray();
-        }
-        if (parentElement instanceof ModuleKindModel) {
-            ArrayList<Object> children = new ArrayList<>();
-            children.addAll(((ModuleKindModel) parentElement).getModuleModels());
-            return children.toArray();
-        }
-        if (parentElement instanceof ModuleModel) {
-            return new Object[0]; // leaf
-        }
-        // (4) default → Sphinx super (handles IFile → EObject roots etc.)
         return super.getChildren(parentElement);
+    }
+
+    @Override
+    public Object getParent(Object element) {
+        if (element instanceof IResource) {
+            return ((IResource) element).getParent();
+        }
+        return super.getParent(element);
+    }
+
+    @Override
+    public boolean hasChildren(Object element) {
+        if (element instanceof IFile) return false;
+        if (element instanceof IContainer) {
+            try {
+                IContainer c = (IContainer) element;
+                if (!c.isAccessible()) return false;
+                for (IResource child : c.members()) {
+                    if (!child.getName().startsWith(".")) return true;
+                }
+                return false;
+            } catch (CoreException e) {
+                return false;
+            }
+        }
+        return super.hasChildren(element);
     }
 }
