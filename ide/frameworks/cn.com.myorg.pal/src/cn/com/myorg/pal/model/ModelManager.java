@@ -9,9 +9,14 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 
+import cn.com.myorg.mal.AutocoreModuleDefinition;
+import cn.com.myorg.mal.BswModuleManager;
+import cn.com.myorg.mal.coordinator.KindContainModule;
 import cn.com.myorg.mal.model.BswBuilderModel;
 import cn.com.myorg.mal.model.EcuConfigurationModel;
 import cn.com.myorg.mal.model.ModelFactory;
+import cn.com.myorg.mal.model.ModuleKindModel;
+import cn.com.myorg.mal.model.ModuleModel;
 import cn.com.myorg.pal.base.functionblock.FunctionBlockManager;
 import cn.com.myorg.pal.base.interfaces.common.IFunctionBlock;
 
@@ -106,7 +111,21 @@ public final class ModelManager {
         return r instanceof IFolder && r.exists();
     }
 
-    /** Scan {@code BSW_Builder/<MCU>/} folders + populate EcuConfigurationModel children. */
+    /**
+     * Scan {@code BSW_Builder/<MCU>/} → for each MCU build full mal model subtree:
+     * EcuConfigurationModel → ModuleKindModel(s) (driven by IoC: BswModuleManager
+     * groups registered modules by kind) → ModuleModel(s) (one per .arxml found
+     * in the MCU folder that matches a registered module's shortName).
+     *
+     * <p>Reference flow (CFR-confirmed):
+     * <ol>
+     *   <li>BswModuleManager.getInstance(mcuName) reads modulekind + module
+     *       extensions, returns KindContainModule list.</li>
+     *   <li>Each KindContainModule has kind name + AutocoreModuleDefinition list.</li>
+     *   <li>For each AutocoreModuleDefinition, check if {@code <shortName>.arxml}
+     *       exists in MCU folder; if yes → create ModuleModel.</li>
+     * </ol>
+     */
     private static void populateEcuConfigurationModels(IProject project, BswBuilderModel model) {
         IFolder bswFolder = project.getFolder("BSW_Builder");
         if (!bswFolder.exists()) return;
@@ -115,19 +134,40 @@ public final class ModelManager {
                 if (!(child instanceof IFolder)) continue;
                 IFolder mcu = (IFolder) child;
                 EcuConfigurationModel ecu = ModelFactory.eINSTANCE.createEcuConfigurationModel();
-                // Reference: pathValue is project-relative; for an EcuConfigurationModel
-                // it points at the canonical config file inside the MCU folder.
-                // We don't yet know which file is canonical (depends on module
-                // registration), so use the MCU folder relative path; getFileName()
-                // = getFile().getParent().getName() will still return the MCU name.
+                // pathValue points at the canonical config file inside MCU folder
+                // (placeholder for now; real one set per-module via ModuleModel.pathValue).
                 IFile placeholder = mcu.getFile(mcu.getName() + ".arxml");
                 ecu.setPathValue(placeholder.getProjectRelativePath().toString());
                 ecu.setProjectName(project.getName());
                 model.getEcuConfigurationModels().add(ecu);
+                populateModuleKindModels(mcu, ecu);
             }
         } catch (CoreException e) {
-            // Unlikely on accessible project; surface via stderr until pal Activator logger wires.
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Build kind/module subtree for one MCU folder.
+     * Drives off BswModuleManager (real IoC chain — modulekind + module extensions).
+     */
+    private static void populateModuleKindModels(IFolder mcu, EcuConfigurationModel ecu) {
+        BswModuleManager mgr = BswModuleManager.getInstance(mcu.getName());
+        for (KindContainModule kindContainer : mgr.getKindContainModule()) {
+            ModuleKindModel kindModel = ModelFactory.eINSTANCE.createModuleKindModel();
+            kindModel.setKindName(kindContainer.getKindName());
+            ecu.getModuleKindModels().add(kindModel);
+
+            for (AutocoreModuleDefinition def : kindContainer.getModules()) {
+                IFile arxml = mcu.getFile(def.getModuleShortName() + ".arxml");
+                if (!arxml.exists()) continue; // module registered but no config in this project
+
+                ModuleModel modModel = ModelFactory.eINSTANCE.createModuleModel();
+                modModel.setModuleName(def.getModuleShortName());
+                modModel.setProjectName(mcu.getProject().getName());
+                modModel.setPathValue(arxml.getProjectRelativePath().toString());
+                kindModel.getModuleModels().add(modModel);
+            }
         }
     }
 }

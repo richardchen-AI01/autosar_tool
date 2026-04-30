@@ -209,19 +209,19 @@
                 <or>
                     <instanceof value="org.eclipse.core.resources.IWorkspaceRoot"/>
                     <instanceof value="org.eclipse.core.resources.IProject"/>
-                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.BswBuilderModel"/>
-                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.EcuConfigurationModel"/>
-                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.ModuleKindModel"/>
-                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.ModuleModel"/>
+                    <instanceof value="cn.com.myorg.mal.model.BswBuilderModel"/>
+                    <instanceof value="cn.com.myorg.mal.model.EcuConfigurationModel"/>
+                    <instanceof value="cn.com.myorg.mal.model.ModuleKindModel"/>
+                    <instanceof value="cn.com.myorg.mal.model.ModuleModel"/>
                 </or>
             </triggerPoints>
             <possibleChildren>
                 <or>
                     <instanceof value="org.eclipse.core.resources.IProject"/>
-                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.BswBuilderModel"/>
-                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.EcuConfigurationModel"/>
-                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.ModuleKindModel"/>
-                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.model.ModuleModel"/>
+                    <instanceof value="cn.com.myorg.mal.model.BswBuilderModel"/>
+                    <instanceof value="cn.com.myorg.mal.model.EcuConfigurationModel"/>
+                    <instanceof value="cn.com.myorg.mal.model.ModuleKindModel"/>
+                    <instanceof value="cn.com.myorg.mal.model.ModuleModel"/>
                 </or>
             </possibleChildren>
         </navigatorContent>

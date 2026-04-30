@@ -73,4 +73,24 @@
                 FunctionBlock="cn.com.myorg.bswbuilder.common.app.BswBuilderFunctionBlock"/>
     </extension>
 
+    <!-- 12 个 BSW 模块分类 — AutocoreCoordinator.getBswModuleKind() 通过此扩展点
+         读取，BswModuleManager 用来给每个 KindContainModule 建空容器。
+         Reference: 各 bswbuilder.modules.* bundle 在 plugin.xml 里 contribute
+         到 modulekind 扩展点；为简化 v0.2 全部集中在 bswbuilder.common 注册。
+         顺序 = 树视图显示顺序 (跟 reference 一致)。 -->
+    <extension point="cn.com.myorg.bswbuilder.extensionpoints.modulekind">
+        <modulekind name="COM"    description="Communication"/>
+        <modulekind name="DIAG"   description="Diagnosis"/>
+        <modulekind name="MCAL"   description="Microcontroller Abstraction Layer"/>
+        <modulekind name="MEM"    description="Memory"/>
+        <modulekind name="SEC"    description="Security"/>
+        <modulekind name="SYS"    description="System Service"/>
+        <modulekind name="WDG"    description="Watchdog"/>
+        <modulekind name="ETHER"  description="Ethernet"/>
+        <modulekind name="CRYPTO" description="Crypto Service"/>
+        <modulekind name="NM"     description="Network Management"/>
+        <modulekind name="CDD"    description="Complex Device Driver"/>
+        <modulekind name="OTHERS" description="Others"/>
+    </extension>
+
 </plugin>
