@@ -41,18 +41,9 @@
                 default="true"
                 contributorClass="org.eclipse.ui.part.EditorActionBarContributor"/>
 
-        <!-- C / H 头文件关联到 Eclipse 内置文本编辑器 (org.eclipse.ui.DefaultTextEditor)。
-             Vanilla Eclipse 2018-12 不带 CDT，所以 .c/.h 没有默认 IDE 编辑器，
-             双击只能走系统默认程序 (Notepad)。这个 binding 把 .c/.h 关到
-             文本编辑器，跟参考 V25.10 一致——双击在 IDE tab 里打开。 -->
-        <editor
-                id="cn.com.myorg.bswbuilder.ui.editors.CHeaderTextEditor"
-                name="Text Editor"
-                extensions="c,h"
-                class="org.eclipse.ui.editors.text.TextEditor"
-                default="true"
-                contributorClass="org.eclipse.ui.editors.text.TextEditorActionContributor"
-                icon="$nl$/icons/full/obj16/file_obj.png"/>
+        <!-- v0.2 起 CDT feature 接管 .c/.h 编辑器 (语法高亮 + folding +
+             outline + include 跳转)。我们之前注册的 plain TextEditor
+             已删 — CDT 注册的 C/C++ Editor 优先级更高，自动作为 default。 -->
     </extension>
 
     <!-- Commands — Validate / Generate / 其它 stub。从 Project Explorer

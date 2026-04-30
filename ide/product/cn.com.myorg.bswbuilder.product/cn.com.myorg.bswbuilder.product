@@ -38,6 +38,9 @@
              Find / Search / Compare / workspace lifecycle, which iSoft ORIENTAIS
              also builds on top of. -->
         <feature id="org.eclipse.platform"/>
+        <!-- CDT — full C/C++ editor (语法高亮 / folding / outline /
+             include 跳转). 加 ~80MB 到产品包，但 .c/.h 阅读体验提升明显。 -->
+        <feature id="org.eclipse.cdt"/>
         <feature id="org.eclipse.equinox.executable"/>
     </features>
 

@@ -8,15 +8,18 @@ Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy
 Bundle-Activator: cn.com.myorg.bswbuilder.modules.memif.Activator
 Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.core.resources,
  org.eclipse.core.commands,
  org.eclipse.ui,
  org.eclipse.jface,
  org.eclipse.emf.ecore,
  org.eclipse.emf.ecore.xmi,
+ org.eclipse.emf.transaction,
  cn.com.myorg.bswbuilder.common,
  org.artop.aal.autosar448,
  org.artop.aal.gautosar,
  org.eclipse.sphinx.emf,
+ org.eclipse.sphinx.emf.workspace,
  org.apache.xerces
 Export-Package: cn.com.myorg.bswbuilder.modules.memif.data
 Automatic-Module-Name: cn.com.myorg.bswbuilder.modules.memif

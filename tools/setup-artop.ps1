@@ -33,7 +33,13 @@ if (-not (Test-Path $Dst)) {
     New-Item -ItemType Directory -Path $Dst -Force | Out-Null
 }
 
-$patterns = @('org.artop.*.jar', 'org.eclipse.sphinx.*.jar')
+# Patterns to copy:
+# - org.artop.* — AUTOSAR Artop AAL
+# - org.eclipse.sphinx.* — Sphinx (EMF + workspace integration)
+# - com.google.inject — Guice; transitively required by org.artop.aal.gautosar.services
+#                      (Eclipse 2018-12 p2 doesn't ship guice; it lives in
+#                      ORIENTAIS plugins dir alongside Artop)
+$patterns = @('org.artop.*.jar', 'org.eclipse.sphinx.*.jar', 'com.google.inject*.jar')
 $copied = 0
 $bytes = 0
 

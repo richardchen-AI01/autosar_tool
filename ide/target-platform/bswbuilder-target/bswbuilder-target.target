@@ -75,6 +75,23 @@
             <unit id="org.eclipse.emf.ecore.xmi" version="0.0.0"/>
             <unit id="org.eclipse.emf.transaction.feature.group" version="0.0.0"/>
 
+            <!-- v0.2 EMF databinding — needed by Sphinx-driven editors
+                 (Sphinx AbstractFormPage uses Eclipse databinding to wire
+                 widgets to EMF EObjects). 参考 cn.com.isoft.bswbuilder.ui
+                 MANIFEST 也 require databinding (transitively via Sphinx). -->
+            <unit id="org.eclipse.core.databinding" version="0.0.0"/>
+            <unit id="org.eclipse.core.databinding.property" version="0.0.0"/>
+            <unit id="org.eclipse.core.databinding.beans" version="0.0.0"/>
+            <unit id="org.eclipse.jface.databinding" version="0.0.0"/>
+
+            <!-- v0.2 EMF transaction.ui + workspace.ui + validation —
+                 EMF FormEditor + 内联 validation 需要的 UI 套件，参考
+                 iSoft pal/bswbuilder.ui 都 require。 -->
+            <unit id="org.eclipse.emf.transaction.ui" version="0.0.0"/>
+            <unit id="org.eclipse.emf.workspace.ui" version="0.0.0"/>
+            <unit id="org.eclipse.emf.validation" version="0.0.0"/>
+            <unit id="org.eclipse.emf.validation.ui" version="0.0.0"/>
+
             <!-- Sphinx + Artop transitives outside RCP/EMF: xerces, jdom, guava,
                  xtend.lib (Sphinx imports them via Require-Bundle). The Orbit
                  bundles all live in the 2024-09 release repo. -->
@@ -91,6 +108,19 @@
             <unit id="org.apache.commons.logging" version="0.0.0"/>
             <unit id="org.apache.commons.lang3" version="0.0.0"/>
             <unit id="org.apache.commons.io" version="0.0.0"/>
+        </location>
+
+        <!-- CDT (C/C++ Development Tools) — full C/H editor with syntax
+             highlighting, folding, outline, #include navigation, Find
+             References. Eclipse CDT 9.6 (2018-12 era) matches our base
+             platform version. 加完后 .c/.h 双击在 IDE tab 内 CDT 编辑器
+             打开 (替代之前的 plain TextEditor)。
+             参考 V25.10 只装 cdt.core (头文件解析用), 没装 CDT UI;
+             v0.2 我们超越 reference 装完整 CDT 提升 .c/.h 阅读体验。 -->
+        <location includeAllPlatforms="false" includeConfigurePhase="true"
+                  includeMode="planner" includeSource="false" type="InstallableUnit">
+            <repository location="https://download.eclipse.org/tools/cdt/releases/9.6/"/>
+            <unit id="org.eclipse.cdt.feature.group" version="0.0.0"/>
         </location>
 
         <!-- Artop AAL + Eclipse Sphinx — vendored locally from ORIENTAIS_Studio.

@@ -49,6 +49,20 @@
         </listener>
     </extension>
 
+    <!-- Project nature — 标记一个 Eclipse 项目是 BSW workspace。Sphinx 用
+         project nature 决定该不该给项目加载 AUTOSAR metamodel + 建
+         EditingDomain。参考 iSoft 注册 cn.com.isoft.workspace.bswbuildernature
+         (cn.com.isoft.pal.workspace.natures.BSWBuilderNature) 同款路径，
+         我们 ID 改成 cn.com.myorg.bswbuilder.common.bswBuilderNature 不撞名。 -->
+    <extension
+            id="bswBuilderNature"
+            name="BSW Builder Nature"
+            point="org.eclipse.core.resources.natures">
+        <runtime>
+            <run class="cn.com.myorg.bswbuilder.common.app.BswBuilderNature"/>
+        </runtime>
+    </extension>
+
     <!-- Module registration extension point.
          Mirrors iSoft V25.10's `cn.com.isoft.bswbuilder.extensionpoints.module`
          so per-module bundles (modules.memif, modules.det, modules.nvm, ...)
