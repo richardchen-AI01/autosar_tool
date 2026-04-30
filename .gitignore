@@ -46,6 +46,12 @@ target/
 .settings/
 bin/
 
+# Exception: samples/Demo_*/ are template Eclipse projects — .project/.settings
+# are part of the spec (Demo gets copied into D:\bswbuilderN\workspace).
+!samples/Demo_*/.project
+!samples/Demo_*/.settings/
+!samples/Demo_*/.settings/**
+
 # Vendored Artop + Sphinx (~66MB) — populated by tools/setup-artop.ps1
 # from a local ORIENTAIS_Studio install. Never commit; license + size.
 **/local-plugins/

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>Demo_S32K148_V2510_BSW_ConfigProject</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+	</buildSpec>
+	<natures>
+		<nature>org.artop.aal.workspace.autosarnature</nature>
+		<nature>cn.com.myorg.bswbuilder.common.bswBuilderNature</nature>
+	</natures>
+</projectDescription>
