@@ -2,12 +2,17 @@
 <?eclipse version="3.4"?>
 <!--
     Extension point definitions for BSW Builder.
-    Schemas are added in E3-B-2 (5 .exsd files: module / mcu / modulekind /
-    container / FunctionBlock). This bundle contains no Java code — only
-    .exsd schema declarations + the plugin.xml that registers them with
-    Eclipse Platform's IExtensionRegistry.
 
-    Reference: cn.com.isoft.bswbuilder.extensionpoints (mirrors structure 1:1).
+    Reference: cn.com.isoft.bswbuilder.extensionpoints — mirrors 1:1 except
+    can.exsd (Beck-CAN specific, deliberate divergence).
+
+    Java basedOn references point to cn.com.myorg.mal.* interfaces (added
+    in E3-B-3). vendor identifier basedOn references cn.com.myorg.pal.vendor
+    (deferred — currently not enforced; falls back to plain string).
 -->
 <plugin>
+   <extension-point id="module"      name="Vendor Specific Basic Software Module" schema="schema/module.exsd"/>
+   <extension-point id="mcu"         name="MCU"                                   schema="schema/mcu.exsd"/>
+   <extension-point id="modulekind"  name="Module Kind"                           schema="schema/modulekind.exsd"/>
+   <extension-point id="container"   name="container"                             schema="schema/container.exsd"/>
 </plugin>

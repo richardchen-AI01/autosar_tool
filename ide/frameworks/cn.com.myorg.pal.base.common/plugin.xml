@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<!--
+    pal.base.common extension points.
+    Reference: cn.com.isoft.pal.base.common (mirrors 1:1).
+    FunctionBlock — startup-time hooks consumed by SystemInitialize.initialize()
+    via Platform.getExtensionRegistry().getConfigurationElementsFor(...).
+-->
+<plugin>
+   <extension-point id="FunctionBlock" name="FunctionBlock" schema="schema/FunctionBlock.exsd"/>
+</plugin>

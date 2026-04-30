@@ -21,6 +21,42 @@
         for redistribution. See NOTICE.md.
     </license>
 
+    <!-- Framework layer (E3-B mal/pal IoC) — must precede business plugins. -->
+    <plugin
+            id="cn.com.myorg.mal.model"
+            download-size="0"
+            install-size="0"
+            version="0.0.0"
+            unpack="false"/>
+
+    <plugin
+            id="cn.com.myorg.mal"
+            download-size="0"
+            install-size="0"
+            version="0.0.0"
+            unpack="false"/>
+
+    <plugin
+            id="cn.com.myorg.pal.base.common"
+            download-size="0"
+            install-size="0"
+            version="0.0.0"
+            unpack="false"/>
+
+    <plugin
+            id="cn.com.myorg.pal"
+            download-size="0"
+            install-size="0"
+            version="0.0.0"
+            unpack="false"/>
+
+    <plugin
+            id="cn.com.myorg.bswbuilder.extensionpoints"
+            download-size="0"
+            install-size="0"
+            version="0.0.0"
+            unpack="false"/>
+
     <plugin
             id="cn.com.myorg.bswbuilder.common"
             download-size="0"
