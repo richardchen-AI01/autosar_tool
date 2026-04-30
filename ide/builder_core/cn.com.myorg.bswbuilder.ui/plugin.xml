@@ -85,6 +85,60 @@
          /BSW_Builder/ (即 BSW 模块配置文件，不是 bswmds/ 下的描述文件)。
          5 项扁平结构跟参考 V25.10 一致 (用户 2026-04-29 验证):
             Synchronize Module / Validate / Generate / Update Bswmd / Delete -->
+    <!-- 顶层菜单 "BSW Configurator" — 直接放 Show AUTOSAR Explorer / Project Explorer
+         入口, 不用钻 Window→Show View→Other。配 importWizards 类占位 category
+         (跟参考 V25.10 cn.com.isoft.importWizards 同款分类容器). -->
+    <extension point="org.eclipse.ui.menus">
+        <menuContribution
+                locationURI="menu:org.eclipse.ui.main.menu?after=window">
+            <menu
+                    id="cn.com.myorg.bswbuilder.ui.menu.bsw"
+                    label="BSW Configurator">
+                <command
+                        commandId="org.eclipse.ui.views.showView"
+                        label="AUTOSAR Explorer"
+                        style="push">
+                    <parameter
+                            name="org.eclipse.ui.views.showView.viewId"
+                            value="cn.com.myorg.bswbuilder.ui.bswExplorer"/>
+                </command>
+                <command
+                        commandId="org.eclipse.ui.views.showView"
+                        label="Project Explorer"
+                        style="push">
+                    <parameter
+                            name="org.eclipse.ui.views.showView.viewId"
+                            value="org.eclipse.ui.navigator.ProjectExplorer"/>
+                </command>
+                <separator name="autosar.views"/>
+                <command
+                        commandId="org.eclipse.ui.views.showView"
+                        label="Autosar Validation"
+                        style="push">
+                    <parameter
+                            name="org.eclipse.ui.views.showView.viewId"
+                            value="cn.com.myorg.bswbuilder.ui.views.Validation"/>
+                </command>
+                <command
+                        commandId="org.eclipse.ui.views.showView"
+                        label="Detail"
+                        style="push">
+                    <parameter
+                            name="org.eclipse.ui.views.showView.viewId"
+                            value="cn.com.myorg.bswbuilder.ui.views.Detail"/>
+                </command>
+            </menu>
+        </menuContribution>
+    </extension>
+
+    <!-- importWizards: "BSW Configurator" category 占位 (空 category 跟参考
+         cn.com.isoft.importWizards 同款做法; 后续可加 BSW Project import wizard). -->
+    <extension point="org.eclipse.ui.importWizards">
+        <category
+                id="cn.com.myorg.bswbuilder.ui.importCategory"
+                name="BSW Configurator"/>
+    </extension>
+
     <extension
             point="org.eclipse.ui.menus">
         <menuContribution
