@@ -17,12 +17,10 @@ import org.eclipse.ui.navigator.ICommonLabelProvider;
  * AUTOSAR Explorer label provider — file-system aware.
  *
  * <p>Mirrors Project Explorer's default rendering for most resources, with
- * domain-specific polish for module-level .arxml files:
- * <ul>
- *   <li>{@code BSW_Builder/<MCU>/<Module>.arxml} → label "<Module>" + module icon</li>
- *   <li>{@code bswmds/<Module>_Bswmd.arxml}      → label "<Module>_Bswmd" + module icon</li>
- * </ul>
- * Other resources fall through to the standard Eclipse shared images.
+ * domain-specific polish only for module-level .arxml under
+ * {@code BSW_Builder/<MCU>/}: stripped suffix + module icon. Files under
+ * {@code bswmds/} keep their full filename ({@code Det_Bswmd.arxml}) since
+ * they are description files, not user-edited modules.
  */
 public class BswExplorerLabelProvider extends LabelProvider implements ICommonLabelProvider {
 
@@ -67,15 +65,15 @@ public class BswExplorerLabelProvider extends LabelProvider implements ICommonLa
     }
 
     /**
-     * True iff this is a module-level .arxml under BSW_Builder/&lt;MCU&gt;/
-     * or under bswmds/. Other .arxml (deep nested EMF resources, ServiceComponents/
-     * etc.) keep their full filename.
+     * True iff this is a module-level .arxml under BSW_Builder/&lt;MCU&gt;/.
+     * bswmds/ description files keep .arxml suffix; ServiceComponents/ etc.
+     * also keep full name.
      */
     private static boolean isModuleArxml(IFile file) {
         if (!"arxml".equals(file.getFileExtension())) return false;
         IPath path = file.getProjectRelativePath();
-        if (path.segmentCount() < 2) return false;
-        String first = path.segment(0);
-        return "BSW_Builder".equals(first) || "bswmds".equals(first);
+        // Need at least BSW_Builder/<MCU>/<Module>.arxml = 3 segments
+        if (path.segmentCount() < 3) return false;
+        return "BSW_Builder".equals(path.segment(0));
     }
 }

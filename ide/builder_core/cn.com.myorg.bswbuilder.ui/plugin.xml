@@ -208,43 +208,53 @@
                 restorable="true"/>
     </extension>
 
-    <!-- navigatorContent — file-system 树 (跟 Project Explorer 一致全部显示)。
-         2026-05-01 user pivot: 之前驱动 mal model (BswBuilderModel/EcuConfig/
-         ModuleKind/Module) 只显示已注册插件, 用户报"工程缺东西"。改为
-         IResource walk + LabelProvider 给 BSW_Builder/ 和 bswmds/ 下的
-         .arxml 去后缀+加图标 (model 视角的"polish")。 -->
+    <!-- navigatorContent — label/icon overlay 而已 (跟 Project Explorer 一致全显示)。
+         2026-05-01: children 全交给 Eclipse 标准 resourceContent 走文件系统;
+         我们这条只给 BSW_Builder/<MCU>/<Module>.arxml 去后缀 + 模块图标
+         (priority="higher" 压过 resourceContent 的标签)。 -->
     <extension point="org.eclipse.ui.navigator.navigatorContent">
         <navigatorContent
                 contentProvider="cn.com.myorg.bswbuilder.ui.navigator.BswExplorerContentProvider"
                 labelProvider="cn.com.myorg.bswbuilder.ui.navigator.BswExplorerLabelProvider"
                 id="cn.com.myorg.bswbuilder.ui.bswNavigatorContent"
                 name="BSW Builder"
-                priority="high"
+                priority="higher"
                 activeByDefault="true">
             <triggerPoints>
                 <or>
-                    <instanceof value="org.eclipse.core.resources.IWorkspaceRoot"/>
-                    <instanceof value="org.eclipse.core.resources.IProject"/>
+                    <instanceof value="org.eclipse.core.resources.IFile"/>
                     <instanceof value="org.eclipse.core.resources.IFolder"/>
+                    <instanceof value="org.eclipse.core.resources.IProject"/>
                 </or>
             </triggerPoints>
-            <possibleChildren>
-                <or>
-                    <instanceof value="org.eclipse.core.resources.IProject"/>
-                    <instanceof value="org.eclipse.core.resources.IFolder"/>
-                    <instanceof value="org.eclipse.core.resources.IFile"/>
-                </or>
-            </possibleChildren>
         </navigatorContent>
     </extension>
 
     <extension point="org.eclipse.ui.navigator.viewer">
         <viewer viewerId="cn.com.myorg.bswbuilder.ui.bswExplorer"/>
+        <!-- viewerContentBinding: 把 Eclipse 标准 resourceContent 当 root
+             (跟参考 V25.10 cn.com.isoft.pal.views.autosarexplorer 一样)。
+             这是双击 .arxml 能打开 editor 的关键 — Eclipse 的 default
+             open action 走的是 resourceContent 这条路径。我们的
+             bswNavigatorContent 走 priority="high" 接管 label/icon。 -->
         <viewerContentBinding viewerId="cn.com.myorg.bswbuilder.ui.bswExplorer">
             <includes>
+                <contentExtension isRoot="true" pattern="org.eclipse.ui.navigator.resourceContent"/>
                 <contentExtension pattern="cn.com.myorg.bswbuilder.ui.bswNavigatorContent"/>
+                <contentExtension pattern="org.eclipse.ui.navigator.resources.filters.*"/>
+                <contentExtension pattern="org.eclipse.ui.navigator.resources.linkHelper"/>
             </includes>
         </viewerContentBinding>
+        <!-- viewerActionBinding: 绑标准 resource actions (Open / Open With /
+             Refresh / Edit / Refactor)。没这个 → 双击没反应 + 右键菜单
+             只有我们自己的 5 项。参考 V25.10 同款绑定。 -->
+        <viewerActionBinding viewerId="cn.com.myorg.bswbuilder.ui.bswExplorer">
+            <includes>
+                <actionExtension pattern="org.eclipse.ui.navigator.resources.*"/>
+                <actionExtension pattern="org.eclipse.ui.navigator.resources.actions.EditActions"/>
+                <actionExtension pattern="org.eclipse.ui.navigator.resources.actions.RefactorActions"/>
+            </includes>
+        </viewerActionBinding>
     </extension>
 
 </plugin>
