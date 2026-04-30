@@ -131,12 +131,26 @@
         </menuContribution>
     </extension>
 
-    <!-- importWizards: "BSW Configurator" category 占位 (空 category 跟参考
-         cn.com.isoft.importWizards 同款做法; 后续可加 BSW Project import wizard). -->
+    <!-- importWizards: "BSW Configurator" category + 1 个具体 wizard。
+         空 category Eclipse 会从 File→Import 对话框过滤掉, 必须至少 1 个
+         wizard 才显示。BswProjectImportWizard 复用 Eclipse 标准的
+         WizardProjectsImportPage (= "Existing Projects into Workspace"
+         的页面), Finish 时同步切到 BSW Configurator perspective —
+         AUTOSAR Explorer 会跟着出现。 -->
     <extension point="org.eclipse.ui.importWizards">
         <category
                 id="cn.com.myorg.bswbuilder.ui.importCategory"
                 name="BSW Configurator"/>
+        <wizard
+                category="cn.com.myorg.bswbuilder.ui.importCategory"
+                class="cn.com.myorg.bswbuilder.ui.wizards.BswProjectImportWizard"
+                id="cn.com.myorg.bswbuilder.ui.importWizard.bswProject"
+                name="Existing BSW Project">
+            <description>
+                Import an existing BSW project from a workspace directory and
+                switch to the BSW Configurator perspective.
+            </description>
+        </wizard>
     </extension>
 
     <extension
