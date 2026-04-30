@@ -6,6 +6,7 @@ Bundle-Version: 0.1.0.qualifier
 Bundle-Vendor: autosar_tool
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy
+Bundle-Activator: cn.com.myorg.pal.Activator
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.core.resources,
  org.eclipse.ui,
@@ -25,4 +26,7 @@ Require-Bundle: org.eclipse.core.runtime,
  cn.com.myorg.mal;visibility:=reexport,
  cn.com.myorg.mal.model;visibility:=reexport,
  cn.com.myorg.pal.base.common;visibility:=reexport
+Export-Package: cn.com.myorg.pal,
+ cn.com.myorg.pal.model,
+ cn.com.myorg.pal.startup
 Automatic-Module-Name: cn.com.myorg.pal

@@ -16,7 +16,9 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.equinox.event,
  org.eclipse.emf.transaction,
  org.eclipse.sphinx.emf,
- org.eclipse.sphinx.platform
+ org.eclipse.sphinx.platform,
+ org.eclipse.swt,
+ cn.com.myorg.pal.base.common
 Export-Package: cn.com.myorg.bswbuilder.common,
  cn.com.myorg.bswbuilder.common.app
 Automatic-Module-Name: cn.com.myorg.bswbuilder.common

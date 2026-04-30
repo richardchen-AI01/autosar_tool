@@ -63,23 +63,14 @@
         </runtime>
     </extension>
 
-    <!-- Module registration extension point.
-         Mirrors iSoft V25.10's `cn.com.isoft.bswbuilder.extensionpoints.module`
-         so per-module bundles (modules.memif, modules.det, modules.nvm, ...)
-         each declare:
-           shortName        — module ECUC short name, e.g. "MemIf"
-           moduledefinition — bundle-relative path to the ECUC schema arxml
-           bswmd            — bundle-relative path to a BSWMD skeleton (optional)
-           kind             — coarse category, e.g. "MEM" / "COM" / "MCAL"
-           vendor / version — for display + traceability
-           imageIdentifier  — icon key for the tree view
-           editor / generator / validator / moduleDescriptor / updateBswmd
-                            — fully-qualified class names (optional until the
-                              corresponding Java side lands; left as open
-                              attributes for forward compatibility) -->
-    <extension-point
-            id="cn.com.myorg.bswbuilder.extensionpoints.module"
-            name="BSW Builder Module"
-            schema="schema/module.exsd"/>
+    <!-- BswBuilderFunctionBlock — 把"BSW Builder" 注册成 pal IFunctionBlock。
+         pal.ModelManager.getBswBuilderByProject 用其 id ("cn.com.myorg.bsw.funcId")
+         门控: project 必须有 BSW_Builder/ 目录 + 至少一个 IFunctionBlock 注册
+         了这个 id, 才算 BSW project 才创建 BswBuilderModel。
+         Reference: cn.com.isoft.bswbuilder.common 同款 plugin.xml 注册。 -->
+    <extension point="cn.com.myorg.pal.base.common.FunctionBlock">
+        <FunctionBlock
+                FunctionBlock="cn.com.myorg.bswbuilder.common.app.BswBuilderFunctionBlock"/>
+    </extension>
 
 </plugin>
