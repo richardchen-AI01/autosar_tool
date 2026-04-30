@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<!--
+    Extension point definitions for BSW Builder.
+    Schemas are added in E3-B-2 (5 .exsd files: module / mcu / modulekind /
+    container / FunctionBlock). This bundle contains no Java code — only
+    .exsd schema declarations + the plugin.xml that registers them with
+    Eclipse Platform's IExtensionRegistry.
+
+    Reference: cn.com.isoft.bswbuilder.extensionpoints (mirrors structure 1:1).
+-->
+<plugin>
+</plugin>

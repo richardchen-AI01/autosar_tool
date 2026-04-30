@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: BSW Builder Extension Points
+Bundle-SymbolicName: cn.com.myorg.bswbuilder.extensionpoints;singleton:=true
+Bundle-Version: 0.1.0.qualifier
+Bundle-Vendor: autosar_tool
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.eclipse.core.runtime
+Automatic-Module-Name: cn.com.myorg.bswbuilder.extensionpoints

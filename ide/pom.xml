@@ -40,9 +40,19 @@
 
     <modules>
         <module>target-platform/bswbuilder-target</module>
+
+        <!-- Framework layer (E3-B mal/pal IoC, mirrors iSoft cn.com.isoft.{mal,pal,pal.base.common}) -->
+        <module>frameworks/cn.com.myorg.mal.model</module>
+        <module>frameworks/cn.com.myorg.mal</module>
+        <module>frameworks/cn.com.myorg.pal.base.common</module>
+        <module>frameworks/cn.com.myorg.pal</module>
+
+        <!-- BSW Builder business layer (mirrors iSoft cn.com.isoft.bswbuilder.*) -->
+        <module>builder_core/cn.com.myorg.bswbuilder.extensionpoints</module>
         <module>builder_core/cn.com.myorg.bswbuilder.common</module>
         <module>builder_core/cn.com.myorg.bswbuilder.ui</module>
         <module>modules/cn.com.myorg.bswbuilder.modules.memif</module>
+
         <module>feature/cn.com.myorg.bswbuilder.feature</module>
         <module>product/cn.com.myorg.bswbuilder.product</module>
     </modules>
