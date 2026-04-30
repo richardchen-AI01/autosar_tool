@@ -39,12 +39,18 @@ public class MemIfModuleManagerEditor extends FormEditor {
             "cn.com.myorg.bswbuilder.ui.editors.MemIfModuleManagerEditor";
 
     private File arxmlFile;
+    private org.eclipse.core.resources.IFile arxmlIFile;  // null if not in workspace
     private MemIfData loadedData;
     private MemIfGeneralFormPage generalPage;
     private boolean dirty;
 
     @Override
     public void init(IEditorSite site, IEditorInput input) throws PartInitException {
+        // Prefer IFile (workspace path) for v0.2 EMF Reader; fall back to
+        // java.io.File only when input is IPathEditorInput (non-workspace).
+        if (input instanceof IFileEditorInput) {
+            this.arxmlIFile = ((IFileEditorInput) input).getFile();
+        }
         File f = resolveFile(input);
         if (f == null) {
             throw new PartInitException(
@@ -56,7 +62,11 @@ public class MemIfModuleManagerEditor extends FormEditor {
         this.arxmlFile = f;
 
         try {
-            this.loadedData = MemIfArxmlReader.read(f.getAbsolutePath());
+            // E2: workspace IFile → Sphinx EMF path; fallback to legacy
+            // path-based read if non-workspace input.
+            this.loadedData = (arxmlIFile != null)
+                    ? MemIfArxmlReader.read(arxmlIFile)
+                    : MemIfArxmlReader.read(f.getAbsolutePath());
         } catch (Throwable t) {
             throw new PartInitException("Failed to load ARXML: " + t.getMessage(), t);
         }
@@ -113,7 +123,9 @@ public class MemIfModuleManagerEditor extends FormEditor {
             int wrote = generalPage.commit();
             if (wrote >= 0) {
                 // Reload from disk so the form reflects what's actually saved
-                loadedData = MemIfArxmlReader.read(arxmlFile.getAbsolutePath());
+                loadedData = (arxmlIFile != null)
+                        ? MemIfArxmlReader.read(arxmlIFile)
+                        : MemIfArxmlReader.read(arxmlFile.getAbsolutePath());
                 generalPage.reload(loadedData);
                 setDirty(false);
             }

@@ -1,5 +1,9 @@
 package cn.com.myorg.bswbuilder.modules.memif.data;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
@@ -47,12 +51,84 @@ public final class MemIfArxmlReader {
     }
 
     /**
+     * Workspace-aware overload — preferred path. Routes through Sphinx
+     * {@link MemIfModelAccess#loadModelRoot}, getting a properly initialized
+     * EditingDomain (no manual ResourceSet creation, no manual factory /
+     * package registration).
+     *
+     * <p>v0.2 E2: this is the new path; older {@link #read(String)} is kept
+     * as a transitional fallback for callers still passing absolute paths.
+     */
+    public static MemIfData read(IFile iFile) {
+        if (iFile == null) {
+            return null;
+        }
+        String absPath = iFile.getLocation() != null
+                ? iFile.getLocation().toOSString() : null;
+        EObject modelRoot = null;
+        try {
+            modelRoot = MemIfModelAccess.loadModelRoot(iFile);
+        } catch (Throwable t) {
+            // Sphinx 路径异常 → 不要冒泡，让 fallback 处理。打印诊断
+            // 信息让运行时仍能看到原因 (Win .metadata/.log)。
+            System.err.println("[MemIfArxmlReader] Sphinx loadModelRoot threw "
+                    + t.getClass().getSimpleName() + ": " + t.getMessage()
+                    + " — falling back to legacy reader for " + absPath);
+        }
+        if (modelRoot == null) {
+            // Sphinx didn't claim this resource (project nature missing,
+            // metamodel not matched, or load failed) → fall back to the
+            // legacy file-system path **directly**. Do NOT recurse to
+            // read(String path), because that would call back to read(IFile)
+            // for any path inside the workspace and stack-overflow.
+            return absPath != null ? readLegacy(absPath) : null;
+        }
+        Resource resource = modelRoot.eResource();
+        return new MemIfData(
+                absPath,
+                findParam(resource, "MemIfDevErrorDetect"),
+                findParam(resource, "MemIfNumberOfDevices"),
+                findParam(resource, "MemIfVersionInfoApi"),
+                findParam(resource, "MemIfModuleVersion"));
+    }
+
+    /**
+     * Path-based overload. Tries to map the path back to an
+     * {@link IFile} via the workspace root and route through
+     * {@link #read(IFile)}; if the path is not in the workspace, falls back
+     * to the legacy manual ResourceSet pipeline (kept around for headless
+     * smoke tests and external callers).
+     *
      * @param path absolute filesystem path to the ARXML file
      * @return populated {@link MemIfData}; fields not present in the file
      *         come back as {@code null}
-     * @throws RuntimeException if the file cannot be loaded as a Resource
      */
     public static MemIfData read(String path) {
+        // Try to map path → workspace IFile so we can route through Sphinx.
+        // 如果 path 在 workspace 内，调 read(IFile)；workspace 外或 Sphinx
+        // 不可用时直接 readLegacy。
+        // 注意: read(IFile) 自己会 fallback 到 readLegacy，不会回调 read(String)，
+        // 避免栈溢出。
+        try {
+            IWorkspaceRoot wsRoot = ResourcesPlugin.getWorkspace().getRoot();
+            IFile iFile = wsRoot.getFileForLocation(Path.fromOSString(path));
+            if (iFile != null && iFile.exists()) {
+                return read(iFile);
+            }
+        } catch (Throwable t) {
+            // ResourcesPlugin 可能在 OSGi 没起来时抛 (e.g. unit test 环境)
+            // → 直接走 legacy
+        }
+        return readLegacy(path);
+    }
+
+    /**
+     * Legacy v0.1 manual-ResourceSet pipeline. Kept for fallback when
+     * Sphinx can't claim the resource (project not in workspace, etc).
+     * Will be deleted entirely once the workspace-import flow is the only
+     * supported entry point (v0.2 late or v0.3).
+     */
+    private static MemIfData readLegacy(String path) {
         // JDK 17+ pitfall: Sphinx 0.11.2 was written for Java 8 and assumes
         // SAXParserFactory.newInstance() returns Apache Xerces. On modern JDKs
         // it returns the JDK-internal Xerces, which then ClassCast's on
