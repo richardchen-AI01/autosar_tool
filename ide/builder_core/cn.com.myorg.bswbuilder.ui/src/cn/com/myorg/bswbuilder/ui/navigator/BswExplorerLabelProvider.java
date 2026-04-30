@@ -8,10 +8,10 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.navigator.ICommonContentExtensionSite;
 import org.eclipse.ui.navigator.ICommonLabelProvider;
 
-import cn.com.myorg.bswbuilder.ui.navigator.model.BswBuilderModel;
-import cn.com.myorg.bswbuilder.ui.navigator.model.EcuConfigurationModel;
-import cn.com.myorg.bswbuilder.ui.navigator.model.ModuleKindModel;
-import cn.com.myorg.bswbuilder.ui.navigator.model.ModuleModel;
+import cn.com.myorg.mal.model.BswBuilderModel;
+import cn.com.myorg.mal.model.EcuConfigurationModel;
+import cn.com.myorg.mal.model.ModuleKindModel;
+import cn.com.myorg.mal.model.ModuleModel;
 
 /**
  * Label provider for the AUTOSAR Explorer view's mal model nodes.
@@ -30,7 +30,7 @@ public class BswExplorerLabelProvider extends LabelProvider implements ICommonLa
             return ((BswBuilderModel) element).getName();
         }
         if (element instanceof EcuConfigurationModel) {
-            return ((EcuConfigurationModel) element).getMcuName();
+            return ((EcuConfigurationModel) element).getFileName();
         }
         if (element instanceof ModuleKindModel) {
             return ((ModuleKindModel) element).getKindName();

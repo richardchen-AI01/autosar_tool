@@ -45,7 +45,8 @@ Require-Bundle: org.eclipse.core.runtime,
  org.artop.aal.gautosar.edit,
  org.artop.aal.workspace,
  cn.com.myorg.bswbuilder.common,
- cn.com.myorg.bswbuilder.modules.memif
+ cn.com.myorg.bswbuilder.modules.memif,
+ cn.com.myorg.mal.model
 Export-Package: cn.com.myorg.bswbuilder.ui,
  cn.com.myorg.bswbuilder.ui.editors,
  cn.com.myorg.bswbuilder.ui.editors.pages,

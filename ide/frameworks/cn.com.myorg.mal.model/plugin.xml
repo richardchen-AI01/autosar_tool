@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<!--
+    mal.model EMF generated package registration.
+
+    Reference: cn.com.isoft.mal.model plugin.xml — same extension point + same shape.
+    EFactory creation goes through ModelFactory.eINSTANCE; nsURI matches model.ecore.
+-->
+<plugin>
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http:///cn/com/myorg/mal/model.ecore"
+            class="cn.com.myorg.mal.model.ModelPackage"
+            genModel="model/mal-model.ecore"/>
+   </extension>
+</plugin>

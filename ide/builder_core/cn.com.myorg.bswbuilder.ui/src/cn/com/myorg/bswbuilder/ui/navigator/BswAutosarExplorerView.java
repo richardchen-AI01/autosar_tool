@@ -9,7 +9,7 @@ import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.navigator.CommonNavigator;
 
-import cn.com.myorg.bswbuilder.ui.navigator.model.ModuleModel;
+import cn.com.myorg.mal.model.ModuleModel;
 
 /**
  * AUTOSAR Explorer view — custom {@link CommonNavigator} subclass that
@@ -53,13 +53,24 @@ public class BswAutosarExplorerView extends CommonNavigator {
         }
     }
 
+    /**
+     * EMF mal.model.ModuleModel doesn't have a getFile() EOperation (per
+     * reference model.ecore). Compose IFile from projectName + pathValue,
+     * mirroring EcuConfigurationModelImpl.getFile() pattern.
+     */
+    private static org.eclipse.core.resources.IFile resolveIFile(ModuleModel m) {
+        return org.eclipse.core.resources.ResourcesPlugin.getWorkspace().getRoot()
+                .getProject(m.getProjectName())
+                .getFile(new org.eclipse.core.runtime.Path(m.getPathValue()));
+    }
+
     private static IFileEditorInput toEditorInput(ModuleModel m) {
-        return new org.eclipse.ui.part.FileEditorInput(m.getFile());
+        return new org.eclipse.ui.part.FileEditorInput(resolveIFile(m));
     }
 
     /** Look up editor by .arxml filename via workbench editor registry. */
     private static String pickEditorId(ModuleModel m) {
         return PlatformUI.getWorkbench().getEditorRegistry()
-                .getDefaultEditor(m.getFile().getName()).getId();
+                .getDefaultEditor(resolveIFile(m).getName()).getId();
     }
 }
