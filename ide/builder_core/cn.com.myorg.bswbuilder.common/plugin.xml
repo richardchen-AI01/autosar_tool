@@ -2,34 +2,51 @@
 <?eclipse version="3.4"?>
 <plugin>
 
-    <!-- The RCP Application: Eclipse runtime entry point. -->
-    <extension
-            id="application"
-            point="org.eclipse.core.runtime.applications">
-        <application>
-            <run class="cn.com.myorg.bswbuilder.common.app.Application"/>
-        </application>
-    </extension>
-
-    <!-- The RCP Product: ties application + branding into an IProduct. -->
+    <!-- IDE pivot (2026-04-30): 不再自己撸 Application / WorkbenchAdvisor /
+         ActionBar / Perspective。改用 Eclipse IDE 自带的
+         org.eclipse.ui.ide.workbench 应用——跟 reference iSoft V25.10
+         同款基础壳 (File/Edit/Search/Project/Window/Help 标准菜单 +
+         Project Explorer + Find/Search/Compare 全套)。 -->
     <extension
             id="product"
             point="org.eclipse.core.runtime.products">
         <product
-                application="cn.com.myorg.bswbuilder.common.application"
+                application="org.eclipse.ui.ide.workbench"
                 name="BSW Configurator (autosar_tool)">
-            <property name="appName"   value="BSW Configurator"/>
+            <property name="appName"      value="BSW Configurator"/>
             <property name="windowImages" value=""/>
+            <property name="preferredPerspectiveId"
+                      value="cn.com.myorg.bswbuilder.common.perspective"/>
         </product>
     </extension>
 
-    <!-- A perspective that lays out the workbench window. -->
+    <!-- Custom perspective: 在 IDE workbench 上叠加我们的 4 区布局。
+         IDE 默认 perspective 仍然可用 (Window → Perspective → Open)。 -->
     <extension
             point="org.eclipse.ui.perspectives">
         <perspective
                 class="cn.com.myorg.bswbuilder.common.app.Perspective"
                 id="cn.com.myorg.bswbuilder.common.perspective"
                 name="BSW Configurator"/>
+    </extension>
+
+    <!-- Sphinx EditingDomain factory listener — 跟参考 iSoft V25.10
+         (cn.com.isoft.pal.listeners.TransactionalEditingDomainFactoryListener)
+         同款注册路径。注册之后 Sphinx 自动给 AUTOSAR metamodel 资源建
+         TransactionalEditingDomain，否则 ModelDescriptor 操作走到
+         TransactionUtil.runExclusive(null, …) 抛 NPE (Generate 后弹错框)。
+
+         applicableFor 的 metamodelDescriptorIdPattern 跟 iSoft 一致，
+         匹配 org.artop.aal.autosar40 / org.artop.aal.autosar448 等。 -->
+    <extension
+            point="org.eclipse.sphinx.emf.editingDomainFactoryListeners">
+        <listener
+                class="cn.com.myorg.bswbuilder.common.app.BswEditingDomainFactoryListener"
+                id="cn.com.myorg.bswbuilder.common.editingDomainFactoryListener">
+            <applicableFor
+                    metaModelDescriptorIdPattern="org.artop.aal.autosar\d\d">
+            </applicableFor>
+        </listener>
     </extension>
 
     <!-- Module registration extension point.

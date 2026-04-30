@@ -9,9 +9,12 @@ Bundle-ActivationPolicy: lazy
 Bundle-Activator: cn.com.myorg.bswbuilder.ui.Activator
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.core.resources,
+ org.eclipse.core.filesystem,
  org.eclipse.ui,
+ org.eclipse.ui.ide,
  org.eclipse.ui.forms,
  org.eclipse.ui.console,
+ org.eclipse.ui.navigator,
  org.eclipse.core.commands,
  org.eclipse.core.expressions,
  org.eclipse.jface,
@@ -23,5 +26,6 @@ Export-Package: cn.com.myorg.bswbuilder.ui,
  cn.com.myorg.bswbuilder.ui.editors.pages,
  cn.com.myorg.bswbuilder.ui.handlers,
  cn.com.myorg.bswbuilder.ui.launcher,
+ cn.com.myorg.bswbuilder.ui.navigator,
  cn.com.myorg.bswbuilder.ui.views
 Automatic-Module-Name: cn.com.myorg.bswbuilder.ui

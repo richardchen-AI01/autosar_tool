@@ -3,7 +3,7 @@
 <product name="BSW Configurator"
          uid="cn.com.myorg.bswbuilder.product"
          id="cn.com.myorg.bswbuilder.common.product"
-         application="cn.com.myorg.bswbuilder.common.application"
+         application="org.eclipse.ui.ide.workbench"
          version="0.1.0.qualifier"
          type="features"
          includeLaunchers="true">
@@ -33,7 +33,11 @@
 
     <features>
         <feature id="cn.com.myorg.bswbuilder.feature"/>
-        <feature id="org.eclipse.rcp"/>
+        <!-- Eclipse IDE platform (was org.eclipse.rcp before the IDE pivot) — gives us
+             the standard IDE shell + Project Explorer + standard menus / toolbar /
+             Find / Search / Compare / workspace lifecycle, which iSoft ORIENTAIS
+             also builds on top of. -->
+        <feature id="org.eclipse.platform"/>
         <feature id="org.eclipse.equinox.executable"/>
     </features>
 

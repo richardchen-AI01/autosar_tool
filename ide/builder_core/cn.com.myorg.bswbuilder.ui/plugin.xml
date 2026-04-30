@@ -2,33 +2,15 @@
 <?eclipse version="3.4"?>
 <plugin>
 
-    <!-- Views — match the reference V25.10 perspective:
-           Autosar Explorer (left, project tree)
-           Property Form (right, ECUC parameter editor — will become an
-                          EditorPart "MemIf Module Manager" in U2)
-           Validation (bottom-left, table)
-         The old "Configuration Editors" flat-label view is removed in U1
-         in favor of Autosar Explorer; clear UI break, no point keeping
-         both. -->
+    <!-- Views — IDE pivot phase 2 (2026-04-30):
+         AutosarExplorer → 删 (用 Eclipse 标准 Project Explorer 替代)
+         PropertyForm    → 删 (legacy ViewPart, FormEditor 接管)
+         Validation/Detail 保留 (BSW Builder 自有视图) -->
     <extension
             point="org.eclipse.ui.views">
         <category
                 id="cn.com.myorg.bswbuilder.ui.viewCategory"
                 name="BSW Builder"/>
-
-        <view
-                category="cn.com.myorg.bswbuilder.ui.viewCategory"
-                class="cn.com.myorg.bswbuilder.ui.views.AutosarExplorerView"
-                id="cn.com.myorg.bswbuilder.ui.views.AutosarExplorer"
-                name="Autosar Explorer"
-                restorable="true"/>
-
-        <view
-                category="cn.com.myorg.bswbuilder.ui.viewCategory"
-                class="cn.com.myorg.bswbuilder.ui.views.PropertyFormView"
-                id="cn.com.myorg.bswbuilder.ui.views.PropertyForm"
-                name="Properties"
-                restorable="true"/>
 
         <view
                 category="cn.com.myorg.bswbuilder.ui.viewCategory"
@@ -45,12 +27,10 @@
                 restorable="true"/>
     </extension>
 
-    <!-- Editors — U2: MemIf Module Manager. Registers on *.arxml so a
-         double-click in Autosar Explorer opens this editor. The editor
-         decides at init() whether the file is a MemIf-shape ARXML; for
-         non-MemIf ARXMLs in v0.1 it just shows the form populated with
-         whatever MemIfArxmlReader extracted (or none if it's an unrelated
-         module — v0.2 will dispatch to per-module editors). -->
+    <!-- Editors — MemIf Module Manager. extensions="arxml" + default="true"
+         意味着 Eclipse Project Explorer 双击任何 .arxml 文件都默认走我们
+         这个 FormEditor。Project Explorer 输入是 IFile → IFileEditorInput，
+         MemIfModuleManagerEditor.resolveFile 已经支持。 -->
     <extension
             point="org.eclipse.ui.editors">
         <editor
@@ -60,13 +40,23 @@
                 class="cn.com.myorg.bswbuilder.ui.editors.MemIfModuleManagerEditor"
                 default="true"
                 contributorClass="org.eclipse.ui.part.EditorActionBarContributor"/>
+
+        <!-- C / H 头文件关联到 Eclipse 内置文本编辑器 (org.eclipse.ui.DefaultTextEditor)。
+             Vanilla Eclipse 2018-12 不带 CDT，所以 .c/.h 没有默认 IDE 编辑器，
+             双击只能走系统默认程序 (Notepad)。这个 binding 把 .c/.h 关到
+             文本编辑器，跟参考 V25.10 一致——双击在 IDE tab 里打开。 -->
+        <editor
+                id="cn.com.myorg.bswbuilder.ui.editors.CHeaderTextEditor"
+                name="Text Editor"
+                extensions="c,h"
+                class="org.eclipse.ui.editors.text.TextEditor"
+                default="true"
+                contributorClass="org.eclipse.ui.editors.text.TextEditorActionContributor"
+                icon="$nl$/icons/full/obj16/file_obj.png"/>
     </extension>
 
-    <!-- Commands: Generate / Validate. Still registered so the BSW menu
-         and the right-click context menu can both invoke them. The old
-         toolbar contributions are gone — user feedback #2: actions live
-         on the right-click menu of the module ARXML node, mirroring the
-         reference V25.10. -->
+    <!-- Commands — Validate / Generate / 其它 stub。从 Project Explorer
+         右键菜单触发。 -->
     <extension
             point="org.eclipse.ui.commands">
         <category
@@ -76,32 +66,174 @@
                 categoryId="cn.com.myorg.bswbuilder.commands.category"
                 defaultHandler="cn.com.myorg.bswbuilder.ui.handlers.GenerateMemIfHandler"
                 id="cn.com.myorg.bswbuilder.commands.generateMemIf"
-                name="Generate MemIf"/>
+                name="Generate"/>
         <command
                 categoryId="cn.com.myorg.bswbuilder.commands.category"
                 defaultHandler="cn.com.myorg.bswbuilder.ui.handlers.ValidateMemIfHandler"
                 id="cn.com.myorg.bswbuilder.commands.validateMemIf"
-                name="Validate MemIf"/>
+                name="Validate"/>
+        <command
+                categoryId="cn.com.myorg.bswbuilder.commands.category"
+                defaultHandler="cn.com.myorg.bswbuilder.ui.handlers.SynchronizeModuleStubHandler"
+                id="cn.com.myorg.bswbuilder.commands.synchronizeModule"
+                name="Synchronize Module"/>
+        <command
+                categoryId="cn.com.myorg.bswbuilder.commands.category"
+                defaultHandler="cn.com.myorg.bswbuilder.ui.handlers.UpdateBswmdStubHandler"
+                id="cn.com.myorg.bswbuilder.commands.updateBswmd"
+                name="Update Bswmd"/>
+        <command
+                categoryId="cn.com.myorg.bswbuilder.commands.category"
+                defaultHandler="cn.com.myorg.bswbuilder.ui.handlers.DeleteModuleStubHandler"
+                id="cn.com.myorg.bswbuilder.commands.deleteModule"
+                name="Delete"/>
     </extension>
 
-    <!-- BSW menu (top-bar) entries. Tree-node right-click menu is built
-         programmatically in AutosarExplorerView.fillContextMenu(). -->
+    <!-- 右键菜单 — 挂到 Eclipse Project Explorer 的 popup 上。
+         visibleWhen 限定: 选中的是 IFile + 扩展名 .arxml + 路径含
+         /BSW_Builder/ (即 BSW 模块配置文件，不是 bswmds/ 下的描述文件)。
+         5 项扁平结构跟参考 V25.10 一致 (用户 2026-04-29 验证):
+            Synchronize Module / Validate / Generate / Update Bswmd / Delete -->
     <extension
             point="org.eclipse.ui.menus">
         <menuContribution
-                locationURI="menu:cn.com.myorg.bswbuilder.menu?after=generators">
+                locationURI="popup:org.eclipse.ui.popup.any?after=additions">
             <command
-                    commandId="cn.com.myorg.bswbuilder.commands.generateMemIf"
-                    label="Generate MemIf"
-                    style="push"/>
-        </menuContribution>
-        <menuContribution
-                locationURI="menu:cn.com.myorg.bswbuilder.menu?after=validators">
+                    commandId="cn.com.myorg.bswbuilder.commands.synchronizeModule"
+                    label="Synchronize Module"
+                    style="push">
+                <visibleWhen checkEnabled="false">
+                    <iterate ifEmpty="false">
+                        <adapt type="org.eclipse.core.resources.IFile">
+                            <test
+                                    property="org.eclipse.core.resources.name"
+                                    value="*.arxml"/>
+                            <test
+                                    property="org.eclipse.core.resources.path"
+                                    value="*/BSW_Builder/*"/>
+                        </adapt>
+                    </iterate>
+                </visibleWhen>
+            </command>
             <command
                     commandId="cn.com.myorg.bswbuilder.commands.validateMemIf"
-                    label="Validate MemIf"
-                    style="push"/>
+                    label="Validate"
+                    style="push">
+                <visibleWhen checkEnabled="false">
+                    <iterate ifEmpty="false">
+                        <adapt type="org.eclipse.core.resources.IFile">
+                            <test
+                                    property="org.eclipse.core.resources.name"
+                                    value="*.arxml"/>
+                            <test
+                                    property="org.eclipse.core.resources.path"
+                                    value="*/BSW_Builder/*"/>
+                        </adapt>
+                    </iterate>
+                </visibleWhen>
+            </command>
+            <command
+                    commandId="cn.com.myorg.bswbuilder.commands.generateMemIf"
+                    label="Generate"
+                    style="push">
+                <visibleWhen checkEnabled="false">
+                    <iterate ifEmpty="false">
+                        <adapt type="org.eclipse.core.resources.IFile">
+                            <test
+                                    property="org.eclipse.core.resources.name"
+                                    value="*.arxml"/>
+                            <test
+                                    property="org.eclipse.core.resources.path"
+                                    value="*/BSW_Builder/*"/>
+                        </adapt>
+                    </iterate>
+                </visibleWhen>
+            </command>
+            <command
+                    commandId="cn.com.myorg.bswbuilder.commands.updateBswmd"
+                    label="Update Bswmd"
+                    style="push">
+                <visibleWhen checkEnabled="false">
+                    <iterate ifEmpty="false">
+                        <adapt type="org.eclipse.core.resources.IFile">
+                            <test
+                                    property="org.eclipse.core.resources.name"
+                                    value="*.arxml"/>
+                            <test
+                                    property="org.eclipse.core.resources.path"
+                                    value="*/BSW_Builder/*"/>
+                        </adapt>
+                    </iterate>
+                </visibleWhen>
+            </command>
+            <command
+                    commandId="cn.com.myorg.bswbuilder.commands.deleteModule"
+                    label="Delete"
+                    style="push">
+                <visibleWhen checkEnabled="false">
+                    <iterate ifEmpty="false">
+                        <adapt type="org.eclipse.core.resources.IFile">
+                            <test
+                                    property="org.eclipse.core.resources.name"
+                                    value="*.arxml"/>
+                            <test
+                                    property="org.eclipse.core.resources.path"
+                                    value="*/BSW_Builder/*"/>
+                        </adapt>
+                    </iterate>
+                </visibleWhen>
+            </command>
         </menuContribution>
+    </extension>
+
+    <!-- navigatorContent — 给 Eclipse Project Explorer 注入 KIND 分组 +
+         模块名 label。参考 iSoft V25.10 同款扩展点
+         (cn.com.isoft.bswbuilder.ui.navigatorContent in
+         ui-extracted/plugin.xml)，思路一致：
+           - ContentProvider 拦截 MCU 文件夹 (.../BSW_Builder/<MCU>/)
+             把 .arxml 文件 children 按 kind 分组成虚拟节点
+           - LabelProvider 模块名剥 .arxml 后缀 + 蓝色 element 图标
+         区别: iSoft contentProvider extends Sphinx BasicExplorerContentProvider
+               (走 EMF model)；我们走 IPipelinedTreeContentProvider2 拦截
+               IResource (file-system 路线)，避免 v0.1 引 EMF model 层。 -->
+    <extension
+            point="org.eclipse.ui.navigator.navigatorContent">
+        <navigatorContent
+                contentProvider="cn.com.myorg.bswbuilder.ui.navigator.BswExplorerContentProvider"
+                labelProvider="cn.com.myorg.bswbuilder.ui.navigator.BswExplorerLabelProvider"
+                id="cn.com.myorg.bswbuilder.ui.bswNavigatorContent"
+                name="BSW Builder"
+                priority="high"
+                activeByDefault="true">
+            <triggerPoints>
+                <or>
+                    <and>
+                        <instanceof value="org.eclipse.core.resources.IFolder"/>
+                        <test
+                                property="org.eclipse.core.resources.path"
+                                value="*/BSW_Builder/*"/>
+                    </and>
+                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.KindGroupNode"/>
+                </or>
+            </triggerPoints>
+            <possibleChildren>
+                <or>
+                    <instanceof value="cn.com.myorg.bswbuilder.ui.navigator.KindGroupNode"/>
+                    <instanceof value="org.eclipse.core.resources.IFile"/>
+                </or>
+            </possibleChildren>
+        </navigatorContent>
+    </extension>
+
+    <extension
+            point="org.eclipse.ui.navigator.viewer">
+        <viewerContentBinding
+                viewerId="org.eclipse.ui.navigator.ProjectExplorer">
+            <includes>
+                <contentExtension
+                        pattern="cn.com.myorg.bswbuilder.ui.bswNavigatorContent"/>
+            </includes>
+        </viewerContentBinding>
     </extension>
 
 </plugin>

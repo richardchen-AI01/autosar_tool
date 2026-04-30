@@ -1,16 +1,18 @@
 package cn.com.myorg.bswbuilder.ui.handlers;
 
-import java.util.List;
+import java.io.File;
+import java.util.Arrays;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.swt.widgets.DirectoryDialog;
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.ui.handlers.HandlerUtil;
@@ -20,9 +22,14 @@ import cn.com.myorg.bswbuilder.ui.launcher.BswgenLauncher;
 import cn.com.myorg.bswbuilder.ui.launcher.ConsoleAccess;
 
 /**
- * Toolbar / menu handler: prompts for a workspace dir + an output dir, then
- * runs <code>bswgen -g MemIf -i &lt;workspace&gt; -o &lt;output&gt;</code> as a
- * background job, streaming output to the BSW Builder console.
+ * Generate handler — IDE pivot phase 2 (2026-04-30):
+ * 选中 Project Explorer 里 BSW_Builder/&lt;MCU&gt;/&lt;Module&gt;.arxml 后右键
+ * Generate 触发。从选中的 IFile 推断模块名 + workspace 根 + 输出目录，
+ * 不再弹 DirectoryDialog。
+ *
+ * <p>路径推断: workspace = arxml 文件向上 3 级 (BSW_Builder/&lt;MCU&gt;/X.arxml
+ * → workspace 是 BSW_Builder 的父目录)；output = workspace/config/；
+ * Bswmd 后处理: 把 *_Bswmd.arxml 移到 workspace/bswmds/。
  */
 public class GenerateMemIfHandler extends AbstractHandler {
 
@@ -30,47 +37,108 @@ public class GenerateMemIfHandler extends AbstractHandler {
     public Object execute(ExecutionEvent event) throws ExecutionException {
         Shell shell = HandlerUtil.getActiveShellChecked(event);
 
-        String workspace = pickDir(shell, "Select BSW workspace (the folder containing BSW_Builder/)");
-        if (workspace == null) {
-            return null;
-        }
-        String output = pickDir(shell, "Select output directory for generated .c/.h files");
-        if (output == null) {
+        IFile arxmlFile = pickIFile(event);
+        if (arxmlFile == null) {
+            MessageDialog.openInformation(shell, "Generate",
+                    "请先在 Project Explorer 里右键一个模块 .arxml 文件。");
             return null;
         }
 
-        MessageConsole console = ConsoleAccess.getConsole();
+        File arxml = arxmlFile.getLocation() != null
+                ? arxmlFile.getLocation().toFile() : null;
+        if (arxml == null || !arxml.isFile()) {
+            MessageDialog.openError(shell, "Generate",
+                    "无法定位 ARXML 文件: " + arxmlFile.getFullPath());
+            return null;
+        }
+
+        String fileName = arxml.getName();
+        if (!fileName.toLowerCase().endsWith(".arxml")) return null;
+        final String moduleName = fileName.substring(0, fileName.length() - ".arxml".length());
+
+        // workspace 推断: <ws>/BSW_Builder/<MCU>/<Module>.arxml → <ws>
+        File mcuDir = arxml.getParentFile();
+        File bswBuilder = mcuDir == null ? null : mcuDir.getParentFile();
+        if (bswBuilder == null || !"BSW_Builder".equals(bswBuilder.getName())) {
+            MessageDialog.openError(shell, "Generate " + moduleName,
+                    "无法从路径推断 workspace —— 期望 <workspace>/BSW_Builder/<MCU>/"
+                  + moduleName + ".arxml");
+            return null;
+        }
+        final File workspaceDir = bswBuilder.getParentFile();
+        final File configDir = new File(workspaceDir, "config");
+        final File bswmdsDir = new File(workspaceDir, "bswmds");
+        if (!configDir.isDirectory() && !configDir.mkdirs()) {
+            MessageDialog.openError(shell, "Generate " + moduleName,
+                    "无法创建输出目录: " + configDir.getAbsolutePath());
+            return null;
+        }
+        if (!bswmdsDir.isDirectory() && !bswmdsDir.mkdirs()) {
+            MessageDialog.openError(shell, "Generate " + moduleName,
+                    "无法创建 bswmds 目录: " + bswmdsDir.getAbsolutePath());
+            return null;
+        }
+
+        if (!"MemIf".equals(moduleName)) {
+            MessageDialog.openInformation(shell, "Generate " + moduleName,
+                    "v0.1 仅 MemIf 接通生成器，" + moduleName + " 暂搁置。");
+            return null;
+        }
+
+        final MessageConsole console = ConsoleAccess.getConsole();
         ConsoleAccess.show(console);
 
-        Job job = Job.create("Generate MemIf", (IProgressMonitor monitor) -> {
+        Job job = Job.create("Generate " + moduleName, (IProgressMonitor monitor) -> {
             try {
                 int exit = BswgenLauncher.run(
                         BswgenLauncher.Tool.BSWGEN,
-                        java.util.Arrays.asList("-g", "MemIf", "-i", workspace, "-o", output),
+                        Arrays.asList("-g", moduleName,
+                                      "-i", workspaceDir.getAbsolutePath(),
+                                      "-o", configDir.getAbsolutePath()),
                         console, monitor);
                 if (exit != 0) {
                     return new Status(IStatus.ERROR, Activator.PLUGIN_ID,
                             "bswgen returned exit code " + exit + " — see BSW Builder console.");
                 }
+                // 移 bswmd 到 bswmds/ 子目录
+                File bswmdSrc = new File(configDir, moduleName + "_Bswmd.arxml");
+                if (bswmdSrc.isFile()) {
+                    File bswmdDst = new File(bswmdsDir, bswmdSrc.getName());
+                    try {
+                        java.nio.file.Files.move(bswmdSrc.toPath(), bswmdDst.toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    } catch (java.io.IOException io) {
+                        return new Status(IStatus.WARNING, Activator.PLUGIN_ID,
+                                "Generated " + bswmdSrc.getName() +
+                                " but failed to move into bswmds/: " + io.getMessage());
+                    }
+                }
+                // 让 Project Explorer 看到新文件
+                try {
+                    arxmlFile.getProject().refreshLocal(
+                            org.eclipse.core.resources.IResource.DEPTH_INFINITE, monitor);
+                } catch (Exception ignored) { /* not fatal */ }
                 return Status.OK_STATUS;
             } catch (Exception ex) {
                 return BswgenLauncher.errorStatus(Activator.PLUGIN_ID,
-                        "Generate MemIf failed", ex);
+                        "Generate " + moduleName + " failed", ex);
             }
         });
         job.setUser(true);
         job.schedule();
-
-        // Quick non-blocking confirmation
-        MessageDialog.openInformation(shell, "BSW Builder",
-                "Generating MemIf… see the BSW Builder console for output.");
         return null;
     }
 
-    private static String pickDir(Shell shell, String message) {
-        DirectoryDialog d = new DirectoryDialog(shell);
-        d.setMessage(message);
-        d.setText("BSW Builder");
-        return d.open();
+    /** Pull the first {@link IFile} out of the command's selection. */
+    static IFile pickIFile(ExecutionEvent event) {
+        IStructuredSelection sel =
+                HandlerUtil.getCurrentStructuredSelection(event);
+        if (sel == null) return null;
+        Object first = sel.getFirstElement();
+        if (first instanceof IFile) return (IFile) first;
+        if (first instanceof org.eclipse.core.runtime.IAdaptable) {
+            return ((org.eclipse.core.runtime.IAdaptable) first).getAdapter(IFile.class);
+        }
+        return null;
     }
 }

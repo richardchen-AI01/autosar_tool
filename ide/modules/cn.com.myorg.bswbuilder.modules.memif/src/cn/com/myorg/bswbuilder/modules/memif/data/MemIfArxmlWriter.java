@@ -49,6 +49,13 @@ public final class MemIfArxmlWriter {
      */
     public static boolean writeParam(String path, String paramShortName, String newValue)
             throws IOException {
+        if (isReferenceProjectPath(path)) {
+            throw new IOException(
+                    "拒绝写入参考项目: " + path + "\n"
+                  + "ORIENTAIS_Studio / 参考工程是只读对照基准；要修改请先把工程整体复制到\n"
+                  + "D:\\autosar_tool 下面或其他自有目录再操作。\n"
+                  + "(防止 V25.10 验收基准被破坏 — feedback_never_modify_reference)");
+        }
         Path file = Paths.get(path);
         String original = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
         String updated = replaceParamValue(original, paramShortName, newValue);
@@ -57,6 +64,27 @@ public final class MemIfArxmlWriter {
         }
         Files.write(file, updated.getBytes(StandardCharsets.UTF_8));
         return true;
+    }
+
+    /**
+     * Path-based safety guard: refuses to write under known reference roots
+     * so a Save-from-FormEditor on an inadvertently-opened reference ARXML
+     * doesn't corrupt the V25.10 byte-equal baseline. Triggers on substring
+     * match (case-insensitive) for any common reference location:
+     * <ul>
+     *   <li>{@code ORIENTAIS_Studio} (Win install)</li>
+     *   <li>{@code ORIENTAIS_Configurator} (alt install layout)</li>
+     *   <li>{@code docs/reference/} (in-repo reference fixtures)</li>
+     * </ul>
+     * Working copies must live elsewhere (typically {@code samples/} or a
+     * user-chosen workspace).
+     */
+    static boolean isReferenceProjectPath(String path) {
+        if (path == null) return false;
+        String lower = path.replace('\\', '/').toLowerCase();
+        return lower.contains("/orientais_studio/")
+            || lower.contains("/orientais_configurator")
+            || lower.contains("/docs/reference/");
     }
 
     /**

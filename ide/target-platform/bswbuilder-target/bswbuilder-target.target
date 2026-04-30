@@ -29,8 +29,14 @@
                   includeMode="planner" includeSource="false" type="InstallableUnit">
             <repository location="https://download.eclipse.org/releases/2018-12/"/>
 
-            <!-- Core RCP runtime (workbench + SWT + JFace + commands) -->
-            <unit id="org.eclipse.rcp.feature.group" version="0.0.0"/>
+            <!-- Eclipse IDE platform (full IDE: workbench + IDE Project Explorer +
+                 standard menus/toolbar/Find/Search/Compare + workspace lifecycle).
+                 Used to be org.eclipse.rcp.feature.group (minimal RCP shell)
+                 but that route forced us to撸 Application / Perspective /
+                 ActionBar / AutosarExplorer 等 ~500 行 reinvent-the-wheel 代码。
+                 切到 platform.ide 跟 reference iSoft V25.10 一致 (他们也是
+                 Eclipse IDE + 自有插件)。 -->
+            <unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
             <unit id="org.eclipse.equinox.executable.feature.group" version="0.0.0"/>
 
             <!-- Plug-in development APIs we use directly -->
@@ -45,6 +51,18 @@
 
             <!-- Forms toolkit (will be useful for the ECUC parameter editor later) -->
             <unit id="org.eclipse.ui.forms" version="0.0.0"/>
+
+            <!-- Built-in default text editor (org.eclipse.ui.DefaultTextEditor) —
+                 needed so AutosarExplorerView can openEditor on .c/.h files
+                 in an IDE tab instead of falling back to external Notepad. -->
+            <unit id="org.eclipse.ui.editors" version="0.0.0"/>
+
+            <!-- org.eclipse.ui.ide — provides FileStoreEditorInput
+                 (IURIEditorInput) which the default text editor's
+                 IDocumentProvider knows how to load. Without this bundle the
+                 text editor errors with "Text editor does not have a document
+                 provider" because IPathEditorInput alone isn't enough. -->
+            <unit id="org.eclipse.ui.ide" version="0.0.0"/>
 
             <!-- e4 workbench addons (CommandProcessingAddon and friends) — needed
                  even with an e3-style IApplication so the modern RCP boots cleanly. -->

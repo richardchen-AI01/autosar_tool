@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
@@ -18,7 +19,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.swt.widgets.DirectoryDialog;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
@@ -61,13 +62,22 @@ public class ValidateMemIfHandler extends AbstractHandler {
     public Object execute(ExecutionEvent event) throws ExecutionException {
         Shell shell = HandlerUtil.getActiveShellChecked(event);
 
-        DirectoryDialog d = new DirectoryDialog(shell);
-        d.setMessage("Select BSW workspace to validate");
-        d.setText("BSW Builder");
-        String workspace = d.open();
-        if (workspace == null) {
+        // IDE pivot phase 2: 从右键选中的 IFile 推断 workspace。
+        IFile arxmlFile = GenerateMemIfHandler.pickIFile(event);
+        if (arxmlFile == null || arxmlFile.getLocation() == null) {
+            MessageDialog.openInformation(shell, "Validate",
+                    "请先在 Project Explorer 里右键一个模块 .arxml 文件。");
             return null;
         }
+        java.io.File arxml = arxmlFile.getLocation().toFile();
+        java.io.File mcuDir = arxml.getParentFile();
+        java.io.File bswBuilder = mcuDir == null ? null : mcuDir.getParentFile();
+        if (bswBuilder == null || !"BSW_Builder".equals(bswBuilder.getName())) {
+            MessageDialog.openError(shell, "Validate",
+                    "无法从路径推断 workspace —— 期望 <workspace>/BSW_Builder/<MCU>/<Module>.arxml");
+            return null;
+        }
+        final String workspace = bswBuilder.getParentFile().getAbsolutePath();
 
         MessageConsole console = ConsoleAccess.getConsole();
         ConsoleAccess.show(console);

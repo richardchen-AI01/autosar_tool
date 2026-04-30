@@ -23,27 +23,9 @@
             imageIdentifier="MemIf"/>
    </extension>
 
-   <!-- Phase 1 deliverable: load an ARXML through Artop / EMF and surface
-        MemIfNumberOfDevices to the user. Single command, single toolbar
-        button; lives here (not in the ui bundle) because it's MemIf-specific
-        and depends on Artop classes which only this bundle requires. -->
-   <extension point="org.eclipse.ui.commands">
-      <command
-            id="cn.com.myorg.bswbuilder.modules.memif.commands.loadMemIfArxml"
-            name="Load MemIf ARXML (Artop)"
-            defaultHandler="cn.com.myorg.bswbuilder.modules.memif.handlers.LoadMemIfArxmlHandler"/>
-   </extension>
-
-   <extension point="org.eclipse.ui.menus">
-      <menuContribution
-            locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
-         <toolbar id="cn.com.myorg.bswbuilder.modules.memif.toolbar">
-            <command
-                  commandId="cn.com.myorg.bswbuilder.modules.memif.commands.loadMemIfArxml"
-                  label="Load MemIf ARXML"
-                  style="push"
-                  tooltip="Pick an ARXML file and read MemIfNumberOfDevices via Artop"/>
-         </toolbar>
-      </menuContribution>
-   </extension>
+   <!-- "Load MemIf ARXML" 顶部 toolbar 已删 (用户反馈 #3, 2026-04-29)。
+        Phase 1 早期 smoke-test 用的快捷按钮，U2 起 ARXML 加载走
+        "双击 Autosar Explorer 节点 → MemIfModuleManagerEditor.init()"
+        正式路径，不需要顶栏按钮。LoadMemIfArxmlHandler 类保留代码可用，
+        但不再通过 plugin.xml 注册成 UI 入口。 -->
 </plugin>

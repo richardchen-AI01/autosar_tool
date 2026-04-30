@@ -7,6 +7,7 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
+import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IPathEditorInput;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.forms.editor.FormEditor;
@@ -65,10 +66,18 @@ public class MemIfModuleManagerEditor extends FormEditor {
     }
 
     private static File resolveFile(IEditorInput input) {
-        // v0.1: only IPathEditorInput. Autosar Explorer always opens via
-        // LocalFileEditorInput which is IPathEditorInput. IFileEditorInput
-        // would need org.eclipse.ui.ide bundle — defer to v0.2 if a workspace-
-        // backed flow is added.
+        // 1) IFileEditorInput — Eclipse Project Explorer 双击 IFile 时的标准
+        //    输入类型。IDE pivot phase 2 起这是主路径。
+        if (input instanceof IFileEditorInput) {
+            org.eclipse.core.resources.IFile rf = ((IFileEditorInput) input).getFile();
+            if (rf != null) {
+                org.eclipse.core.runtime.IPath loc = rf.getLocation();
+                if (loc != null) return loc.toFile();
+            }
+            return null;
+        }
+        // 2) IPathEditorInput — file-system path 路线 (LocalFileEditorInput)
+        //    保留用于 phase 1 残留路径 + 未来非 workspace 文件直开场景。
         if (input instanceof IPathEditorInput) {
             return ((IPathEditorInput) input).getPath().toFile();
         }
