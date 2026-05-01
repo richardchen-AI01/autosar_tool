@@ -53,47 +53,71 @@ public final class BswSchemaLoader {
      * @return resolved GModuleDef, or null if no Def.arxml is found.
      */
     public static GModuleDef resolveDef(GModuleConfiguration module) {
-        if (module == null) return null;
+        if (module == null) {
+            System.err.println("[BswSchemaLoader] module == null");
+            return null;
+        }
+        String moduleName = module.gGetShortName();
+        System.err.println("[BswSchemaLoader] resolveDef(" + moduleName + ") starting");
 
         GModuleDef def = module.gGetDefinition();
         if (def != null && !((EObject) def).eIsProxy()) {
+            System.err.println("[BswSchemaLoader] " + moduleName
+                    + ": gGetDefinition() already resolved (cross-ref auto-resolve worked)");
             return def;
         }
+        if (def == null) {
+            System.err.println("[BswSchemaLoader] " + moduleName
+                    + ": gGetDefinition() returned null — instance .arxml may have no DEFINITION-REF");
+            return null;
+        }
+        System.err.println("[BswSchemaLoader] " + moduleName
+                + ": gGetDefinition() returned proxy, attempting to load Def.arxml from bundle");
 
-        // Cross-ref isn't resolved (Def.arxml not yet loaded in ResourceSet).
-        // Find the module bundle, locate <Module>Def.arxml, load it.
-        String moduleName = module.gGetShortName();
         Resource instanceRes = ((EObject) module).eResource();
-        if (instanceRes == null) return null;
+        if (instanceRes == null) {
+            System.err.println("[BswSchemaLoader] " + moduleName
+                    + ": instance EObject not attached to a Resource — cannot get ResourceSet");
+            return null;
+        }
         ResourceSet rs = instanceRes.getResourceSet();
-        if (rs == null) return null;
+        if (rs == null) {
+            System.err.println("[BswSchemaLoader] " + moduleName
+                    + ": Resource not attached to a ResourceSet");
+            return null;
+        }
 
         URI defUri = locateDefArxml(moduleName);
         if (defUri == null) {
-            System.err.println("[BswSchemaLoader] No Def.arxml found in any module bundle for '"
-                    + moduleName + "'. Form pages will fall back to read-only mode.");
+            System.err.println("[BswSchemaLoader] " + moduleName
+                    + ": locateDefArxml returned null — bundle 'cn.com.myorg.bswbuilder.modules."
+                    + moduleName.toLowerCase()
+                    + "' or its " + moduleName + "Def.arxml not found");
             return null;
         }
+        System.err.println("[BswSchemaLoader] " + moduleName + ": loading Def from " + defUri);
         try {
-            // Load if not already loaded (idempotent — getResource(uri,true)
-            // reuses cached Resource if already present in the ResourceSet).
             rs.getResource(defUri, true);
         } catch (Exception e) {
-            System.err.println("[BswSchemaLoader] Failed to load " + defUri + ": " + e);
+            System.err.println("[BswSchemaLoader] " + moduleName + ": rs.getResource(" + defUri
+                    + ") threw " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
 
-        // Force EMF to resolve the proxy now that Def is in ResourceSet.
         if (def instanceof InternalEObject) {
             EObject resolved = org.eclipse.emf.ecore.util.EcoreUtil.resolve(def, rs);
             if (resolved != null && !resolved.eIsProxy() && resolved instanceof GModuleDef) {
+                System.err.println("[BswSchemaLoader] " + moduleName
+                        + ": EcoreUtil.resolve worked, schema OK");
                 return (GModuleDef) resolved;
             }
         }
-        // Re-fetch after load — second gGetDefinition() should return the
-        // newly-resolved EObject because EMF re-walks the cross-ref.
         def = module.gGetDefinition();
-        return (def != null && !((EObject) def).eIsProxy()) ? def : null;
+        boolean ok = def != null && !((EObject) def).eIsProxy();
+        System.err.println("[BswSchemaLoader] " + moduleName
+                + ": after Def load, gGetDefinition() resolved=" + ok);
+        return ok ? def : null;
     }
 
     /**

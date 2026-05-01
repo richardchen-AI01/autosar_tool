@@ -105,23 +105,60 @@ public class GenericModuleEditor extends FormEditor {
 
     @Override
     protected void addPages() {
-        if (module == null) return;
-        if (moduleDef == null) {
-            // No schema — fall back to a single empty placeholder so the editor
-            // still opens (user sees empty form rather than crash).
-            return;
-        }
-        // Mirrors reference V25.10 NewBswBuilderEditor.addPages():
-        for (GContainerDef cdef : moduleDef.gGetContainers()) {
-            try {
-                if (useGeneralPage(cdef)) {
-                    addPage(new GenericGeneralFormPage(this, module, cdef));
-                } else {
-                    addPage(new GenericMasterDetailFormPage(this, module, cdef));
+        // Mirrors reference V25.10 NewBswBuilderEditor.addPages().
+        int added = 0;
+        if (module != null && moduleDef != null) {
+            for (GContainerDef cdef : moduleDef.gGetContainers()) {
+                try {
+                    if (useGeneralPage(cdef)) {
+                        addPage(new GenericGeneralFormPage(this, module, cdef));
+                    } else {
+                        addPage(new GenericMasterDetailFormPage(this, module, cdef));
+                    }
+                    added++;
+                } catch (PartInitException e) {
+                    System.err.println("[GenericModuleEditor] addPage(" + cdef.gGetShortName()
+                            + ") failed: " + e);
                 }
-            } catch (PartInitException e) {
-                e.printStackTrace();
             }
+        }
+
+        // CRITICAL: MultiPageEditorPart.createPartControl ends with
+        // setActivePage(0), which Assert.isTrue(pageIndex < pageCount). Adding
+        // 0 pages here → assertion fail → editor open craters with
+        // "Failed to create the part's controls". 任何 normal-path 0-page 情况
+        // 必须降级到 fallback page, 让 editor 至少能开起来报错.
+        if (added == 0) {
+            addFallbackPage();
+        }
+    }
+
+    /**
+     * Empty form page used when normal page enumeration would produce 0 pages
+     * (module not loaded / schema not resolved / def has 0 containers). Avoids
+     * MultiPageEditorPart's 0-page assertion failure.
+     */
+    private void addFallbackPage() {
+        try {
+            String reason;
+            if (module == null) {
+                reason = "GModuleConfiguration could not be loaded from "
+                       + (arxmlFile == null ? "<no file>" : arxmlFile.getName())
+                       + ". Sphinx EditingDomain may not be wired (project nature missing?).";
+            } else if (moduleDef == null) {
+                reason = "Module schema (<Module>Def.arxml) could not be resolved for module '"
+                       + module.gGetShortName() + "'. Bundle "
+                       + "cn.com.myorg.bswbuilder.modules." + module.gGetShortName().toLowerCase()
+                       + " may be missing or its Def.arxml not on the classpath.";
+            } else {
+                reason = "Module '" + module.gGetShortName()
+                       + "' schema has 0 containers — empty Def.arxml?";
+            }
+            System.err.println("[GenericModuleEditor] " + reason);
+            addPage(new EditorOpenFailurePage(this, "BSW Module Editor", reason));
+        } catch (PartInitException e) {
+            // last-resort log; can't do much beyond this
+            e.printStackTrace();
         }
     }
 
