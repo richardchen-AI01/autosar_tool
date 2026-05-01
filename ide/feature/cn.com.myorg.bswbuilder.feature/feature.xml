@@ -78,6 +78,13 @@
             version="0.0.0"
             unpack="false"/>
 
+    <plugin
+            id="cn.com.myorg.bswbuilder.modules.nvm"
+            download-size="0"
+            install-size="0"
+            version="0.0.0"
+            unpack="false"/>
+
     <!-- Eclipse 标准文本编辑器，让 AutosarExplorerView 双击 .c/.h 走
          org.eclipse.ui.DefaultTextEditor 在 IDE tab 内打开。
          org.eclipse.rcp feature 不带这条；一定要显式列。 -->
