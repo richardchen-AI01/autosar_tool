@@ -3,14 +3,13 @@ package cn.com.myorg.bswbuilder.ui.editors;
 import java.io.File;
 
 import org.eclipse.core.resources.IFile;
-import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.sphinx.emf.editors.forms.BasicTransactionalFormEditor;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IPathEditorInput;
 import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.forms.editor.FormEditor;
 
 import cn.com.myorg.bswbuilder.modules.memif.data.MemIfModelAccess;
 import cn.com.myorg.bswbuilder.ui.editor.pages.GenericGeneralFormPage;
@@ -24,29 +23,26 @@ import gautosar.gecucparameterdef.GModuleDef;
  * Generic multi-page form editor for any BSW module's ECUC ARXML.
  *
  * <p>跟参考 V25.10 cn.com.isoft.bswbuilder.ui.editor.NewBswBuilderEditor 同
- * pattern (反编 addPages 的 GModuleDef.gGetContainers() 循环 1:1 对齐):
- * <ol>
- *   <li>从 IEditorInput 解析 .arxml 文件 → Sphinx EditingDomain 加载得到
- *       {@link GModuleConfiguration} 实例 (instance side, EObject)</li>
- *   <li>{@link BswSchemaLoader#resolveDef} 拿到 {@link GModuleDef} (schema)
- *       — Def.arxml 自动从 module bundle load 进同 ResourceSet</li>
- *   <li>遍历 def.gGetContainers() → 单实例容器加 GenericGeneralFormPage,
- *       多实例加 GenericMasterDetailFormPage</li>
- * </ol>
- *
- * <p>替代之前 MemIf 专用的 MemIfModuleManagerEditor: 一个类服务所有模块, 加
- * 新模块只要 plugin.xml 注册 + 写 BSWMD/Def, 0 行 UI 代码。
- *
- * <p>v0.2 first cut 不做的:
+ * pattern (反编 NewBswBuilderEditor 的继承链):
+ * <pre>
+ *   Sphinx.BasicTransactionalFormEditor
+ *     └─ AbstractBuilderEditor (pal jar)
+ *         └─ EcuConfigurationEditor (pal jar)
+ *             └─ NewBswBuilderEditor
+ * </pre>
+ * 我们直接继承 {@link BasicTransactionalFormEditor} 拿到 Sphinx 的:
  * <ul>
- *   <li>Save / dirty 跟踪 (本类 doSave 现在 no-op, page collectChangedParams
- *       只输出 delta 没写回, E5-4 v2 接 EcucArxmlWriter generalize 后实现)</li>
- *   <li>Cross-module REF chooser dialog (留 v0.3)</li>
- *   <li>BSWMD descriptor file 拒打开守卫 (跟参考 V25.10 一致 — bswmds/
- *       走 navigator filter 路径, editor 端不再特殊检测)</li>
+ *   <li>EditingDomain 自动绑定 (init 流程里查 ResourceSet → TransactionalEditingDomain)</li>
+ *   <li>dirty tracking (CommandStack 监听 → setDirty 自动 fire PROP_DIRTY)</li>
+ *   <li>doSave 写盘 (Resource.save via transactional, 不需要我们 string-surgery)</li>
+ *   <li>undo/redo (CommandStack)</li>
+ *   <li>外部修改检测 (BasicTransactionalFormEditorInputChangeHandler)</li>
  * </ul>
+ *
+ * <p>E5-6 整顿前 (E5-4 ~ E5-5) 直接 extends FormEditor + 手撸 dirty 字段 + doSave no-op,
+ * 是 U2 commit 9bb216e 的路线债泛化结果 — 见 memory feedback_align_reference_three_layers.md。
  */
-public class GenericModuleEditor extends FormEditor {
+public class GenericModuleEditor extends BasicTransactionalFormEditor {
 
     public static final String ID =
             "cn.com.myorg.bswbuilder.ui.editors.GenericModuleEditor";
@@ -55,40 +51,49 @@ public class GenericModuleEditor extends FormEditor {
     private IFile arxmlIFile;
     private GModuleConfiguration module;
     private GModuleDef moduleDef;
-    private boolean dirty;
+    /** init 失败原因; addPages 时降级到 fallback page 展示给用户. */
+    private String initFailure;
 
     @Override
-    public void init(IEditorSite site, IEditorInput input) throws PartInitException {
-        if (input instanceof IFileEditorInput) {
-            this.arxmlIFile = ((IFileEditorInput) input).getFile();
+    public void init(IEditorSite site, IEditorInput input) {
+        // BTFE.init 不抛 PartInitException (Sphinx 收紧了 throws 子句),
+        // 我们只能内部 catch + 把错记到 initFailure, 由 addPages 走 fallback。
+        try {
+            if (input instanceof IFileEditorInput) {
+                this.arxmlIFile = ((IFileEditorInput) input).getFile();
+            }
+            File f = resolveFile(input);
+            if (f == null) {
+                this.initFailure = "Unsupported editor input: " + input.getClass().getName();
+            } else if (!f.isFile()) {
+                this.initFailure = "ARXML file not found: " + f.getAbsolutePath();
+            } else {
+                this.arxmlFile = f;
+                setPartName(f.getName());
+            }
+        } catch (Throwable t) {
+            this.initFailure = "init: " + t.getClass().getSimpleName() + ": " + t.getMessage();
         }
-        File f = resolveFile(input);
-        if (f == null) {
-            throw new PartInitException(
-                    "Unsupported editor input: " + input.getClass().getName());
-        }
-        if (!f.isFile()) {
-            throw new PartInitException("ARXML file not found: " + f.getAbsolutePath());
-        }
-        this.arxmlFile = f;
 
-        // Load instance via Sphinx — reuses existing MemIfModelAccess
-        // (despite name, it's module-agnostic — just calls Sphinx
-        // ModelLoadManager + WorkspaceEditingDomainUtil to get the EObject).
-        if (this.arxmlIFile != null) {
-            EObject root = MemIfModelAccess.loadModelRoot(this.arxmlIFile);
-            this.module = findModuleConfiguration(root);
-        }
-        if (this.module == null) {
-            throw new PartInitException(
-                    "Could not load GModuleConfiguration from " + f.getName()
-                  + ". Ensure the file has AUTOSAR nature + Sphinx EditingDomain wired.");
-        }
-        // E5-1: resolve schema (loads <Module>Def.arxml from module bundle if needed).
-        this.moduleDef = BswSchemaLoader.resolveDef(this.module);
-
+        // Sphinx super.init 接管 EditingDomain / dirty / save 接驳
         super.init(site, input);
-        setPartName(f.getName());
+
+        // 加载 instance EObject — 复用现有 MemIfModelAccess (实际是 module-agnostic
+        // 包装 Sphinx ModelLoadManager + WorkspaceEditingDomainUtil).
+        if (this.arxmlFile != null && this.arxmlIFile != null) {
+            try {
+                EObject root = MemIfModelAccess.loadModelRoot(this.arxmlIFile);
+                this.module = findModuleConfiguration(root);
+                if (this.module == null) {
+                    this.initFailure = "Could not load GModuleConfiguration from " + arxmlFile.getName()
+                            + ". Ensure the file has AUTOSAR nature + Sphinx EditingDomain wired.";
+                } else {
+                    this.moduleDef = BswSchemaLoader.resolveDef(this.module);
+                }
+            } catch (Throwable t) {
+                this.initFailure = "model load: " + t.getClass().getSimpleName() + ": " + t.getMessage();
+            }
+        }
     }
 
     /** Walk the loaded EObject tree for the first GModuleConfiguration. */
@@ -141,6 +146,9 @@ public class GenericModuleEditor extends FormEditor {
     private void addFallbackPage() {
         try {
             StringBuilder reason = new StringBuilder();
+            if (initFailure != null) {
+                reason.append(initFailure).append('\n');
+            }
             if (module == null) {
                 reason.append("GModuleConfiguration could not be loaded from ")
                       .append(arxmlFile == null ? "<no file>" : arxmlFile.getName())
@@ -152,8 +160,6 @@ public class GenericModuleEditor extends FormEditor {
                 reason.append("Module '").append(module.gGetShortName())
                       .append("' schema has 0 containers — empty Def.arxml?");
             }
-            // Append BswSchemaLoader 4 个失败分支的原始诊断行 (走 ILog → .metadata/.log
-            // 同时 thread-local 缓存, addPages 这里 drain 出来当 fallback page 内容)。
             java.util.List<String> diags = cn.com.myorg.bswbuilder.ui.schema.BswSchemaLoader.drainDiagnostics();
             if (!diags.isEmpty()) {
                 reason.append("\n\nDiagnostics:");
@@ -172,17 +178,15 @@ public class GenericModuleEditor extends FormEditor {
      * {@link gautosar.gecucparameterdef.GParamConfMultiplicity}.
      */
     private static boolean useGeneralPage(GContainerDef cdef) {
-        // gGetUpperMultiplicityInfinite — true means unbounded (* = multi)
         Boolean infinite = cdef.gGetUpperMultiplicityInfinite();
         if (Boolean.TRUE.equals(infinite)) return false;
 
-        // gGetUpperMultiplicityAsString — null/empty defaults to 1, ">1" multi
         String upperStr = cdef.gGetUpperMultiplicityAsString();
-        if (upperStr == null || upperStr.isEmpty()) return true;  // default 1
+        if (upperStr == null || upperStr.isEmpty()) return true;
         try {
             return Long.parseLong(upperStr.trim()) <= 1;
         } catch (NumberFormatException nfe) {
-            return true;  // unparseable → assume general (safer than master-detail)
+            return true;
         }
     }
 
@@ -201,28 +205,10 @@ public class GenericModuleEditor extends FormEditor {
         return null;
     }
 
-    // ============================================================ save / dirty
-
-    public void setDirty(boolean d) {
-        if (this.dirty == d) return;
-        this.dirty = d;
-        org.eclipse.swt.widgets.Display.getDefault().asyncExec(new Runnable() {
-            @Override public void run() { firePropertyChange(PROP_DIRTY); }
-        });
-    }
-
-    @Override public boolean isDirty() { return dirty; }
-    @Override public boolean isSaveAsAllowed() { return false; }
-
-    @Override
-    public void doSave(IProgressMonitor monitor) {
-        // E5-4 v2 接 EcucArxmlWriter generalize → 收 page.collectChangedParams() 写回。
-        // 本版只把 dirty=false, 让 editor 关闭流程不弹保存 prompt。
-        // (Save 实际写盘逻辑 v0.3 接 EMF transactional)
-        setDirty(false);
-    }
-
-    @Override public void doSaveAs() { /* not supported */ }
+    // Save/dirty 全部由 Sphinx BasicTransactionalFormEditor 接管, 不再 override:
+    //   - isDirty() 由 CommandStack 监听器自动维护
+    //   - doSave(monitor) 由 Sphinx 调 Resource.save via transactional
+    //   - doSaveAs() 默认 not allowed (super.isSaveAsAllowed() 返 false)
 
     public File getArxmlFile() { return arxmlFile; }
     public GModuleConfiguration getModule() { return module; }
