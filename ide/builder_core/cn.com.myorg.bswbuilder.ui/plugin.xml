@@ -286,7 +286,7 @@
                 labelProvider="cn.com.myorg.bswbuilder.ui.navigator.BswExplorerLabelProvider"
                 id="cn.com.myorg.bswbuilder.ui.bswNavigatorContent"
                 name="BSW Builder"
-                priority="higher"
+                priority="highest"
                 activeByDefault="true">
             <triggerPoints>
                 <or>
@@ -295,6 +295,19 @@
                     <instanceof value="org.eclipse.core.resources.IProject"/>
                 </or>
             </triggerPoints>
+            <!-- possibleChildren 是 CommonNavigator 框架决定 labelProvider/getImage
+                 是否被调用 的关键 — 不是 triggerPoints。triggerPoints 只决定
+                 contentProvider.getChildren 的回调。少了 possibleChildren →
+                 IFile/IFolder/IProject 的 label 落到 resourceContent 标准 provider,
+                 .arxml 后缀 + 图标 polish 全丢。bswbuilder26 里这条遗漏过, 是
+                 "S32K148 下模块名又带 .arxml" regression 的根因。 -->
+            <possibleChildren>
+                <or>
+                    <instanceof value="org.eclipse.core.resources.IFile"/>
+                    <instanceof value="org.eclipse.core.resources.IFolder"/>
+                    <instanceof value="org.eclipse.core.resources.IProject"/>
+                </or>
+            </possibleChildren>
         </navigatorContent>
         <!-- 隐藏 bswmds/ 目录 (BSWMD 描述文件不该被双击当配置编辑;
              参考 V25.10 cn.com.isoft.pal.filters.BswmdFoldersFilter 同款做法。
