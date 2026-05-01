@@ -41,12 +41,43 @@ public final class EcuUtils {
         List<GContainer> out = new ArrayList<>();
         if (module == null || def == null) return out;
         String defShortName = ((GIdentifiable) def).gGetShortName();
+        log("[EcuUtils] getContainersByDef(module=" + module.gGetShortName()
+                + ", def=" + defShortName + "): module has "
+                + module.gGetContainers().size() + " instance containers");
         for (GContainer c : module.gGetContainers()) {
-            if (matchesDefinition(c.gGetDefinition(), def, defShortName)) {
-                out.add(c);
-            }
+            String cName = ((GIdentifiable) c).gGetShortName();
+            GContainerDef instanceDef = c.gGetDefinition();
+            String instanceDefRepr = describeRef(instanceDef);
+            boolean match = matchesDefinition(instanceDef, def, defShortName);
+            log("[EcuUtils]   instance '" + cName + "' def=" + instanceDefRepr
+                    + " match=" + match);
+            if (match) out.add(c);
         }
         return out;
+    }
+
+    private static String describeRef(EObject obj) {
+        if (obj == null) return "null";
+        if (obj.eIsProxy() && obj instanceof InternalEObject) {
+            URI u = ((InternalEObject) obj).eProxyURI();
+            return "proxy(uri=" + u + ", fragment=" + (u == null ? null : u.fragment()) + ")";
+        }
+        try {
+            return "resolved(" + ((GIdentifiable) obj).gGetShortName() + ")";
+        } catch (Throwable t) {
+            return obj.toString();
+        }
+    }
+
+    private static void log(String msg) {
+        try {
+            cn.com.myorg.bswbuilder.ui.Activator a = cn.com.myorg.bswbuilder.ui.Activator.getDefault();
+            if (a != null) {
+                a.getLog().log(new org.eclipse.core.runtime.Status(
+                        org.eclipse.core.runtime.IStatus.INFO,
+                        cn.com.myorg.bswbuilder.ui.Activator.PLUGIN_ID, msg));
+            }
+        } catch (Throwable ignored) { /* fall back silent */ }
     }
 
     /**
