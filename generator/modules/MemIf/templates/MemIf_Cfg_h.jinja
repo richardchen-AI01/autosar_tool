@@ -399,6 +399,22 @@ extern MemIf_JobResultType Fee_GetJobResult(void);
 #define MemIf_GetJobResult(DeviceIndex) MemIf_MemFPtr[DeviceIndex].GetJobResult()
 
 /**
+ * @brief       Invokes the "GetStatus" function of the underlying memory abstraction module selected by the parameter
+ *              DeviceIndex.
+ * @param[in]   DeviceIndex: index number of device
+ * @return      MemIf_StatusType
+ * @retval      MEMIF_UNINIT: The underlying abstraction module or device driver has not been initialized (yet).
+ * @retval      MEMIF_IDLE: The underlying abstraction module or device driver is currently idle.
+ * @retval      MEMIF_BUSY: The underlying abstraction module or device driver is currently busy.
+ * @retval      MEMIF_BUSY_INTERNAL: The underlying abstraction module is busy with internal management operations. The
+ *                                   underlying device driver can be busy or idle.
+ * @reentrant   Non Reentrant
+ * @synchronous Synchronous
+ * @trace       CPD-61230
+ */
+#define MemIf_GetStatus(DeviceIndex) MemIf_MemFPtr[DeviceIndex].GetStatus()
+
+/**
  * @brief       Invokes the "Cancel" function of the underlying memory abstraction module selected by the parameter
  *              DeviceIndex.
  * @param[in]   DeviceIndex: index number of device

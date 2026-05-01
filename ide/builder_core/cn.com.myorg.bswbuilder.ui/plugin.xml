@@ -296,6 +296,15 @@
                 </or>
             </triggerPoints>
         </navigatorContent>
+        <!-- 隐藏 bswmds/ 目录 (BSWMD 描述文件不该被双击当配置编辑;
+             参考 V25.10 cn.com.isoft.pal.filters.BswmdFoldersFilter 同款做法。
+             用户需要看可在 navigator "Customize View" 关掉这个 filter)。 -->
+        <commonFilter
+                activeByDefault="true"
+                class="cn.com.myorg.bswbuilder.ui.navigator.BswmdFoldersFilter"
+                description="Hides the bswmds/ folder which contains BSWMD descriptor files (not user-edited)"
+                id="cn.com.myorg.bswbuilder.ui.bswmdFoldersFilter"
+                name="Hide BSWMD folders"/>
     </extension>
 
     <extension point="org.eclipse.ui.navigator.viewer">
@@ -309,6 +318,7 @@
             <includes>
                 <contentExtension isRoot="true" pattern="org.eclipse.ui.navigator.resourceContent"/>
                 <contentExtension pattern="cn.com.myorg.bswbuilder.ui.bswNavigatorContent"/>
+                <contentExtension pattern="cn.com.myorg.bswbuilder.ui.bswmdFoldersFilter"/>
                 <contentExtension pattern="org.eclipse.ui.navigator.resources.filters.*"/>
                 <contentExtension pattern="org.eclipse.ui.navigator.resources.linkHelper"/>
             </includes>
