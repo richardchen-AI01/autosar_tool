@@ -110,6 +110,10 @@ public class GenericModuleEditor extends BasicTransactionalFormEditor {
 
     @Override
     protected void addPages() {
+        // S2 探针: 验证 super.init 是否接管成功 (super.getEditingDomain / getModelRoot 不空)。
+        cn.com.myorg.bswbuilder.ui.editor.utils.EcucWriteActions.probeBindings(this,
+                "addPages " + (module == null ? "<no module>" : module.gGetShortName()));
+
         // Mirrors reference V25.10 NewBswBuilderEditor.addPages().
         int added = 0;
         if (module != null && moduleDef != null) {
