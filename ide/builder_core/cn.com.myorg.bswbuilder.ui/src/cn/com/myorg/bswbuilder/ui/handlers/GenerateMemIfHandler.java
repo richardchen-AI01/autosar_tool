@@ -75,9 +75,12 @@ public class GenerateMemIfHandler extends AbstractHandler {
         // bswmds/ 由 Update Bswmd 命令独立管 (跟参考 V25.10 一致), 不在 Generate
         // 路径里创建/写入 — 删 post-move 救场代码。
 
-        if (!"MemIf".equals(moduleName)) {
+        // 模块支持白名单 — Python generator 端要有对应 modules/<Module>/ 目录才能产出。
+        // 未支持模块直接弹提示, 不调 bswgen (避免 ImportError 长 stack trace 噪声)。
+        if (!isSupportedModule(moduleName)) {
             MessageDialog.openInformation(shell, "Generate " + moduleName,
-                    "v0.1 仅 MemIf 接通生成器，" + moduleName + " 暂搁置。");
+                    moduleName + " 暂未接通生成器, v0.1+ 已支持: MemIf / NvM。"
+                  + "\n后续 (E4-3/E4-4) 加 MemMap / MemLayout。");
             return null;
         }
 
@@ -112,6 +115,17 @@ public class GenerateMemIfHandler extends AbstractHandler {
         job.setUser(true);
         job.schedule();
         return null;
+    }
+
+    /**
+     * White-list of modules the Python generator currently supports
+     * (i.e. has {@code generator/modules/<Module>/} dir).
+     */
+    private static boolean isSupportedModule(String name) {
+        return "MemIf".equals(name)
+            || "NvM".equals(name)
+            // E4-3 / E4-4 加 MemMap / MemLayout 后扩这里
+            ;
     }
 
     /**

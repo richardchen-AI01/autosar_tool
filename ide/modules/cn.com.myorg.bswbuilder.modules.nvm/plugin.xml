@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<!--
+  NvM module IoC registration (E4-2).
+
+  Mirrors reference cn.com.isoft.bswbuilder.modules.nvm/plugin.xml byte-for-byte
+  (modulo namespace). Each attribute resolves at runtime via
+  AutocoreModuleDefinition's createExecutableExtension calls — same contract
+  shape as MemIf (E3-B-6).
+-->
+<plugin>
+   <extension
+         point="cn.com.myorg.bswbuilder.extensionpoints.module">
+      <module
+            shortName="NvM"
+            kind="MEM"
+            moduledefinition="NvMDef.arxml"
+            bswmd="NvM_Bswmd.arxml"
+            vendor="cn.com.myorg.pal.myorgvendor"
+            version="0.1.0"
+            imageIdentifier="NvM"
+            editor="cn.com.myorg.bswbuilder.modules.nvm.NvMDefaultRegistry"
+            generator="cn.com.myorg.bswbuilder.modules.nvm.generator.NvMGenerator"
+            validator="cn.com.myorg.bswbuilder.modules.nvm.validator.NvMValidator"
+            moduleDescriptor="cn.com.myorg.bswbuilder.modules.nvm.NvMMetaModelDescriptor"
+            updateBswmd="cn.com.myorg.bswbuilder.modules.nvm.bswmd.NvMUpdateBswmd"/>
+   </extension>
+</plugin>

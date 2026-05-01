@@ -52,6 +52,7 @@
         <module>builder_core/cn.com.myorg.bswbuilder.common</module>
         <module>builder_core/cn.com.myorg.bswbuilder.ui</module>
         <module>modules/cn.com.myorg.bswbuilder.modules.memif</module>
+        <module>modules/cn.com.myorg.bswbuilder.modules.nvm</module>
 
         <module>feature/cn.com.myorg.bswbuilder.feature</module>
         <module>product/cn.com.myorg.bswbuilder.product</module>
