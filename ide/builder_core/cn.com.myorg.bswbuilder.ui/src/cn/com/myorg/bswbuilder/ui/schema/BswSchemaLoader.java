@@ -106,6 +106,11 @@ public final class BswSchemaLoader {
         }
         log("[BswSchemaLoader] " + moduleName
                 + ": gGetDefinition() returned proxy, attempting to load Def.arxml from bundle");
+        if (def instanceof InternalEObject) {
+            URI proxyUri = ((InternalEObject) def).eProxyURI();
+            log("[BswSchemaLoader] " + moduleName
+                    + ": proxy URI = " + proxyUri);
+        }
 
         Resource instanceRes = ((EObject) module).eResource();
         if (instanceRes == null) {
@@ -129,21 +134,36 @@ public final class BswSchemaLoader {
             return null;
         }
         log("[BswSchemaLoader] " + moduleName + ": loading Def from " + defUri);
+        Resource defRes;
         try {
-            rs.getResource(defUri, true);
+            defRes = rs.getResource(defUri, true);
         } catch (Exception e) {
             log("[BswSchemaLoader] " + moduleName + ": rs.getResource(" + defUri
                     + ") threw " + e.getClass().getSimpleName() + ": " + e.getMessage());
-            e.printStackTrace();
             return null;
         }
 
+        // Strategy 1: 尝试直接 EcoreUtil.resolve(def proxy, rs) — 标准 EMF 路径
         if (def instanceof InternalEObject) {
             EObject resolved = org.eclipse.emf.ecore.util.EcoreUtil.resolve(def, rs);
             if (resolved != null && !resolved.eIsProxy() && resolved instanceof GModuleDef) {
                 log("[BswSchemaLoader] " + moduleName
-                        + ": EcoreUtil.resolve worked, schema OK");
+                        + ": EcoreUtil.resolve worked (strategy 1)");
                 return (GModuleDef) resolved;
+            }
+        }
+
+        // Strategy 2: proxy URI 跟 Def.arxml URI 对不上 (常见 — ARTOP 用 AR 路径
+        // proxy URI, 不是文件 URI)。直接在 loaded Def 里按 AR-PACKAGE 路径找
+        // ECUC-MODULE-DEF SHORT-NAME == moduleName 的 EObject。
+        if (defRes != null) {
+            for (EObject root : defRes.getContents()) {
+                EObject found = findModuleDefByName(root, moduleName);
+                if (found instanceof GModuleDef) {
+                    log("[BswSchemaLoader] " + moduleName
+                            + ": found GModuleDef in Def.arxml by name (strategy 2)");
+                    return (GModuleDef) found;
+                }
             }
         }
         def = module.gGetDefinition();
@@ -151,6 +171,35 @@ public final class BswSchemaLoader {
         log("[BswSchemaLoader] " + moduleName
                 + ": after Def load, gGetDefinition() resolved=" + ok);
         return ok ? def : null;
+    }
+
+    /**
+     * Strategy 2 helper: walk an EObject tree (typically loaded Def.arxml root)
+     * looking for an ECUC-MODULE-DEF whose SHORT-NAME matches {@code moduleName}.
+     * Used when EMF cross-ref resolution couldn't bridge proxy URI ↔ loaded
+     * Resource (because ARTOP encodes proxies with AR paths, not file URIs).
+     */
+    private static EObject findModuleDefByName(EObject root, String moduleName) {
+        if (root == null) return null;
+        if (matchesModuleDef(root, moduleName)) return root;
+        org.eclipse.emf.common.util.TreeIterator<EObject> it = root.eAllContents();
+        while (it.hasNext()) {
+            EObject obj = it.next();
+            if (matchesModuleDef(obj, moduleName)) return obj;
+        }
+        return null;
+    }
+
+    private static boolean matchesModuleDef(EObject obj, String moduleName) {
+        if (!(obj instanceof GModuleDef)) return false;
+        // GModuleDef extends GIdentifiable which has gGetShortName()
+        try {
+            String sn = ((gautosar.ggenericstructure.ginfrastructure.GIdentifiable) obj)
+                    .gGetShortName();
+            return moduleName.equals(sn);
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     /**
