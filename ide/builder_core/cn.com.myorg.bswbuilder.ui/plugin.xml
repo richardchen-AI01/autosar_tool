@@ -43,7 +43,7 @@
                 extensions="arxml"
                 class="cn.com.myorg.bswbuilder.ui.editors.GenericModuleEditor"
                 default="true"
-                contributorClass="org.eclipse.ui.part.EditorActionBarContributor"/>
+                contributorClass="org.eclipse.sphinx.emf.editors.forms.BasicTransactionalEditorActionBarContributor"/>
 
         <!-- legacy MemIf-only editor — keep registered for "Open With" 菜单, 不
              default; 等 v0.3 verify generic editor 4 模块全跑通后删。 -->
