@@ -27,18 +27,31 @@
                 restorable="true"/>
     </extension>
 
-    <!-- Editors — MemIf Module Manager. extensions="arxml" + default="true"
-         意味着 Eclipse Project Explorer 双击任何 .arxml 文件都默认走我们
-         这个 FormEditor。Project Explorer 输入是 IFile → IFileEditorInput，
-         MemIfModuleManagerEditor.resolveFile 已经支持。 -->
+    <!-- Editors — Generic Module Manager (E5-4).
+         跟参考 V25.10 NewBswBuilderEditor 同 pattern: 一个通用 editor 服务
+         所有 BSW 模块的 .arxml, schema 走 BswSchemaLoader, addPages 按
+         GModuleDef.gGetContainers() 单实例 → GenericGeneralFormPage,
+         多实例 → GenericMasterDetailFormPage 派发, 0 行 per-module UI 代码。
+
+         旧 MemIfModuleManagerEditor 暂保留作 v0.3 fallback (id 不同,
+         default=false 让 GenericModuleEditor 接管 .arxml)。 -->
     <extension
             point="org.eclipse.ui.editors">
         <editor
+                id="cn.com.myorg.bswbuilder.ui.editors.GenericModuleEditor"
+                name="BSW Module Manager"
+                extensions="arxml"
+                class="cn.com.myorg.bswbuilder.ui.editors.GenericModuleEditor"
+                default="true"
+                contributorClass="org.eclipse.ui.part.EditorActionBarContributor"/>
+
+        <!-- legacy MemIf-only editor — keep registered for "Open With" 菜单, 不
+             default; 等 v0.3 verify generic editor 4 模块全跑通后删。 -->
+        <editor
                 id="cn.com.myorg.bswbuilder.ui.editors.MemIfModuleManagerEditor"
-                name="MemIf Module Manager"
+                name="MemIf Module Manager (legacy)"
                 extensions="arxml"
                 class="cn.com.myorg.bswbuilder.ui.editors.MemIfModuleManagerEditor"
-                default="true"
                 contributorClass="org.eclipse.ui.part.EditorActionBarContributor"/>
 
         <!-- v0.2 起 CDT feature 接管 .c/.h 编辑器 (语法高亮 + folding +
