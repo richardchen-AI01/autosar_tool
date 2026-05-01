@@ -69,6 +69,25 @@ public final class EcuUtils {
         }
     }
 
+    /**
+     * ARTOP encodes ECUC def proxies as e.g.
+     * {@code ar:/#/AUTOSAR/NvM/NvMCommon?type=EcucParamConfContainerDef}.
+     * The fragment is {@code /AUTOSAR/NvM/NvMCommon?type=EcucParamConfContainerDef};
+     * we want just the AR-path leaf {@code NvMCommon} to compare against the
+     * schema def's shortName. Strip everything before the last '/' and the
+     * {@code ?type=...} query suffix.
+     */
+    private static String proxyFragmentLeafShortName(URI proxyUri) {
+        if (proxyUri == null) return null;
+        String fragment = proxyUri.fragment();
+        if (fragment == null) return null;
+        int slash = fragment.lastIndexOf('/');
+        String leaf = slash < 0 ? fragment : fragment.substring(slash + 1);
+        int q = leaf.indexOf('?');
+        if (q >= 0) leaf = leaf.substring(0, q);
+        return leaf.isEmpty() ? null : leaf;
+    }
+
     private static void log(String msg) {
         try {
             cn.com.myorg.bswbuilder.ui.Activator a = cn.com.myorg.bswbuilder.ui.Activator.getDefault();
@@ -103,12 +122,8 @@ public final class EcuUtils {
         if (((EObject) instanceDef).eIsProxy() && instanceDef instanceof InternalEObject) {
             URI proxyUri = ((InternalEObject) instanceDef).eProxyURI();
             if (proxyUri != null) {
-                String fragment = proxyUri.fragment();
-                if (fragment != null) {
-                    int slash = fragment.lastIndexOf('/');
-                    String leaf = slash < 0 ? fragment : fragment.substring(slash + 1);
-                    if (schemaDefShortName.equals(leaf)) return true;
-                }
+                String leaf = proxyFragmentLeafShortName(proxyUri);
+                if (leaf != null && schemaDefShortName.equals(leaf)) return true;
             }
         }
 
@@ -153,14 +168,8 @@ public final class EcuUtils {
             // Same proxy URI fragment fallback as matchesDefinition.
             if (((EObject) pvDef).eIsProxy() && pvDef instanceof InternalEObject) {
                 URI proxyUri = ((InternalEObject) pvDef).eProxyURI();
-                if (proxyUri != null) {
-                    String fragment = proxyUri.fragment();
-                    if (fragment != null) {
-                        int slash = fragment.lastIndexOf('/');
-                        String leaf = slash < 0 ? fragment : fragment.substring(slash + 1);
-                        if (paramDefShortName.equals(leaf)) return pv;
-                    }
-                }
+                String leaf = proxyFragmentLeafShortName(proxyUri);
+                if (leaf != null && paramDefShortName.equals(leaf)) return pv;
             }
             try {
                 String name = ((GIdentifiable) pvDef).gGetShortName();
