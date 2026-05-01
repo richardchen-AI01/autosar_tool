@@ -2,15 +2,21 @@ package cn.com.myorg.bswbuilder.ui.schema;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.core.runtime.FileLocator;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.InternalEObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.osgi.framework.Bundle;
+
+import cn.com.myorg.bswbuilder.ui.Activator;
 
 import gautosar.gecucdescription.GModuleConfiguration;
 import gautosar.gecucparameterdef.GModuleDef;
@@ -36,7 +42,34 @@ import gautosar.gecucparameterdef.GModuleDef;
  */
 public final class BswSchemaLoader {
 
+    /** Per-thread diagnostic lines accumulated during a {@link #resolveDef} call.
+     *  Editor can read via {@link #drainDiagnostics()} after a null result and
+     *  surface to the user via {@link cn.com.myorg.bswbuilder.ui.editors.EditorOpenFailurePage}. */
+    private static final ThreadLocal<List<String>> DIAGNOSTICS =
+            ThreadLocal.withInitial(ArrayList::new);
+
     private BswSchemaLoader() {}
+
+    /** Log to .metadata/.log (Eclipse ILog) AND collect for caller diagnostics. */
+    private static void log(String msg) {
+        DIAGNOSTICS.get().add(msg);
+        try {
+            if (Activator.getDefault() != null) {
+                Activator.getDefault().getLog().log(
+                        new Status(IStatus.INFO, Activator.PLUGIN_ID, msg));
+            }
+        } catch (Throwable ignored) {
+            // Activator might not be initialized yet — fall back silently
+        }
+    }
+
+    /** Pull and clear the diagnostics from the current thread.
+     *  Caller (typically GenericModuleEditor.addPages) shows them to user. */
+    public static List<String> drainDiagnostics() {
+        List<String> copy = new ArrayList<>(DIAGNOSTICS.get());
+        DIAGNOSTICS.get().clear();
+        return copy;
+    }
 
     /**
      * Get the {@link GModuleDef} for an instance module configuration.
@@ -54,52 +87,52 @@ public final class BswSchemaLoader {
      */
     public static GModuleDef resolveDef(GModuleConfiguration module) {
         if (module == null) {
-            System.err.println("[BswSchemaLoader] module == null");
+            log("[BswSchemaLoader] module == null");
             return null;
         }
         String moduleName = module.gGetShortName();
-        System.err.println("[BswSchemaLoader] resolveDef(" + moduleName + ") starting");
+        log("[BswSchemaLoader] resolveDef(" + moduleName + ") starting");
 
         GModuleDef def = module.gGetDefinition();
         if (def != null && !((EObject) def).eIsProxy()) {
-            System.err.println("[BswSchemaLoader] " + moduleName
+            log("[BswSchemaLoader] " + moduleName
                     + ": gGetDefinition() already resolved (cross-ref auto-resolve worked)");
             return def;
         }
         if (def == null) {
-            System.err.println("[BswSchemaLoader] " + moduleName
+            log("[BswSchemaLoader] " + moduleName
                     + ": gGetDefinition() returned null — instance .arxml may have no DEFINITION-REF");
             return null;
         }
-        System.err.println("[BswSchemaLoader] " + moduleName
+        log("[BswSchemaLoader] " + moduleName
                 + ": gGetDefinition() returned proxy, attempting to load Def.arxml from bundle");
 
         Resource instanceRes = ((EObject) module).eResource();
         if (instanceRes == null) {
-            System.err.println("[BswSchemaLoader] " + moduleName
+            log("[BswSchemaLoader] " + moduleName
                     + ": instance EObject not attached to a Resource — cannot get ResourceSet");
             return null;
         }
         ResourceSet rs = instanceRes.getResourceSet();
         if (rs == null) {
-            System.err.println("[BswSchemaLoader] " + moduleName
+            log("[BswSchemaLoader] " + moduleName
                     + ": Resource not attached to a ResourceSet");
             return null;
         }
 
         URI defUri = locateDefArxml(moduleName);
         if (defUri == null) {
-            System.err.println("[BswSchemaLoader] " + moduleName
+            log("[BswSchemaLoader] " + moduleName
                     + ": locateDefArxml returned null — bundle 'cn.com.myorg.bswbuilder.modules."
                     + moduleName.toLowerCase()
                     + "' or its " + moduleName + "Def.arxml not found");
             return null;
         }
-        System.err.println("[BswSchemaLoader] " + moduleName + ": loading Def from " + defUri);
+        log("[BswSchemaLoader] " + moduleName + ": loading Def from " + defUri);
         try {
             rs.getResource(defUri, true);
         } catch (Exception e) {
-            System.err.println("[BswSchemaLoader] " + moduleName + ": rs.getResource(" + defUri
+            log("[BswSchemaLoader] " + moduleName + ": rs.getResource(" + defUri
                     + ") threw " + e.getClass().getSimpleName() + ": " + e.getMessage());
             e.printStackTrace();
             return null;
@@ -108,14 +141,14 @@ public final class BswSchemaLoader {
         if (def instanceof InternalEObject) {
             EObject resolved = org.eclipse.emf.ecore.util.EcoreUtil.resolve(def, rs);
             if (resolved != null && !resolved.eIsProxy() && resolved instanceof GModuleDef) {
-                System.err.println("[BswSchemaLoader] " + moduleName
+                log("[BswSchemaLoader] " + moduleName
                         + ": EcoreUtil.resolve worked, schema OK");
                 return (GModuleDef) resolved;
             }
         }
         def = module.gGetDefinition();
         boolean ok = def != null && !((EObject) def).eIsProxy();
-        System.err.println("[BswSchemaLoader] " + moduleName
+        log("[BswSchemaLoader] " + moduleName
                 + ": after Def load, gGetDefinition() resolved=" + ok);
         return ok ? def : null;
     }
@@ -141,7 +174,7 @@ public final class BswSchemaLoader {
             URL fileUrl = FileLocator.toFileURL(entry);
             return URI.createURI(fileUrl.toString());
         } catch (IOException io) {
-            System.err.println("[BswSchemaLoader] FileLocator failed for "
+            log("[BswSchemaLoader] FileLocator failed for "
                     + moduleName + "Def.arxml in " + bundleId + ": " + io);
             return null;
         }

@@ -140,24 +140,27 @@ public class GenericModuleEditor extends FormEditor {
      */
     private void addFallbackPage() {
         try {
-            String reason;
+            StringBuilder reason = new StringBuilder();
             if (module == null) {
-                reason = "GModuleConfiguration could not be loaded from "
-                       + (arxmlFile == null ? "<no file>" : arxmlFile.getName())
-                       + ". Sphinx EditingDomain may not be wired (project nature missing?).";
+                reason.append("GModuleConfiguration could not be loaded from ")
+                      .append(arxmlFile == null ? "<no file>" : arxmlFile.getName())
+                      .append(".\nSphinx EditingDomain may not be wired (project nature missing?).");
             } else if (moduleDef == null) {
-                reason = "Module schema (<Module>Def.arxml) could not be resolved for module '"
-                       + module.gGetShortName() + "'. Bundle "
-                       + "cn.com.myorg.bswbuilder.modules." + module.gGetShortName().toLowerCase()
-                       + " may be missing or its Def.arxml not on the classpath.";
+                reason.append("Module schema (<Module>Def.arxml) could not be resolved for module '")
+                      .append(module.gGetShortName()).append("'.\n");
             } else {
-                reason = "Module '" + module.gGetShortName()
-                       + "' schema has 0 containers — empty Def.arxml?";
+                reason.append("Module '").append(module.gGetShortName())
+                      .append("' schema has 0 containers — empty Def.arxml?");
             }
-            System.err.println("[GenericModuleEditor] " + reason);
-            addPage(new EditorOpenFailurePage(this, "BSW Module Editor", reason));
+            // Append BswSchemaLoader 4 个失败分支的原始诊断行 (走 ILog → .metadata/.log
+            // 同时 thread-local 缓存, addPages 这里 drain 出来当 fallback page 内容)。
+            java.util.List<String> diags = cn.com.myorg.bswbuilder.ui.schema.BswSchemaLoader.drainDiagnostics();
+            if (!diags.isEmpty()) {
+                reason.append("\n\nDiagnostics:");
+                for (String d : diags) reason.append('\n').append(d);
+            }
+            addPage(new EditorOpenFailurePage(this, "BSW Module Editor", reason.toString()));
         } catch (PartInitException e) {
-            // last-resort log; can't do much beyond this
             e.printStackTrace();
         }
     }
