@@ -1,8 +1,10 @@
 {% set NvM = context.NvMContext.NvM %}
+{# Generate 命令只产 .c/.h 到 -o (跟参考 V25.10 EXE 一致)。
+   Bswmd 走独立 BswmdList.jinja → <project>/bswmds/。
+   Rte_NvM_Type.h 仍归 Generate 范畴 (跟 .h 平级 RTE-side 类型头)。 #}
 NvM_Cfg.h@#@NvM_Cfg_h.jinja@#@None
 NvM_Lcfg.h@#@NvM_Lcfg_h.jinja@#@None
 NvM_Lcfg.c@#@NvM_Lcfg_c.jinja@#@None
-NvM_Bswmd.arxml@#@NvM_Bswmd_arxml.jinja@#@None
 {% if not NvM.checkRTE and not NvM.checkiRTE %}
 Rte_NvM_Type.h@#@Rte_NvM_Type_h.jinja@#@None
 {% endif %}
