@@ -67,17 +67,13 @@ public class GenerateMemIfHandler extends AbstractHandler {
         }
         final File workspaceDir = bswBuilder.getParentFile();
         final File configDir = new File(workspaceDir, "config");
-        final File bswmdsDir = new File(workspaceDir, "bswmds");
         if (!configDir.isDirectory() && !configDir.mkdirs()) {
             MessageDialog.openError(shell, "Generate " + moduleName,
                     "无法创建输出目录: " + configDir.getAbsolutePath());
             return null;
         }
-        if (!bswmdsDir.isDirectory() && !bswmdsDir.mkdirs()) {
-            MessageDialog.openError(shell, "Generate " + moduleName,
-                    "无法创建 bswmds 目录: " + bswmdsDir.getAbsolutePath());
-            return null;
-        }
+        // bswmds/ 由 Update Bswmd 命令独立管 (跟参考 V25.10 一致), 不在 Generate
+        // 路径里创建/写入 — 删 post-move 救场代码。
 
         if (!"MemIf".equals(moduleName)) {
             MessageDialog.openInformation(shell, "Generate " + moduleName,
@@ -100,19 +96,8 @@ public class GenerateMemIfHandler extends AbstractHandler {
                     return new Status(IStatus.ERROR, Activator.PLUGIN_ID,
                             "bswgen returned exit code " + exit + " — see BSW Builder console.");
                 }
-                // 移 bswmd 到 bswmds/ 子目录
-                File bswmdSrc = new File(configDir, moduleName + "_Bswmd.arxml");
-                if (bswmdSrc.isFile()) {
-                    File bswmdDst = new File(bswmdsDir, bswmdSrc.getName());
-                    try {
-                        java.nio.file.Files.move(bswmdSrc.toPath(), bswmdDst.toPath(),
-                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                    } catch (java.io.IOException io) {
-                        return new Status(IStatus.WARNING, Activator.PLUGIN_ID,
-                                "Generated " + bswmdSrc.getName() +
-                                " but failed to move into bswmds/: " + io.getMessage());
-                    }
-                }
+                // Generate 命令现在只产 Cfg.c/.h 到 -o (跟参考 V25.10 一致)。
+                // Bswmd 走独立的 Update Bswmd 命令 → bswmds/, 不需要 post-move。
                 // 让 Project Explorer 看到新文件
                 try {
                     arxmlFile.getProject().refreshLocal(

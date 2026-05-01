@@ -38,6 +38,9 @@ class CodeGenerator:
         self._tool_version: str = 'for AutosarTool v0.1'
         self._mcu: str = 'S32K148'
         self._customer: str = 'iSoft'
+        # FilesList by default is "FilesList.jinja" (Generate command);
+        # Update Bswmd swaps to "BswmdList.jinja" via setFilesListName().
+        self._files_list_name: str = 'FilesList.jinja'
 
     # ------------------------------------------------------------ public API
 
@@ -50,6 +53,16 @@ class CodeGenerator:
 
     def setOutputPath(self, path: str) -> None:
         self._output_path = Path(path)
+
+    def setFilesListName(self, name: str) -> None:
+        """Switch which FilesList template controls this run.
+
+        Defaults to ``FilesList.jinja`` (Generate command). The Update Bswmd
+        command sets ``BswmdList.jinja`` so we render only the Bswmd
+        template into <project>/bswmds/, byte-identical structure to
+        reference V25.10's isoft_generator behavior.
+        """
+        self._files_list_name = name
 
     def deleteOldFiles(self) -> None:
         """Delete previously generated files for this module from output dir.
@@ -74,9 +87,10 @@ class CodeGenerator:
         # Locate this module's templates dir from MRO of caller
         templates_dir = self.__loadTemplateFolders()
 
-        files_list_path = templates_dir / 'FilesList.jinja'
+        files_list_path = templates_dir / self._files_list_name
         if not files_list_path.exists():
-            raise FileNotFoundError(f'FilesList.jinja not found at {files_list_path}')
+            raise FileNotFoundError(
+                f'{self._files_list_name} not found at {files_list_path}')
 
         # Render FilesList.jinja with current context to know which files to emit.
         # Search path: module's own templates/ + Common's shared templates/.
@@ -117,7 +131,7 @@ class CodeGenerator:
             'EcucPartition':       '',
         })
 
-        files_list_text = env.get_template('FilesList.jinja').render(context=self.context).strip()
+        files_list_text = env.get_template(self._files_list_name).render(context=self.context).strip()
 
         out_dir = self._output_path or Path('output')
         out_dir.mkdir(parents=True, exist_ok=True)

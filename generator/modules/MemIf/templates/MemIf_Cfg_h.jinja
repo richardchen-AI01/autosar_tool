@@ -32,10 +32,6 @@ extern "C" {
 /** MemIf/MemIfGeneral/MemIfVersionInfoApi */
 #define MEMIF_VERSION_INFO_API {{MemIfGeneral.MemIfVersionInfoApi}}
 
-/** Module version string (vendor probe param). */
-/** MemIf/MemIfGeneral/MemIfModuleVersion */
-#define MEMIF_MODULE_VERSION "{{MemIfGeneral.MemIfModuleVersion}}"
-
 {% if MemIfGeneral.MemIfNumberOfDevices > 1 or MemIfGeneral.MemIfDevErrorDetect == 'STD_ON' %}
 /**
  * @brief Read function pointer type for MemHwA API services
@@ -398,22 +394,9 @@ extern MemIf_JobResultType Fee_GetJobResult(void);
  */
 #define MemIf_GetJobResult(DeviceIndex) MemIf_MemFPtr[DeviceIndex].GetJobResult()
 
-/**
- * @brief       Invokes the "GetStatus" function of the underlying memory abstraction module selected by the parameter
- *              DeviceIndex.
- * @param[in]   DeviceIndex: index number of device
- * @return      MemIf_StatusType
- * @retval      MEMIF_UNINIT: The underlying abstraction module or device driver has not been initialized (yet).
- * @retval      MEMIF_IDLE: The underlying abstraction module or device driver is currently idle.
- * @retval      MEMIF_BUSY: The underlying abstraction module or device driver is currently busy.
- * @retval      MEMIF_BUSY_INTERNAL: The underlying abstraction module is busy with internal management operations. The
- *                                   underlying device driver can be busy or idle.
- * @reentrant   Non Reentrant
- * @synchronous Synchronous
- * @trace       CPD-61230
- */
-#define MemIf_GetStatus(DeviceIndex) MemIf_MemFPtr[DeviceIndex].GetStatus()
-
+{# multi-device 分支 V25.10 故意不出 MemIf_GetStatus 宏 — 该函数由 MemIf 模块库
+   MemIf.c 里手写真函数实现 (扫 fptr 表聚合各 device 状态), 发宏会重复定义。
+   单 device 分支才出 GetStatus 宏 (因为单 device 没真函数, 直接 inline 到驱动)。 #}
 /**
  * @brief       Invokes the "Cancel" function of the underlying memory abstraction module selected by the parameter
  *              DeviceIndex.

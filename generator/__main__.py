@@ -25,10 +25,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument('-i', '--input', required=True, metavar='PROJECT',
                    help='input project directory (workspace)')
-    p.add_argument('-o', '--output', required=True, metavar='DIR',
-                   help='output directory for generated .c/.h files')
-    p.add_argument('-g', '--generate', required=True, metavar='MODULE',
-                   help='BSW module to generate (e.g. MemIf, Det, NvM)')
+    p.add_argument('-o', '--output', required=False, metavar='DIR', default=None,
+                   help='output directory for generated .c/.h files (Generate '
+                        'mode); ignored in --update-bswmd mode (writes to '
+                        '<project>/bswmds/)')
+    grp = p.add_mutually_exclusive_group(required=True)
+    grp.add_argument('-g', '--generate', metavar='MODULE',
+                     help='Generate <Module>_Cfg.c/.h to -o (跟参考 V25.10 EXE '
+                          'Generate 命令一致, 只产 .c/.h)')
+    grp.add_argument('--update-bswmd', dest='update_bswmd', metavar='MODULE',
+                     help='Regenerate <Module>_Bswmd.arxml under '
+                          '<project>/bswmds/ (跟参考 V25.10 Update Bswmd 命令'
+                          '一致, 跟 Generate 走两条独立 pipeline)')
     p.add_argument('--toolVersion', default='for AutosarTool v0.1',
                    help='tool version string injected into output')
     p.add_argument('--target', default=None, help='target MCU/platform (optional)')
@@ -52,8 +60,22 @@ def main(argv: list[str] | None = None) -> int:
     print(f'[INFO] Loaded {len(modules)} ECUC module(s) from project; '
           f'parse time: {time.time()-t0:.3f}(s)')
 
-    # 2. Look up the requested module's Register
-    module_name = args.generate
+    # 2. Look up the requested module's Register. -g (Generate) and
+    #    --update-bswmd (Update Bswmd) are mutually exclusive (argparse group).
+    is_update_bswmd = bool(args.update_bswmd)
+    module_name = args.update_bswmd if is_update_bswmd else args.generate
+
+    # Resolve output dir per mode:
+    #   Generate    → -o (REQUIRED)
+    #   Update Bswmd → <project>/bswmds/ (FIXED, ignores -o)
+    if is_update_bswmd:
+        output_dir = str(project_path / 'bswmds')
+    else:
+        if not args.output:
+            print('[ERROR] -o/--output required for Generate mode')
+            return 2
+        output_dir = args.output
+
     try:
         register_mod = importlib.import_module(f'{module_name}.base.{module_name}Register')
     except ImportError as e:
@@ -96,11 +118,14 @@ def main(argv: list[str] | None = None) -> int:
     holder = _Ctx()
     setattr(holder, f'{module_name}Context', ctx)
 
-    # 5. Run the code generator
+    # 5. Run the code generator. Update Bswmd mode swaps FilesList → BswmdList
+    #    (separate pipeline matching reference V25.10 isoft_generator).
     cg = register_mod.getModuleCodeGenerator()
     cg.setContext(holder)
     cg.setModule(module_name)
-    cg.setOutputPath(args.output)
+    cg.setOutputPath(output_dir)
+    if is_update_bswmd:
+        cg.setFilesListName('BswmdList.jinja')
     print('[INFO] Start to generate code')
     try:
         cg.generateCode()

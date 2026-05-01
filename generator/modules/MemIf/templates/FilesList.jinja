@@ -1,9 +1,12 @@
 {% set MemIf = context.MemIfContext.MemIf %}
 {% set MemIfGeneral = MemIf.MemIfGeneral %}
 
+{# Generate 命令只产 .c/.h 到 -o (跟参考 V25.10 EXE 一致)。
+   Bswmd 是 Update Bswmd 命令独立管 (BswmdList.jinja, 写到 <project>/bswmds/)。
+   参考 demo bswmds/ 文件时间戳 2025/10/21 = 工程创建时一次性 Update Bswmd,
+   config/*.h 时间戳 2026/05/01 = 今天点 Generate 才更新, 两个时间相差半年
+   说明它们属不同命令、不同生命周期。 #}
 {% if MemIfGeneral.MemIfNumberOfDevices > 1 or MemIfGeneral.MemIfDevErrorDetect == 'STD_ON' %}
 MemIf_Cfg.c@#@MemIf_Cfg_c.jinja@#@None
 {% endif %}
 MemIf_Cfg.h@#@/MemIf_Cfg_h.jinja@#@None
-
-MemIf_Bswmd.arxml@#@MemIf_Bswmd_arxml.jinja@#@None
