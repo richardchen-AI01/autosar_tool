@@ -3,8 +3,11 @@ package cn.com.myorg.bswbuilder.ui.editor.pages;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
+import org.eclipse.sphinx.emf.editors.forms.BasicTransactionalFormEditor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -25,7 +28,11 @@ import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.ui.forms.widgets.ScrolledForm;
 import org.eclipse.ui.forms.widgets.Section;
 
+import autosar40.ecucdescription.EcucNumericalParamValue;
+import autosar40.ecucdescription.EcucTextualParamValue;
+import cn.com.myorg.bswbuilder.ui.Activator;
 import cn.com.myorg.bswbuilder.ui.editor.utils.EcuUtils;
+import cn.com.myorg.bswbuilder.ui.editor.utils.EcucWriteActions;
 import gautosar.gecucdescription.GContainer;
 import gautosar.gecucdescription.GModuleConfiguration;
 import gautosar.gecucdescription.GParameterValue;
@@ -46,24 +53,23 @@ import gautosar.gecucparameterdef.GStringParamDef;
  *
  * <p>Reference V25.10 path:
  * {@code cn.com.isoft.bswbuilder.ui.editor.pages.BswModuleGeneralFormPage}.
- * Same role: one form page per single-instance container in the module
- * (e.g. MemIfGeneral / NvMCommon). All modules share this one class — no
- * per-module hand-coded FormPage.
  *
  * <p>Widget mapping (跟参考 V25.10 一致):
  * <ul>
- *   <li>{@link GBooleanParamDef} → {@link Button} {@code SWT.CHECK}</li>
- *   <li>{@link GIntegerParamDef} → {@link Spinner} (with min/max from def)</li>
- *   <li>{@link GFloatParamDef}   → {@link Text}</li>
- *   <li>{@link GStringParamDef}  → {@link Text}</li>
- *   <li>{@link GEnumerationParamDef} → {@link Combo} (literals from
- *       {@code gGetLiterals()})</li>
+ *   <li>{@link GBooleanParamDef} → {@link Button} {@code SWT.CHECK} (numerical)</li>
+ *   <li>{@link GIntegerParamDef} → {@link Spinner} (numerical)</li>
+ *   <li>{@link GFloatParamDef}   → {@link Text} (numerical)</li>
+ *   <li>{@link GStringParamDef}  → {@link Text} (textual)</li>
+ *   <li>{@link GEnumerationParamDef} → {@link Combo} (textual)</li>
  * </ul>
  *
- * <p>Read happens once on page-create. Save commits dirty values back via
- * the parent FormEditor's {@code doSave} (E5-4 wires this in). v0.2 first
- * cut: read-only display + dirty tracking + commit hook (write path
- * implemented in E5-4 + writer generalization in parallel).
+ * <p>E5-6 S3 起 widget 改值经 {@link EcucWriteActions} 包装成 EMF
+ * {@code SetCommand} 写入 Sphinx {@code TransactionalEditingDomain.getCommandStack()}。
+ * Sphinx CommandStack 监听器自动 fire {@code PROP_DIRTY} → 标题小星亮 + Save 按钮亮 +
+ * 撑 undo/redo + Save 时自动 {@code Resource.save}。
+ *
+ * <p>之前 (E5-2 ~ E5-5) 直接 {@code recheckDirty()} no-op + 留了 collectChangedParams
+ * 给手撸 writer — E5-6 S3 删掉, 全归 Sphinx 框架管。
  */
 public class GenericGeneralFormPage extends FormPage {
 
@@ -75,10 +81,6 @@ public class GenericGeneralFormPage extends FormPage {
 
     /** Schema-defined param → backing widget. Iteration order matters (UI flow). */
     private final Map<GConfigParameter, Control> widgets = new LinkedHashMap<>();
-
-    /** Schema-defined param → string snapshot of widget value at page-create.
-     *  Used for dirty detection (跟参考 originalValues 同思路). */
-    private final Map<GConfigParameter, String> originalValues = new LinkedHashMap<>();
 
     public GenericGeneralFormPage(FormEditor editor,
                                   GModuleConfiguration module,
@@ -124,83 +126,85 @@ public class GenericGeneralFormPage extends FormPage {
             GridDataFactory.fillDefaults().span(3, 1).applyTo(note);
         }
 
-        // Walk schema. CHOICE container has a different shape (sub-container choice);
-        // E5-2 first cut handles GParamConfContainerDef only — the typical 'general'
-        // page case. Choice containers route through master-detail (E5-3 will pick up
-        // those at the parent's master level).
         if (containerDef instanceof GParamConfContainerDef) {
             GParamConfContainerDef pdef = (GParamConfContainerDef) containerDef;
             for (GConfigParameter param : pdef.gGetParameters()) {
                 addRow(client, toolkit, param);
             }
-            // GConfigReference 行先不在 v0.2 General page 渲染 (一般 reference
-            // 出现在 master-detail 的 sub-container 而非顶层 single-instance
-            // container)。如果出现, 留 E5-3 chooser dialog 时统一处理。
         }
     }
 
-    private void addRow(Composite parent, FormToolkit toolkit, GConfigParameter param) {
+    private void addRow(Composite parent, FormToolkit toolkit, final GConfigParameter param) {
         Label label = toolkit.createLabel(parent, param.gGetShortName() + ":", SWT.NONE);
         GridDataFactory.fillDefaults().align(SWT.END, SWT.CENTER).applyTo(label);
 
         Control widget;
-        String originalText;
 
         if (param instanceof GBooleanParamDef) {
             String currentVal = readParamValue(param);
-            Button check = toolkit.createButton(parent, "", SWT.CHECK);
+            final Button check = toolkit.createButton(parent, "", SWT.CHECK);
             check.setSelection("true".equalsIgnoreCase(currentVal));
             check.addSelectionListener(new SelectionAdapter() {
-                @Override public void widgetSelected(SelectionEvent e) { recheckDirty(); }
+                @Override public void widgetSelected(SelectionEvent e) {
+                    writeNumericalParam(param, check.getSelection() ? "true" : "false");
+                }
             });
             widget = check;
-            originalText = check.getSelection() ? "true" : "false";
         } else if (param instanceof GIntegerParamDef) {
             String currentVal = readParamValue(param);
-            Spinner spin = new Spinner(parent, SWT.BORDER);
-            // ARTOP G* param defs don't expose min/max — that's typed on
-            // autosar40.ecucparameterdef.EcucIntegerParamDef. v0.2 cut: use
-            // wide bounds; E5-3 polish will read typed bounds.
+            final Spinner spin = new Spinner(parent, SWT.BORDER);
             spin.setMinimum(Integer.MIN_VALUE);
             spin.setMaximum(Integer.MAX_VALUE);
             try { if (currentVal != null) spin.setSelection(Integer.parseInt(currentVal.trim())); }
             catch (NumberFormatException nfe) { /* leave default 0 */ }
             spin.addModifyListener(new ModifyListener() {
-                @Override public void modifyText(ModifyEvent e) { recheckDirty(); }
+                @Override public void modifyText(ModifyEvent e) {
+                    writeNumericalParam(param, String.valueOf(spin.getSelection()));
+                }
             });
             GridDataFactory.fillDefaults().hint(120, SWT.DEFAULT).applyTo(spin);
             widget = spin;
-            originalText = String.valueOf(spin.getSelection());
         } else if (param instanceof GEnumerationParamDef) {
             String currentVal = readParamValue(param);
-            Combo combo = new Combo(parent, SWT.READ_ONLY | SWT.BORDER);
+            final Combo combo = new Combo(parent, SWT.READ_ONLY | SWT.BORDER);
             for (GEnumerationLiteralDef lit : ((GEnumerationParamDef) param).gGetLiterals()) {
                 combo.add(lit.gGetShortName());
             }
             int idx = currentVal == null ? -1 : combo.indexOf(currentVal);
             if (idx >= 0) combo.select(idx);
             combo.addSelectionListener(new SelectionAdapter() {
-                @Override public void widgetSelected(SelectionEvent e) { recheckDirty(); }
+                @Override public void widgetSelected(SelectionEvent e) {
+                    writeTextualParam(param, combo.getText());
+                }
             });
             GridDataFactory.fillDefaults().hint(180, SWT.DEFAULT).applyTo(combo);
             widget = combo;
-            originalText = combo.getText();
-        } else if (param instanceof GFloatParamDef || param instanceof GStringParamDef) {
+        } else if (param instanceof GFloatParamDef) {
             String currentVal = readParamValue(param);
-            Text text = toolkit.createText(parent, currentVal == null ? "" : currentVal, SWT.BORDER);
+            final Text text = toolkit.createText(parent, currentVal == null ? "" : currentVal, SWT.BORDER);
             GridDataFactory.fillDefaults().hint(180, SWT.DEFAULT).applyTo(text);
             text.addModifyListener(new ModifyListener() {
-                @Override public void modifyText(ModifyEvent e) { recheckDirty(); }
+                @Override public void modifyText(ModifyEvent e) {
+                    writeNumericalParam(param, text.getText());
+                }
             });
             widget = text;
-            originalText = text.getText();
+        } else if (param instanceof GStringParamDef) {
+            String currentVal = readParamValue(param);
+            final Text text = toolkit.createText(parent, currentVal == null ? "" : currentVal, SWT.BORDER);
+            GridDataFactory.fillDefaults().hint(180, SWT.DEFAULT).applyTo(text);
+            text.addModifyListener(new ModifyListener() {
+                @Override public void modifyText(ModifyEvent e) {
+                    writeTextualParam(param, text.getText());
+                }
+            });
+            widget = text;
         } else {
             Label note = toolkit.createLabel(parent, "(unsupported type)", SWT.NONE);
             widget = note;
-            originalText = "";
         }
 
-        // Disable widget if no instance container — display is informational only.
+        // Disable widget if no instance container — display informational only.
         if (instanceContainer == null) {
             widget.setEnabled(false);
         }
@@ -209,7 +213,6 @@ public class GenericGeneralFormPage extends FormPage {
         toolkit.createLabel(parent, "", SWT.NONE);
 
         widgets.put(param, widget);
-        originalValues.put(param, originalText);
     }
 
     /**
@@ -221,66 +224,66 @@ public class GenericGeneralFormPage extends FormPage {
         if (instanceContainer == null) return null;
         GParameterValue pv = EcuUtils.getParameterValue(instanceContainer, paramDef);
         if (pv == null) return null;
-        // Numerical (boolean / integer / float) → mixed-text via VariationPoint;
-        // textual (string / enum) → typed getValue().
-        if (pv instanceof autosar40.ecucdescription.EcucNumericalParamValue) {
-            autosar40.ecucdescription.EcucNumericalParamValue n =
-                    (autosar40.ecucdescription.EcucNumericalParamValue) pv;
+        if (pv instanceof EcucNumericalParamValue) {
+            EcucNumericalParamValue n = (EcucNumericalParamValue) pv;
             return n.getValue() == null ? null : n.getValue().getMixedText();
         }
-        if (pv instanceof autosar40.ecucdescription.EcucTextualParamValue) {
-            return ((autosar40.ecucdescription.EcucTextualParamValue) pv).getValue();
+        if (pv instanceof EcucTextualParamValue) {
+            return ((EcucTextualParamValue) pv).getValue();
         }
         return null;
     }
 
     /**
-     * Compare each widget's current value against snapshot at page-create;
-     * mark editor dirty if any differ. Editor's {@code firePropertyChange}
-     * picks up via {@code isDirty()} override (E5-4 wires the link).
+     * 把 numerical (boolean / integer / float) 参数的新值经 SetCommand 写到
+     * NumericalValueVariationPoint.mixedText。Sphinx CommandStack 自动 fire dirty。
      */
-    private void recheckDirty() {
-        // For now just compute, don't fire — wiring to FormEditor happens at E5-4.
-        // (Hook reserved so logic is ready.)
-        for (Map.Entry<GConfigParameter, Control> e : widgets.entrySet()) {
-            String now = widgetValue(e.getValue());
-            String orig = originalValues.getOrDefault(e.getKey(), "");
-            if (!now.equals(orig)) {
-                // Dirty. E5-4: editor.setDirty(true);
-                return;
-            }
+    private void writeNumericalParam(GConfigParameter param, String newText) {
+        if (instanceContainer == null) return;
+        GParameterValue pv = EcuUtils.getParameterValue(instanceContainer, param);
+        if (pv instanceof EcucNumericalParamValue) {
+            EcucWriteActions.setNumericalText(editor(), (EcucNumericalParamValue) pv, newText);
+        } else if (pv == null) {
+            // S3.5: 当前 Demo arxml 所有参数都已实例化, 这条不该触发。撞了说明
+            // schema 派的参数没初始化 — 走 CompoundCommand 创 pv + 设 wrapper + 设 mixedText。
+            log("writeNumericalParam: pv missing for " + param.gGetShortName()
+                    + " — skip (S3.5 will create pv via CompoundCommand)");
+        } else {
+            log("writeNumericalParam: pv has unexpected type " + pv.eClass().getName()
+                    + " for " + param.gGetShortName());
         }
-        // Clean. E5-4: editor.setDirty(false);
-    }
-
-    /** Read a widget's current value as a string suitable for dirty compare / save. */
-    private static String widgetValue(Control w) {
-        if (w instanceof Button) return ((Button) w).getSelection() ? "true" : "false";
-        if (w instanceof Spinner) return String.valueOf(((Spinner) w).getSelection());
-        if (w instanceof Combo) return ((Combo) w).getText();
-        if (w instanceof Text) return ((Text) w).getText();
-        return "";
     }
 
     /**
-     * Iterate widgets and surface every (paramShortName, newValue) tuple that
-     * differs from snapshot — caller persists via {@link
-     * cn.com.myorg.bswbuilder.modules.memif.data.MemIfArxmlWriter#writeParam}
-     * (or the generalized writer in E5-4).
-     *
-     * @return number of changed entries; 0 if clean.
+     * 把 textual (string / enum) 参数的新值经 SetCommand 写到 EcucTextualParamValue.value。
      */
-    public int collectChangedParams(Map<String, String> outDeltaByParamShortName) {
-        int n = 0;
-        for (Map.Entry<GConfigParameter, Control> e : widgets.entrySet()) {
-            String now = widgetValue(e.getValue());
-            String orig = originalValues.getOrDefault(e.getKey(), "");
-            if (!now.equals(orig)) {
-                outDeltaByParamShortName.put(e.getKey().gGetShortName(), now);
-                n++;
-            }
+    private void writeTextualParam(GConfigParameter param, String newValue) {
+        if (instanceContainer == null) return;
+        GParameterValue pv = EcuUtils.getParameterValue(instanceContainer, param);
+        if (pv instanceof EcucTextualParamValue) {
+            EcucWriteActions.setTextualValue(editor(), (EcucTextualParamValue) pv, newValue);
+        } else if (pv == null) {
+            log("writeTextualParam: pv missing for " + param.gGetShortName()
+                    + " — skip (S3.5 will create pv via CompoundCommand)");
+        } else {
+            log("writeTextualParam: pv has unexpected type " + pv.eClass().getName()
+                    + " for " + param.gGetShortName());
         }
-        return n;
+    }
+
+    private BasicTransactionalFormEditor editor() {
+        FormEditor e = getEditor();
+        return (e instanceof BasicTransactionalFormEditor) ? (BasicTransactionalFormEditor) e : null;
+    }
+
+    private static void log(String msg) {
+        try {
+            Activator a = Activator.getDefault();
+            if (a != null) {
+                a.getLog().log(new Status(IStatus.INFO, Activator.PLUGIN_ID,
+                        "[GenericGeneralFormPage] " + msg));
+            }
+        } catch (Throwable ignored) { /* fallback silent */ }
     }
 
     public GContainerDef getContainerDef() { return containerDef; }
