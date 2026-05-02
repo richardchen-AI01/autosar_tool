@@ -2,11 +2,9 @@ package cn.com.myorg.bswbuilder.ui.editor.utils;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.emf.common.command.Command;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EStructuralFeature;
-import org.eclipse.emf.edit.command.SetCommand;
 import org.eclipse.emf.edit.domain.EditingDomain;
+import org.eclipse.emf.transaction.RecordingCommand;
 import org.eclipse.emf.transaction.TransactionalEditingDomain;
 import org.eclipse.sphinx.emf.editors.forms.BasicTransactionalFormEditor;
 import org.eclipse.sphinx.emf.util.WorkspaceEditingDomainUtil;
@@ -64,20 +62,24 @@ public final class EcucWriteActions {
 
     /**
      * 给 {@link EcucNumericalParamValue} 包装的 {@link NumericalValueVariationPoint}
-     * 的 {@code mixedText} feature (从 FormulaExpression 继承) 写新值, via
-     * SetCommand。返 false 时调用方应记录失败 (domain 缺 / feature 缺 / wrapper 缺)。
+     * 的 mixedText 写新值, via {@link RecordingCommand}。
+     *
+     * <p>注意 mixedText 是 FormulaExpression 的 Java 派生 setter (内部把 String 写进
+     * 真正的 {@code mixed} FeatureMap), **不是 Ecore EAttribute** — 直接
+     * {@code getEStructuralFeature("mixedText")} 返 null。所以这里不用 SetCommand,
+     * 改用 RecordingCommand 包裹 typed setter, 它录制 doExecute() 内的所有 EMF
+     * 通知 + 自动支持 undo + 进 CommandStack 触发 dirty。
      */
     public static boolean setNumericalText(BasicTransactionalFormEditor editor,
                                            EcucNumericalParamValue pv,
-                                           String newText) {
+                                           final String newText) {
         if (pv == null) {
             log("setNumericalText: pv==null");
             return false;
         }
-        NumericalValueVariationPoint vp = pv.getValue();
+        final NumericalValueVariationPoint vp = pv.getValue();
         if (vp == null) {
-            // S3.5 TODO: pv.value wrapper 不存在 → 用 CompoundCommand 先 SetCommand 创 wrapper
-            // 再 SetCommand 设 mixedText。当前 Demo arxml 所有参数都已实例化, vp 不会 null。
+            // S3.5 TODO: pv.value wrapper 不存在 → CompoundCommand 创 wrapper 再设 mixedText。
             log("setNumericalText: pv.getValue() returned null (wrapper missing)");
             return false;
         }
@@ -86,22 +88,22 @@ public final class EcucWriteActions {
             log("setNumericalText: no TransactionalEditingDomain for " + describe(vp));
             return false;
         }
-        EStructuralFeature feature = vp.eClass().getEStructuralFeature("mixedText");
-        if (feature == null) {
-            log("setNumericalText: no feature 'mixedText' on " + vp.eClass().getName());
-            return false;
-        }
-        Command cmd = SetCommand.create(d, vp, feature, newText);
-        d.getCommandStack().execute(cmd);
+        d.getCommandStack().execute(new RecordingCommand(d, "Set numerical value") {
+            @Override protected void doExecute() {
+                vp.setMixedText(newText);
+            }
+        });
         return true;
     }
 
     /**
-     * 给 {@link EcucTextualParamValue} 的 {@code value} feature 写新值, via SetCommand。
+     * 给 {@link EcucTextualParamValue} 的 value 写新值, via {@link RecordingCommand}。
+     * 用 RecordingCommand 跟 numerical 路径保持一致 (SetCommand 也行, 但 textual
+     * params 的 value feature 同样是 typed accessor 派生, 直接 typed setter + record 最稳)。
      */
     public static boolean setTextualValue(BasicTransactionalFormEditor editor,
-                                          EcucTextualParamValue pv,
-                                          String newValue) {
+                                          final EcucTextualParamValue pv,
+                                          final String newValue) {
         if (pv == null) {
             log("setTextualValue: pv==null");
             return false;
@@ -111,13 +113,11 @@ public final class EcucWriteActions {
             log("setTextualValue: no TransactionalEditingDomain for " + describe(pv));
             return false;
         }
-        EStructuralFeature feature = pv.eClass().getEStructuralFeature("value");
-        if (feature == null) {
-            log("setTextualValue: no feature 'value' on " + pv.eClass().getName());
-            return false;
-        }
-        Command cmd = SetCommand.create(d, pv, feature, newValue);
-        d.getCommandStack().execute(cmd);
+        d.getCommandStack().execute(new RecordingCommand(d, "Set textual value") {
+            @Override protected void doExecute() {
+                pv.setValue(newValue);
+            }
+        });
         return true;
     }
 
