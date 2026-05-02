@@ -122,7 +122,7 @@ public class GenericMasterDetailFormPage extends FormPage {
         ScrolledForm form = managedForm.getForm();
         String moduleName = module.gGetShortName();
         String containerName = containerDef.gGetShortName();
-        form.setText(moduleName + " — " + containerName + " (右键 New / Delete / Rename)");
+        form.setText(moduleName + " — " + containerName);
 
         Composite body = form.getBody();
         GridLayoutFactory.fillDefaults().margins(5, 5).applyTo(body);
@@ -209,26 +209,74 @@ public class GenericMasterDetailFormPage extends FormPage {
         tree.setMenu(menu);
     }
 
-    /** 动态填充右键菜单 — selection 决定哪些 action 启用。 */
+    /**
+     * 动态填充右键菜单, 跟参考 V25.10 MasterFormSection.createContextMenu (line 547-577) 对齐:
+     * <ul>
+     *   <li>"New" 子菜单 — 每个子容器 def 一项 ("New &lt;subContainerDefShortName&gt;")
+     *       (来自 CreateContainerActionProvider.fillContextMenu, line 86-100)</li>
+     *   <li>"Del Element" — 跟 DeleteBswContainerAction line 81 同 label</li>
+     *   <li>"Copy Element" — 跟 CopyBswContainerAction line 97 同 label</li>
+     *   <li>"ReName Element" — 跟 RenameBswContainerAction line 130 同 label</li>
+     * </ul>
+     *
+     * <p>偏离参考的一处: 当 selection 为空时(空白处右键), 参考菜单显示"啥都没有"
+     * (因为 reference 模块级 create 在 AUTOSAR Explorer 路径), 我们 v0.2 这里多放一项
+     * "New &lt;containerDefShortName&gt;" 让用户能从 master-detail 页直接建顶层容器,
+     * 避免要求用户切换到别的视图。
+     */
     private void fillContextMenu(IMenuManager mm) {
         final GContainer selected = currentSelection();
 
-        // New <ContainerName> — 总是启用
-        mm.add(new Action("New " + containerDef.gGetShortName()) {
-            @Override public void run() { runNew(); }
-        });
-
-        if (selected != null) {
-            mm.add(new Action("Delete") {
-                @Override public void run() { runDelete(selected); }
+        if (selected == null) {
+            // 空白处右键 — 提供顶层 create 入口 (我们的 v0.2 便利, 参考没有这条)
+            mm.add(new Action("New " + containerDef.gGetShortName()) {
+                @Override public void run() { runNewTopLevel(); }
             });
-            mm.add(new Action("Rename...") {
-                @Override public void run() { runRename(selected); }
-            });
-            mm.add(new Action("Duplicate") {
-                @Override public void run() { runDuplicate(selected); }
-            });
+            return;
         }
+
+        // "New" submenu — 列 selected 的子容器 defs (parent.gGetDefinition().gGetSubContainers/gGetChoices)
+        // 跟参考 CreateContainerActionProvider.getSubContainerDefArray 同款 dispatch。
+        List<GContainerDef> subDefs = collectSubContainerDefs(selected);
+        if (!subDefs.isEmpty()) {
+            MenuManager newSub = new MenuManager("New");
+            for (final GContainerDef subDef : subDefs) {
+                newSub.add(new Action("New " + subDef.gGetShortName()) {
+                    @Override public void run() { runNewChild(selected, subDef); }
+                });
+            }
+            mm.add(newSub);
+        }
+
+        // 跟参考 MasterFormSection:567-573 同顺序 + 同 label.
+        mm.add(new Action("Del Element") {
+            @Override public void run() { runDelete(selected); }
+        });
+        mm.add(new Action("Copy Element") {
+            @Override public void run() { runDuplicate(selected); }
+        });
+        mm.add(new Action("ReName Element") {
+            @Override public void run() { runRename(selected); }
+        });
+    }
+
+    /**
+     * 跟参考 CreateContainerActionProvider.getSubContainerDefArray 同 dispatch:
+     * GParamConfContainerDef → gGetSubContainers,
+     * GChoiceContainerDef    → gGetChoices.
+     */
+    private static List<GContainerDef> collectSubContainerDefs(GContainer container) {
+        List<GContainerDef> out = new ArrayList<>();
+        if (container == null) return out;
+        GContainerDef def = container.gGetDefinition();
+        if (def instanceof GParamConfContainerDef) {
+            for (GContainerDef sub : ((GParamConfContainerDef) def).gGetSubContainers()) {
+                out.add(sub);
+            }
+        }
+        // GChoiceContainerDef 的 sub 通过 gGetChoices, ARTOP 类名是 GChoiceContainerDef
+        // — 我们 ECUC 模块当前没用 choice, 暂不加; v0.3 需要时按参考补 dispatch.
+        return out;
     }
 
     private GContainer currentSelection() {
@@ -239,7 +287,8 @@ public class GenericMasterDetailFormPage extends FormPage {
 
     // ============================================================ Action runners
 
-    private void runNew() {
+    /** 顶层 create — 在 module 下加 containerDef 的实例 (空白处右键)。 */
+    private void runNewTopLevel() {
         String defaultName = uniqueDefaultName(containerDef.gGetShortName());
         InputDialog dlg = new InputDialog(masterViewer.getControl().getShell(),
                 "New " + containerDef.gGetShortName(),
@@ -249,13 +298,46 @@ public class GenericMasterDetailFormPage extends FormPage {
         String name = dlg.getValue();
         if (name == null || name.isEmpty()) return;
 
-        GContainer created = EcucWriteActions.addContainer(editor(), module, containerDef, name);
+        GContainer created = EcucWriteActions.addContainerUnder(editor(), (org.eclipse.emf.ecore.EObject) module,
+                containerDef, name);
         if (created == null) {
             warn("Add failed", "Could not create new " + containerDef.gGetShortName()
                     + " — see .metadata/.log for details.");
             return;
         }
         refreshInstancesAndSelect(created);
+    }
+
+    /**
+     * 子级 create — 在 selected GContainer 下加 subDef 的实例。跟参考
+     * NewChildContainerAction.run 同款流程 (输 shortName → 创实例 → append 到
+     * parent's subContainers)。
+     */
+    private void runNewChild(GContainer parent, GContainerDef subDef) {
+        String defaultName = subDef.gGetShortName() + "_0";
+        InputDialog dlg = new InputDialog(masterViewer.getControl().getShell(),
+                "New " + subDef.gGetShortName(),
+                "Enter shortName for the new " + subDef.gGetShortName()
+                        + " under " + parent.gGetShortName() + ":",
+                defaultName, null);
+        if (dlg.open() != InputDialog.OK) return;
+        String name = dlg.getValue();
+        if (name == null || name.isEmpty()) return;
+
+        GContainer created = EcucWriteActions.addContainerUnder(editor(),
+                (org.eclipse.emf.ecore.EObject) parent, subDef, name);
+        if (created == null) {
+            warn("Add failed", "Could not create child " + subDef.gGetShortName()
+                    + " under " + parent.gGetShortName());
+            return;
+        }
+        // 子容器创建后, master tree 不直接显示 (master tree 只列 module 顶层 containerDef
+        // 实例); 但 EMF 模型已经修改, dirty 已标。selected 行 detail 重 render 显示新子容器
+        // 需要 v0.3 加 nested sub-container 渲染 (留 task #51 调研)。
+        // 这里至少 refresh 一下 detail 让 detail layout 重新计算。
+        if (selectedInstance == parent) {
+            onInstanceSelected(parent);
+        }
     }
 
     private void runDelete(final GContainer victim) {

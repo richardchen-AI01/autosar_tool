@@ -262,7 +262,7 @@ python3 -m validator -i bad_2171 -m MemIf 2>&1 | grep -c 'Rule_BSW_MemIf_TCPP_21
 
 ### M2.5 docs §15 的端到端补丁实战可重现（**关键**）
 
-复刻 `docs/reference/04-recipes/01-add-new-param-end-to-end.md` 的实战：
+复刻 `reference/autosar-cfg/docs/04-recipes/15-add-new-param-end-to-end.md` 的实战：
 
 1. 在 `ide/modules/.../MemIfDef.arxml` 加 `MemIfModuleVersion` STRING param 默认值 `TEST_PROBE_42_V25_10`
 2. `schemas/common/MemIfDef.arxml` 同步加

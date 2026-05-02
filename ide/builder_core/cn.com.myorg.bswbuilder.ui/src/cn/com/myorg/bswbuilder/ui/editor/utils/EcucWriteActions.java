@@ -130,53 +130,64 @@ public final class EcucWriteActions {
     }
 
     /**
-     * S5: 在 module 下创建一个新 EcucContainerValue, 设 shortName + definition,
-     * 加进 module.gGetContainers()。用 RecordingCommand 包裹整段, dirty 自动亮。
+     * S5: 在 parent 下创建一个新 EcucContainerValue, 设 shortName + definition,
+     * 加进 parent's containers list. parent 可以是 EcucModuleConfigurationValues
+     * (顶层) 或 GContainer (子级) — 内部 dispatch 到正确的 list:
+     * <ul>
+     *   <li>EcucModuleConfigurationValues → getContainers().add</li>
+     *   <li>GContainer → gGetSubContainers().add</li>
+     * </ul>
      *
-     * <p>跟参考 V25.10 CreateContainerActionProvider + MetaModelDescriptorParser
-     * 的"创新容器"路径同款 EMF 写入: 创实例 → 设引用 → append 到 parent's containers。
-     * 我们 v0.2 不复刻 reference 的 UIDefinition 默认值填充层 — 创空容器, 用户用
-     * detail form 自己填; 后续 S5.5 polish 可以加 schema-driven default value 自动
-     * 填充。
+     * <p>跟参考 V25.10 NewChildContainerAction 同款 (不论 module-level 还是
+     * sub-container-level, 都从同入口创建)。
      *
      * @return 新建容器 (写入完成后, 可用于 viewer 重选)，或 null 表示失败。
      */
-    public static GContainer addContainer(BasicTransactionalFormEditor editor,
-                                          final GModuleConfiguration parent,
-                                          final GContainerDef def,
-                                          final String shortName) {
+    public static GContainer addContainerUnder(BasicTransactionalFormEditor editor,
+                                               final EObject parent,
+                                               final GContainerDef def,
+                                               final String shortName) {
         if (parent == null || def == null) {
-            log("addContainer: parent/def null");
+            log("addContainerUnder: parent/def null");
             return null;
         }
-        TransactionalEditingDomain d = pickDomain(editor, (EObject) parent);
+        TransactionalEditingDomain d = pickDomain(editor, parent);
         if (d == null) {
-            log("addContainer: no TransactionalEditingDomain");
-            return null;
-        }
-        if (!(parent instanceof EcucModuleConfigurationValues)) {
-            log("addContainer: parent is not EcucModuleConfigurationValues, got "
-                    + ((EObject) parent).eClass().getName());
+            log("addContainerUnder: no TransactionalEditingDomain");
             return null;
         }
         if (!(def instanceof EcucContainerDef)) {
-            log("addContainer: def is not EcucContainerDef, got "
-                    + ((EObject) def).eClass().getName());
+            log("addContainerUnder: def is not EcucContainerDef, got " + def.getClass().getName());
             return null;
         }
-        final EcucModuleConfigurationValues moduleVal = (EcucModuleConfigurationValues) parent;
         final EcucContainerDef containerDef = (EcucContainerDef) def;
         final EcucContainerValue[] holder = new EcucContainerValue[1];
         d.getCommandStack().execute(new RecordingCommand(d, "Add " + def.gGetShortName()) {
+            @SuppressWarnings("unchecked")
             @Override protected void doExecute() {
                 EcucContainerValue cv = EcucdescriptionFactory.eINSTANCE.createEcucContainerValue();
                 cv.setShortName(shortName);
                 cv.setDefinition(containerDef);
-                moduleVal.getContainers().add(cv);
+                if (parent instanceof EcucModuleConfigurationValues) {
+                    ((EcucModuleConfigurationValues) parent).getContainers().add(cv);
+                } else if (parent instanceof GContainer) {
+                    ((GContainer) parent).gGetSubContainers().add(cv);
+                } else {
+                    log("addContainerUnder: parent type not supported: " + parent.eClass().getName());
+                    return;
+                }
                 holder[0] = cv;
             }
         });
         return holder[0];
+    }
+
+    /** Backwards-compat shim — 保留, 内部 dispatch 到 addContainerUnder。 */
+    public static GContainer addContainer(BasicTransactionalFormEditor editor,
+                                          GModuleConfiguration parent,
+                                          GContainerDef def,
+                                          String shortName) {
+        return addContainerUnder(editor, (EObject) parent, def, shortName);
     }
 
     /**
