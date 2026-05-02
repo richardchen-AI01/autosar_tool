@@ -3,16 +3,24 @@ package cn.com.myorg.bswbuilder.ui.editor.utils;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.emf.edit.domain.EditingDomain;
 import org.eclipse.emf.transaction.RecordingCommand;
 import org.eclipse.emf.transaction.TransactionalEditingDomain;
 import org.eclipse.sphinx.emf.editors.forms.BasicTransactionalFormEditor;
 import org.eclipse.sphinx.emf.util.WorkspaceEditingDomainUtil;
 
+import autosar40.ecucdescription.EcucContainerValue;
+import autosar40.ecucdescription.EcucModuleConfigurationValues;
 import autosar40.ecucdescription.EcucNumericalParamValue;
 import autosar40.ecucdescription.EcucTextualParamValue;
+import autosar40.ecucdescription.EcucdescriptionFactory;
+import autosar40.ecucparameterdef.EcucContainerDef;
 import autosar40.genericstructure.varianthandling.attributevaluevariationpoints.NumericalValueVariationPoint;
 import cn.com.myorg.bswbuilder.ui.Activator;
+import gautosar.gecucdescription.GContainer;
+import gautosar.gecucdescription.GModuleConfiguration;
+import gautosar.gecucparameterdef.GContainerDef;
 
 /**
  * Write-back helpers wrapping ECUC value mutations as EMF
@@ -119,6 +127,176 @@ public final class EcucWriteActions {
             }
         });
         return true;
+    }
+
+    /**
+     * S5: 在 module 下创建一个新 EcucContainerValue, 设 shortName + definition,
+     * 加进 module.gGetContainers()。用 RecordingCommand 包裹整段, dirty 自动亮。
+     *
+     * <p>跟参考 V25.10 CreateContainerActionProvider + MetaModelDescriptorParser
+     * 的"创新容器"路径同款 EMF 写入: 创实例 → 设引用 → append 到 parent's containers。
+     * 我们 v0.2 不复刻 reference 的 UIDefinition 默认值填充层 — 创空容器, 用户用
+     * detail form 自己填; 后续 S5.5 polish 可以加 schema-driven default value 自动
+     * 填充。
+     *
+     * @return 新建容器 (写入完成后, 可用于 viewer 重选)，或 null 表示失败。
+     */
+    public static GContainer addContainer(BasicTransactionalFormEditor editor,
+                                          final GModuleConfiguration parent,
+                                          final GContainerDef def,
+                                          final String shortName) {
+        if (parent == null || def == null) {
+            log("addContainer: parent/def null");
+            return null;
+        }
+        TransactionalEditingDomain d = pickDomain(editor, (EObject) parent);
+        if (d == null) {
+            log("addContainer: no TransactionalEditingDomain");
+            return null;
+        }
+        if (!(parent instanceof EcucModuleConfigurationValues)) {
+            log("addContainer: parent is not EcucModuleConfigurationValues, got "
+                    + ((EObject) parent).eClass().getName());
+            return null;
+        }
+        if (!(def instanceof EcucContainerDef)) {
+            log("addContainer: def is not EcucContainerDef, got "
+                    + ((EObject) def).eClass().getName());
+            return null;
+        }
+        final EcucModuleConfigurationValues moduleVal = (EcucModuleConfigurationValues) parent;
+        final EcucContainerDef containerDef = (EcucContainerDef) def;
+        final EcucContainerValue[] holder = new EcucContainerValue[1];
+        d.getCommandStack().execute(new RecordingCommand(d, "Add " + def.gGetShortName()) {
+            @Override protected void doExecute() {
+                EcucContainerValue cv = EcucdescriptionFactory.eINSTANCE.createEcucContainerValue();
+                cv.setShortName(shortName);
+                cv.setDefinition(containerDef);
+                moduleVal.getContainers().add(cv);
+                holder[0] = cv;
+            }
+        });
+        return holder[0];
+    }
+
+    /**
+     * S5: 删一个容器 — 从其 eContainer 的 containers/subContainers 列表 remove。
+     * 跟参考 V25.10 DeleteBswContainerAction:96 同款 (eContainer 类型分支:
+     * EcucModuleConfigurationValues.getContainers() vs GContainer.gGetSubContainers())。
+     * 我们 v0.2 跳过 reference 的 ModelUtils.getEObjectByCompleteURI 联动清引用 —
+     * 留 v0.3 polish (用户删一个 block 后可能其他 block 还在 ref 它, 暂时 EMF 让它指向
+     * 死引用 — 后续 ResourceImpl save 序列化时 EMF 自动清 dangling ref)。
+     */
+    public static boolean removeContainer(BasicTransactionalFormEditor editor,
+                                           final GContainer container) {
+        if (container == null) {
+            log("removeContainer: container null");
+            return false;
+        }
+        TransactionalEditingDomain d = pickDomain(editor, (EObject) container);
+        if (d == null) {
+            log("removeContainer: no TransactionalEditingDomain");
+            return false;
+        }
+        final EObject parent = ((EObject) container).eContainer();
+        if (parent == null) {
+            log("removeContainer: container has no eContainer (already detached?)");
+            return false;
+        }
+        d.getCommandStack().execute(new RecordingCommand(d, "Delete " + container.gGetShortName()) {
+            @Override protected void doExecute() {
+                if (parent instanceof EcucModuleConfigurationValues) {
+                    ((EcucModuleConfigurationValues) parent).getContainers().remove(container);
+                } else if (parent instanceof GContainer) {
+                    ((GContainer) parent).gGetSubContainers().remove(container);
+                } else {
+                    EcoreUtil.remove((EObject) container);
+                }
+            }
+        });
+        return true;
+    }
+
+    /**
+     * S5: 重命名 container. 走 typed gSetShortName (跟参考 V25.10
+     * RenameBswContainerAction:271-273 同款 SetCommand 写 nameFeature, 我们用
+     * RecordingCommand 包 typed setter 跟 numerical/textual 路径统一)。
+     */
+    public static boolean renameContainer(BasicTransactionalFormEditor editor,
+                                           final GContainer container,
+                                           final String newShortName) {
+        if (container == null || newShortName == null || newShortName.isEmpty()) {
+            log("renameContainer: container/newName null/empty");
+            return false;
+        }
+        TransactionalEditingDomain d = pickDomain(editor, (EObject) container);
+        if (d == null) {
+            log("renameContainer: no TransactionalEditingDomain");
+            return false;
+        }
+        d.getCommandStack().execute(new RecordingCommand(d, "Rename") {
+            @Override protected void doExecute() {
+                container.gSetShortName(newShortName);
+            }
+        });
+        return true;
+    }
+
+    /**
+     * S5: 复制一个容器到同 parent — EcoreUtil.copy 深拷贝, append "_copy" 到 shortName,
+     * append 到 parent containers 列表。Sphinx CommandStack 自动 dirty。
+     */
+    public static GContainer duplicateContainer(BasicTransactionalFormEditor editor,
+                                                 final GContainer src) {
+        if (src == null) {
+            log("duplicateContainer: src null");
+            return null;
+        }
+        TransactionalEditingDomain d = pickDomain(editor, (EObject) src);
+        if (d == null) {
+            log("duplicateContainer: no TransactionalEditingDomain");
+            return null;
+        }
+        final EObject parent = ((EObject) src).eContainer();
+        if (parent == null) {
+            log("duplicateContainer: src has no eContainer");
+            return null;
+        }
+        final GContainer[] holder = new GContainer[1];
+        d.getCommandStack().execute(new RecordingCommand(d, "Duplicate " + src.gGetShortName()) {
+            @SuppressWarnings("unchecked")
+            @Override protected void doExecute() {
+                EObject copy = EcoreUtil.copy((EObject) src);
+                if (!(copy instanceof GContainer)) return;
+                GContainer cc = (GContainer) copy;
+                cc.gSetShortName(uniqueSiblingName(parent, src.gGetShortName() + "_copy"));
+                if (parent instanceof EcucModuleConfigurationValues) {
+                    ((EcucModuleConfigurationValues) parent).getContainers().add((EcucContainerValue) cc);
+                } else if (parent instanceof GContainer) {
+                    ((GContainer) parent).gGetSubContainers().add(cc);
+                }
+                holder[0] = cc;
+            }
+        });
+        return holder[0];
+    }
+
+    /** 找一个不冲突的 shortName: name, name_1, name_2, ... 直到 sibling 中没出现。 */
+    private static String uniqueSiblingName(EObject parent, String base) {
+        java.util.Set<String> existing = new java.util.HashSet<>();
+        if (parent instanceof EcucModuleConfigurationValues) {
+            for (Object c : ((EcucModuleConfigurationValues) parent).getContainers()) {
+                if (c instanceof GContainer) existing.add(((GContainer) c).gGetShortName());
+            }
+        } else if (parent instanceof GContainer) {
+            for (Object c : ((GContainer) parent).gGetSubContainers()) {
+                if (c instanceof GContainer) existing.add(((GContainer) c).gGetShortName());
+            }
+        }
+        if (!existing.contains(base)) return base;
+        int i = 1;
+        while (existing.contains(base + "_" + i)) i++;
+        return base + "_" + i;
     }
 
     /**
