@@ -30,12 +30,14 @@ import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Spinner;
 import org.eclipse.swt.widgets.Text;
@@ -68,26 +70,31 @@ import gautosar.gecucparameterdef.GStringParamDef;
 /**
  * Generic master-detail form page — multi-instance container UI.
  *
- * <p>Layout (跟参考 V25.10 cn.com.isoft.bswbuilder.ui.editor.pages.BswMasterDetailFormPage 一致):
+ * <p>跟参考 V25.10 cn.com.isoft.bswbuilder.ui.editor.section.NewAutosarMasterDetailBlock
+ * 的 createMasterPart (line 102-145) 同款 3 栏布局:
  * <pre>
- *   ┌─────────────────┬─────────────────────────┐
- *   │ NvMBlock_Pri_0  │ NvMBlockJobPriority: 1  │
- *   │ NvMBlock_Pri_1  │ NvMBlockUseCrc:    [✓]  │
- *   │ NvMBlock_Pri_2  │ NvMNvBlockLength:  2    │
- *   │ ... (24)        │ ...                     │
- *   └─────────────────┴─────────────────────────┘
- *      master tree           detail form (per-instance)
- *      (右键菜单: New / Delete / Rename / Duplicate)
+ *   ┌─ master tree ──┬─ action panel ─┬─── detail form ───┐
+ *   │ NvMBlock_Pri_0 │ &lt;a&gt;New NvMInit  │ NvMBlockJobPri: 1 │
+ *   │  ▾NvMInit...   │   BlockCallback&lt;/a&gt;  NvMBlockUseCrc:[v]│
+ *   │  ▾NvMSingle..  │ &lt;a&gt;New NvMSingle│ NvMNvBlockLength:2│
+ *   │ NvMBlock_Pri_1 │   BlockCallback&lt;/a&gt;  ...               │
+ *   │ ...            │ &lt;a&gt;Del Element&lt;/a&gt;│                   │
+ *   │                │ &lt;a&gt;Copy Element&lt;/a&gt;│                  │
+ *   │                │ &lt;a&gt;ReName Element&lt;/a&gt;                  │
+ *   └────────────────┴─────────────────┴───────────────────┘
  * </pre>
- *
- * <p>E5-6 S5 修订:
+ * 跟参考一致:
  * <ul>
- *   <li>删 toolbar Add/Remove/Duplicate 占位 — 参考 V25.10 用右键菜单 (MasterFormSection
- *       line 444 MenuManager("#PopupMenu"))</li>
- *   <li>右键菜单加 Action: New &lt;ContainerName&gt;, Delete, Rename..., Duplicate</li>
- *   <li>所有写入经 EcucWriteActions → EMF RecordingCommand → Sphinx CommandStack →
- *       自动 dirty + 撑 undo + Save 时自动写盘 (BTFE.doSave 框架接管)</li>
- *   <li>detail-side widget listeners 接 EcucWriteActions, 跟 GenericGeneralFormPage 同款</li>
+ *   <li>SashForm horizontal weights={10,15} 切 master+action 部分 vs detail 部分</li>
+ *   <li>master+action 部分内部 GridLayout numColumns=2 (master 占左, action 占右)</li>
+ *   <li>action panel 用 SWT {@link Link} "&lt;a&gt;label&lt;/a&gt;" 链接,
+ *       跟参考 NewAutosarMasterDetailBlockActionManager.addActionLink (line 144-148) 同款</li>
+ *   <li>tree 可展开看 sub-containers (NvMBlockDescriptor → NvMInitBlockCallback /
+ *       NvMSingleBlockCallback) — getChildren = {@link GContainer#gGetSubContainers}</li>
+ *   <li>右键菜单 + action panel 内容一致 (参考也保留 right-click)</li>
+ *   <li>底部提示 "(Right click to add or remove items)" — 参考 line 142 同 label</li>
+ *   <li>label "Del Element" / "Copy Element" / "ReName Element" / "New &lt;subDef&gt;"
+ *       字面对齐参考</li>
  * </ul>
  */
 public class GenericMasterDetailFormPage extends FormPage {
@@ -95,18 +102,22 @@ public class GenericMasterDetailFormPage extends FormPage {
     private final GModuleConfiguration module;
     private final GContainerDef containerDef;
 
-    /** All instance containers matching containerDef. Refreshed on Add/Delete. */
+    /** Top-level instance containers matching containerDef. */
     private List<GContainer> instances = new ArrayList<>();
 
     private TreeViewer masterViewer;
+    private Composite actionPanel;
     private Composite detailParent;
     private FormToolkit toolkit;
 
-    /** Currently selected instance — drives detail form. */
+    /** Currently selected instance — drives detail form + action panel. */
     private GContainer selectedInstance;
 
     /** Per-selected-instance widget map (rebuilt on each selection change). */
     private final Map<GConfigParameter, Control> detailWidgets = new LinkedHashMap<>();
+
+    /** Currently rendered action links — disposed + rebuilt on selection change. */
+    private final List<Link> actionLinks = new ArrayList<>();
 
     public GenericMasterDetailFormPage(FormEditor editor,
                                        GModuleConfiguration module,
@@ -127,18 +138,35 @@ public class GenericMasterDetailFormPage extends FormPage {
         Composite body = form.getBody();
         GridLayoutFactory.fillDefaults().margins(5, 5).applyTo(body);
 
+        // SashForm 跟参考 NewAutosarAbstractMasterDetailsBlock.createContent line 51-52 同款
+        // weights {10, 15} (master+action 部分 : detail 部分).
         SashForm sash = new SashForm(body, SWT.HORIZONTAL);
         GridDataFactory.fillDefaults().grab(true, true).applyTo(sash);
         toolkit.adapt(sash);
 
-        createMaster(sash);
+        // 左半 master + action panel (内部 GridLayout 2 col, 跟参考 createMasterPart line 109).
+        Composite leftSide = toolkit.createComposite(sash);
+        GridLayout leftGrid = new GridLayout(2, false);
+        leftGrid.marginWidth = 0;
+        leftGrid.marginHeight = 0;
+        leftGrid.horizontalSpacing = 5;
+        leftSide.setLayout(leftGrid);
+
+        createMaster(leftSide);
+        createActionPanel(leftSide);
+
+        // Hint label, 跟参考 createMasterPart line 142 同款.
+        Label hint = toolkit.createLabel(leftSide, "(Right click to add or remove items)");
+        GridData hintGd = new GridData(SWT.FILL, SWT.BEGINNING, true, false, 2, 1);
+        hint.setLayoutData(hintGd);
+
         createDetail(sash);
-        sash.setWeights(new int[] { 30, 70 });
+        sash.setWeights(new int[] { 10, 15 });
 
         refreshInstancesAndSelectFirst();
     }
 
-    /** 重新从 module 抽 containerDef 对应的实例列表, masterViewer.setInput, 默认选第一个。 */
+    /** 重新拉 module 对应 containerDef 的实例列表, viewer.setInput, 默认选第一个。 */
     private void refreshInstancesAndSelectFirst() {
         instances = EcuUtils.getContainersByDef(module, containerDef);
         if (masterViewer != null && !masterViewer.getTree().isDisposed()) {
@@ -148,6 +176,7 @@ public class GenericMasterDetailFormPage extends FormPage {
             masterViewer.setSelection(new StructuredSelection(instances.get(0)), true);
         } else {
             renderEmptyDetail("(no '" + containerDef.gGetShortName() + "' instances configured — 右键 → New)");
+            updateActionPanel(null);
         }
     }
 
@@ -156,6 +185,8 @@ public class GenericMasterDetailFormPage extends FormPage {
     private void createMaster(Composite parent) {
         Composite master = toolkit.createComposite(parent);
         GridLayoutFactory.fillDefaults().applyTo(master);
+        // master 占左侧主要空间.
+        GridDataFactory.fillDefaults().grab(true, true).applyTo(master);
 
         Section section = toolkit.createSection(master, Section.TITLE_BAR);
         section.setText(containerDef.gGetShortName() + " instances");
@@ -184,18 +215,126 @@ public class GenericMasterDetailFormPage extends FormPage {
                 Object first = event.getStructuredSelection().getFirstElement();
                 if (first instanceof GContainer) {
                     onInstanceSelected((GContainer) first);
+                } else {
+                    updateActionPanel(null);
                 }
             }
         });
 
-        // 右键菜单 (跟参考 MasterFormSection line 444 同款 MenuManager("#PopupMenu") pattern)
         installContextMenu();
     }
 
     /**
-     * 装右键菜单到 master tree 控件。menuAboutToShow 动态 fill action,
-     * action 走 EcucWriteActions → CommandStack → Sphinx 自动 dirty。
+     * Tree content provider — 顶层是 instances 列表, 每个 GContainer 的 children 是
+     * gGetSubContainers (跟参考 NewAutosarMasterDetailBlock master tree 同款,
+     * 让 NvMBlockDescriptor 可以展开看 NvMInitBlockCallback / NvMSingleBlockCallback)。
      */
+    private static final class MasterContentProvider
+            implements IStructuredContentProvider, ITreeContentProvider {
+        @SuppressWarnings("unchecked")
+        @Override public Object[] getElements(Object input) {
+            if (input instanceof List) return ((List<Object>) input).toArray();
+            return new Object[0];
+        }
+        @Override public Object[] getChildren(Object element) {
+            if (element instanceof GContainer) {
+                List<GContainer> subs = ((GContainer) element).gGetSubContainers();
+                return subs == null ? new Object[0] : subs.toArray();
+            }
+            return new Object[0];
+        }
+        @Override public Object getParent(Object element) {
+            if (element instanceof GContainer) {
+                org.eclipse.emf.ecore.EObject p = ((org.eclipse.emf.ecore.EObject) element).eContainer();
+                return p instanceof GContainer ? p : null;
+            }
+            return null;
+        }
+        @Override public boolean hasChildren(Object element) {
+            if (element instanceof GContainer) {
+                List<GContainer> subs = ((GContainer) element).gGetSubContainers();
+                return subs != null && !subs.isEmpty();
+            }
+            return false;
+        }
+        @Override public void inputChanged(Viewer viewer, Object oldIn, Object newIn) {}
+        @Override public void dispose() {}
+    }
+
+    // ============================================================ action panel (中间一栏)
+
+    /**
+     * 创建中间 action panel 容器, 内容由 {@link #updateActionPanel} 在 selectionChanged
+     * 时动态填充 (跟参考 NewAutosarMasterDetailBlockActionManager 同款生命周期)。
+     */
+    private void createActionPanel(Composite parent) {
+        actionPanel = toolkit.createComposite(parent);
+        GridLayout gl = new GridLayout(1, true);
+        gl.marginWidth = 8;
+        gl.marginHeight = 8;
+        gl.verticalSpacing = 4;
+        actionPanel.setLayout(gl);
+        // 固定窗口宽度让 action panel 不被压缩.
+        GridData gd = new GridData(SWT.FILL, SWT.FILL, false, true);
+        gd.widthHint = 200;
+        actionPanel.setLayoutData(gd);
+    }
+
+    /**
+     * 根据当前选中的 GContainer 重建 action panel 链接列表 — 跟右键菜单 (fillContextMenu)
+     * 的 action 集合一致, 仅渲染形态不同 (Link "&lt;a&gt;label&lt;/a&gt;" vs MenuItem)。
+     * 跟参考 NewAutosarMasterDetailBlockActionManager.fillComposite (line 118) +
+     * addActionLink (line 144) 同 pattern。
+     */
+    private void updateActionPanel(final GContainer selected) {
+        if (actionPanel == null || actionPanel.isDisposed()) return;
+        // clear 旧链接
+        for (Link l : actionLinks) {
+            if (!l.isDisposed()) l.dispose();
+        }
+        actionLinks.clear();
+
+        if (selected == null) {
+            // 空白选 — 只显示顶层 New 链接 (v0.2 便利项)
+            addActionLink("New " + containerDef.gGetShortName(), new Runnable() {
+                @Override public void run() { runNewTopLevel(); }
+            });
+        } else {
+            // selected 的 sub-container defs 各加一条 "New <subDef>"
+            for (final GContainerDef subDef : collectSubContainerDefs(selected)) {
+                final String linkText = "New " + subDef.gGetShortName();
+                addActionLink(linkText, new Runnable() {
+                    @Override public void run() { runNewChild(selected, subDef); }
+                });
+            }
+            // 跟参考 MasterFormSection:567-573 顺序: Del / Copy / ReName.
+            addActionLink("Del Element", new Runnable() {
+                @Override public void run() { runDelete(selected); }
+            });
+            addActionLink("Copy Element", new Runnable() {
+                @Override public void run() { runDuplicate(selected); }
+            });
+            addActionLink("ReName Element", new Runnable() {
+                @Override public void run() { runRename(selected); }
+            });
+        }
+        actionPanel.layout(true, true);
+    }
+
+    /** Add a Link with "&lt;a&gt;text&lt;/a&gt;" — 跟参考 ActionManager.addActionLink line 146 同 markup。 */
+    private void addActionLink(String text, final Runnable onClick) {
+        Link link = new Link(actionPanel, SWT.NONE);
+        link.setText("<a>" + text + "</a>");
+        link.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false));
+        link.addSelectionListener(new SelectionAdapter() {
+            @Override public void widgetSelected(SelectionEvent e) { onClick.run(); }
+        });
+        toolkit.adapt(link, true, true);
+        actionLinks.add(link);
+    }
+
+    // ============================================================ right-click menu (跟 action panel 内容一致)
+
     private void installContextMenu() {
         MenuManager menuManager = new MenuManager("#PopupMenu");
         menuManager.setRemoveAllWhenShown(true);
@@ -210,33 +349,21 @@ public class GenericMasterDetailFormPage extends FormPage {
     }
 
     /**
-     * 动态填充右键菜单, 跟参考 V25.10 MasterFormSection.createContextMenu (line 547-577) 对齐:
-     * <ul>
-     *   <li>"New" 子菜单 — 每个子容器 def 一项 ("New &lt;subContainerDefShortName&gt;")
-     *       (来自 CreateContainerActionProvider.fillContextMenu, line 86-100)</li>
-     *   <li>"Del Element" — 跟 DeleteBswContainerAction line 81 同 label</li>
-     *   <li>"Copy Element" — 跟 CopyBswContainerAction line 97 同 label</li>
-     *   <li>"ReName Element" — 跟 RenameBswContainerAction line 130 同 label</li>
-     * </ul>
-     *
-     * <p>偏离参考的一处: 当 selection 为空时(空白处右键), 参考菜单显示"啥都没有"
-     * (因为 reference 模块级 create 在 AUTOSAR Explorer 路径), 我们 v0.2 这里多放一项
-     * "New &lt;containerDefShortName&gt;" 让用户能从 master-detail 页直接建顶层容器,
-     * 避免要求用户切换到别的视图。
+     * 跟 {@link #updateActionPanel} 内容一致, 仅 Action vs Link 渲染差。
+     * 跟参考 V25.10 MasterFormSection.createContextMenu (line 547-577) 字面对齐:
+     * "New" submenu (CreateContainerActionProvider) + "Del Element" /
+     * "Copy Element" / "ReName Element"。
      */
     private void fillContextMenu(IMenuManager mm) {
         final GContainer selected = currentSelection();
 
         if (selected == null) {
-            // 空白处右键 — 提供顶层 create 入口 (我们的 v0.2 便利, 参考没有这条)
             mm.add(new Action("New " + containerDef.gGetShortName()) {
                 @Override public void run() { runNewTopLevel(); }
             });
             return;
         }
 
-        // "New" submenu — 列 selected 的子容器 defs (parent.gGetDefinition().gGetSubContainers/gGetChoices)
-        // 跟参考 CreateContainerActionProvider.getSubContainerDefArray 同款 dispatch。
         List<GContainerDef> subDefs = collectSubContainerDefs(selected);
         if (!subDefs.isEmpty()) {
             MenuManager newSub = new MenuManager("New");
@@ -247,8 +374,6 @@ public class GenericMasterDetailFormPage extends FormPage {
             }
             mm.add(newSub);
         }
-
-        // 跟参考 MasterFormSection:567-573 同顺序 + 同 label.
         mm.add(new Action("Del Element") {
             @Override public void run() { runDelete(selected); }
         });
@@ -260,10 +385,16 @@ public class GenericMasterDetailFormPage extends FormPage {
         });
     }
 
+    private GContainer currentSelection() {
+        if (masterViewer == null) return null;
+        Object first = masterViewer.getStructuredSelection().getFirstElement();
+        return first instanceof GContainer ? (GContainer) first : null;
+    }
+
     /**
      * 跟参考 CreateContainerActionProvider.getSubContainerDefArray 同 dispatch:
      * GParamConfContainerDef → gGetSubContainers,
-     * GChoiceContainerDef    → gGetChoices.
+     * GChoiceContainerDef → gGetChoices (v0.2 暂不接 — 当前 ECUC 模块没用 choice)。
      */
     private static List<GContainerDef> collectSubContainerDefs(GContainer container) {
         List<GContainerDef> out = new ArrayList<>();
@@ -274,20 +405,12 @@ public class GenericMasterDetailFormPage extends FormPage {
                 out.add(sub);
             }
         }
-        // GChoiceContainerDef 的 sub 通过 gGetChoices, ARTOP 类名是 GChoiceContainerDef
-        // — 我们 ECUC 模块当前没用 choice, 暂不加; v0.3 需要时按参考补 dispatch.
         return out;
-    }
-
-    private GContainer currentSelection() {
-        if (masterViewer == null) return null;
-        Object first = masterViewer.getStructuredSelection().getFirstElement();
-        return first instanceof GContainer ? (GContainer) first : null;
     }
 
     // ============================================================ Action runners
 
-    /** 顶层 create — 在 module 下加 containerDef 的实例 (空白处右键)。 */
+    /** 顶层 create — 在 module 下加 containerDef 实例 (空白处右键 / Action panel)。 */
     private void runNewTopLevel() {
         String defaultName = uniqueDefaultName(containerDef.gGetShortName());
         InputDialog dlg = new InputDialog(masterViewer.getControl().getShell(),
@@ -298,21 +421,16 @@ public class GenericMasterDetailFormPage extends FormPage {
         String name = dlg.getValue();
         if (name == null || name.isEmpty()) return;
 
-        GContainer created = EcucWriteActions.addContainerUnder(editor(), (org.eclipse.emf.ecore.EObject) module,
-                containerDef, name);
+        GContainer created = EcucWriteActions.addContainerUnder(editor(),
+                (org.eclipse.emf.ecore.EObject) module, containerDef, name);
         if (created == null) {
-            warn("Add failed", "Could not create new " + containerDef.gGetShortName()
-                    + " — see .metadata/.log for details.");
+            warn("Add failed", "Could not create new " + containerDef.gGetShortName());
             return;
         }
         refreshInstancesAndSelect(created);
     }
 
-    /**
-     * 子级 create — 在 selected GContainer 下加 subDef 的实例。跟参考
-     * NewChildContainerAction.run 同款流程 (输 shortName → 创实例 → append 到
-     * parent's subContainers)。
-     */
+    /** 子级 create — 在 selected 下加 subDef 实例。 */
     private void runNewChild(GContainer parent, GContainerDef subDef) {
         String defaultName = subDef.gGetShortName() + "_0";
         InputDialog dlg = new InputDialog(masterViewer.getControl().getShell(),
@@ -331,20 +449,17 @@ public class GenericMasterDetailFormPage extends FormPage {
                     + " under " + parent.gGetShortName());
             return;
         }
-        // 子容器创建后, master tree 不直接显示 (master tree 只列 module 顶层 containerDef
-        // 实例); 但 EMF 模型已经修改, dirty 已标。selected 行 detail 重 render 显示新子容器
-        // 需要 v0.3 加 nested sub-container 渲染 (留 task #51 调研)。
-        // 这里至少 refresh 一下 detail 让 detail layout 重新计算。
-        if (selectedInstance == parent) {
-            onInstanceSelected(parent);
-        }
+        // Tree 展开 parent 节点让用户立刻看到新建的 sub-container
+        masterViewer.refresh(parent);
+        masterViewer.setExpandedState(parent, true);
+        masterViewer.setSelection(new StructuredSelection(created), true);
     }
 
     private void runDelete(final GContainer victim) {
         if (!MessageDialog.openConfirm(masterViewer.getControl().getShell(),
-                "Delete", "Delete '" + victim.gGetShortName() + "'?")) return;
+                "Del Element", "Delete '" + victim.gGetShortName() + "'?")) return;
         if (!EcucWriteActions.removeContainer(editor(), victim)) {
-            warn("Delete failed", "Could not delete '" + victim.gGetShortName() + "'.");
+            warn("Del Element failed", "Could not delete '" + victim.gGetShortName() + "'.");
             return;
         }
         refreshInstancesAndSelectFirst();
@@ -352,23 +467,24 @@ public class GenericMasterDetailFormPage extends FormPage {
 
     private void runRename(final GContainer target) {
         InputDialog dlg = new InputDialog(masterViewer.getControl().getShell(),
-                "Rename " + target.gGetShortName(),
-                "Enter new shortName:",
+                "ReName Element",
+                "Enter new shortName for '" + target.gGetShortName() + "':",
                 target.gGetShortName(), null);
         if (dlg.open() != InputDialog.OK) return;
         String name = dlg.getValue();
         if (name == null || name.isEmpty() || name.equals(target.gGetShortName())) return;
         if (!EcucWriteActions.renameContainer(editor(), target, name)) {
-            warn("Rename failed", "Could not rename '" + target.gGetShortName() + "'.");
+            warn("ReName Element failed", "Could not rename '" + target.gGetShortName() + "'.");
             return;
         }
-        refreshInstancesAndSelect(target);
+        masterViewer.refresh(target);
+        masterViewer.setSelection(new StructuredSelection(target), true);
     }
 
     private void runDuplicate(final GContainer src) {
         GContainer copy = EcucWriteActions.duplicateContainer(editor(), src);
         if (copy == null) {
-            warn("Duplicate failed", "Could not duplicate '" + src.gGetShortName() + "'.");
+            warn("Copy Element failed", "Could not duplicate '" + src.gGetShortName() + "'.");
             return;
         }
         refreshInstancesAndSelect(copy);
@@ -404,21 +520,6 @@ public class GenericMasterDetailFormPage extends FormPage {
         MessageDialog.openWarning(masterViewer.getControl().getShell(), title, msg);
     }
 
-    /** TreeViewer content provider — flat list of GContainer instances. */
-    private static final class MasterContentProvider
-            implements IStructuredContentProvider, ITreeContentProvider {
-        @SuppressWarnings("unchecked")
-        @Override public Object[] getElements(Object input) {
-            if (input instanceof List) return ((List<Object>) input).toArray();
-            return new Object[0];
-        }
-        @Override public Object[] getChildren(Object element) { return new Object[0]; }
-        @Override public Object getParent(Object element) { return null; }
-        @Override public boolean hasChildren(Object element) { return false; }
-        @Override public void inputChanged(Viewer viewer, Object oldIn, Object newIn) {}
-        @Override public void dispose() {}
-    }
-
     // ============================================================ detail side
 
     private void createDetail(Composite parent) {
@@ -446,14 +547,18 @@ public class GenericMasterDetailFormPage extends FormPage {
         client.setLayout(grid);
         section.setClient(client);
 
-        if (containerDef instanceof GParamConfContainerDef) {
-            GParamConfContainerDef pdef = (GParamConfContainerDef) containerDef;
+        // 渲染 instance 自己 def 的 parameters (顶层 def 可能跟 selected 实际 def 不一样,
+        // 例如展开后选中 sub-container 时, 用 sub-container 自己的 def 渲染参数)
+        GContainerDef instanceDef = instance.gGetDefinition();
+        if (instanceDef instanceof GParamConfContainerDef) {
+            GParamConfContainerDef pdef = (GParamConfContainerDef) instanceDef;
             for (GConfigParameter param : pdef.gGetParameters()) {
                 addRow(client, param, instance);
             }
         }
 
         detailParent.layout(true, true);
+        updateActionPanel(instance);
     }
 
     private void renderEmptyDetail(String message) {
@@ -463,7 +568,7 @@ public class GenericMasterDetailFormPage extends FormPage {
         detailParent.layout(true, true);
     }
 
-    /** detail-side widget listeners 走 EcucWriteActions, 同 GenericGeneralFormPage 模式。 */
+    /** detail-side widget listeners 走 EcucWriteActions, 跟 GenericGeneralFormPage 同款。 */
     private void addRow(Composite parent, final GConfigParameter param, final GContainer instance) {
         Label label = toolkit.createLabel(parent, param.gGetShortName() + ":", SWT.NONE);
         GridDataFactory.fillDefaults().align(SWT.END, SWT.CENTER).applyTo(label);
@@ -530,7 +635,7 @@ public class GenericMasterDetailFormPage extends FormPage {
             widget = note;
         }
 
-        toolkit.createLabel(parent, "", SWT.NONE);   // 3rd col placeholder
+        toolkit.createLabel(parent, "", SWT.NONE);
         detailWidgets.put(param, widget);
     }
 
@@ -554,7 +659,6 @@ public class GenericMasterDetailFormPage extends FormPage {
         }
     }
 
-    /** Mirror {@link GenericGeneralFormPage#readParamValue} — typed instance read. */
     private static String readParamValue(GContainer container, GConfigParameter paramDef) {
         if (container == null) return null;
         GParameterValue pv = EcuUtils.getParameterValue(container, paramDef);
@@ -583,8 +687,6 @@ public class GenericMasterDetailFormPage extends FormPage {
             }
         } catch (Throwable ignored) { /* fallback silent */ }
     }
-
-    // ============================================================ accessors
 
     public GContainerDef getContainerDef() { return containerDef; }
     public GContainer getSelectedInstance()  { return selectedInstance; }
