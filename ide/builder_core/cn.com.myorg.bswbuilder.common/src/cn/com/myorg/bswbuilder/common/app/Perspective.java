@@ -30,10 +30,6 @@ public class Perspective implements IPerspectiveFactory {
     public static final String PROJECT_EXPLORER_VIEW =
             "org.eclipse.ui.navigator.ProjectExplorer";
 
-    /** Custom AUTOSAR Explorer (mal model 4-tier tree, 参考 iSoft 同款 view)。 */
-    public static final String AUTOSAR_EXPLORER_VIEW =
-            "cn.com.myorg.bswbuilder.ui.bswExplorer";
-
     public static final String VALIDATION_VIEW =
             "cn.com.myorg.bswbuilder.ui.views.Validation";
 
@@ -51,13 +47,13 @@ public class Perspective implements IPerspectiveFactory {
         String editorArea = layout.getEditorArea();
         layout.setEditorAreaVisible(true);
 
-        // LEFT: Project Explorer (Eclipse 标准, primary — 跟参考 V25.10 一致)
-        // + AUTOSAR Explorer (mal model 视角, 副 tab)。
-        // 顺序决定默认显示哪个 — addView 先调用的是默认 active tab。
+        // LEFT: Project Explorer (Eclipse 标准 navigator, AUTOSAR-aware via
+        // commonNavigator content extensions). 04-30 删了自撸 bswExplorer view
+        // 后这里的 AUTOSAR_EXPLORER_VIEW addView 抛 e4 invalid-bundleclass,
+        // 整个 perspective layout 退化 — 53 launch 用户看到空白根因.
         IFolderLayout left = layout.createFolder(
                 "left", IPageLayout.LEFT, 0.22f, editorArea);
         left.addView(PROJECT_EXPLORER_VIEW);
-        left.addView(AUTOSAR_EXPLORER_VIEW);
 
         // BOTTOM-LEFT: BSW Builder console + Properties (Eclipse standard)
         IFolderLayout bottomLeft = layout.createFolder(
@@ -73,7 +69,6 @@ public class Perspective implements IPerspectiveFactory {
         bottomRight.addView(OUTLINE_VIEW);
 
         // Make all views available in Window → Show View
-        layout.addShowViewShortcut(AUTOSAR_EXPLORER_VIEW);
         layout.addShowViewShortcut(PROJECT_EXPLORER_VIEW);
         layout.addShowViewShortcut(VALIDATION_VIEW);
         layout.addShowViewShortcut(DETAIL_VIEW);
