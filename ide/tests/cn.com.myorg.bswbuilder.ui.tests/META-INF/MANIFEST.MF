@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: BSW Builder UI Tests
+Bundle-SymbolicName: cn.com.myorg.bswbuilder.ui.tests
+Bundle-Version: 0.1.0.qualifier
+Bundle-Vendor: autosar_tool
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Fragment-Host: cn.com.myorg.bswbuilder.ui
+Require-Bundle: org.junit;bundle-version="0.0.0",
+ cn.com.myorg.bswbuilder.ui,
+ cn.com.myorg.bswbuilder.modules.nvm,
+ cn.com.myorg.mal,
+ org.eclipse.emf.ecore,
+ org.artop.aal.autosar448,
+ org.artop.aal.gautosar
+Automatic-Module-Name: cn.com.myorg.bswbuilder.ui.tests

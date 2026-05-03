@@ -39,6 +39,11 @@
             <unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
             <unit id="org.eclipse.equinox.executable.feature.group" version="0.0.0"/>
 
+            <!-- JUnit 4 for tests/cn.com.myorg.bswbuilder.ui.tests bundle
+                 (eclipse-test-plugin packaging requires org.junit; tycho-surefire
+                 discovers @Test). -->
+            <unit id="org.junit" version="0.0.0"/>
+
             <!-- Plug-in development APIs we use directly -->
             <unit id="org.eclipse.ui" version="0.0.0"/>
             <unit id="org.eclipse.ui.workbench" version="0.0.0"/>

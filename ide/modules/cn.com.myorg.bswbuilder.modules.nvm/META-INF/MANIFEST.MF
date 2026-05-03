@@ -25,4 +25,6 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.sphinx.emf,
  org.eclipse.sphinx.emf.workspace,
  org.apache.xerces
+Export-Package: cn.com.myorg.bswbuilder.modules.nvm.block.functionextensions,
+ cn.com.myorg.bswbuilder.modules.nvm.functionextensions
 Automatic-Module-Name: cn.com.myorg.bswbuilder.modules.nvm

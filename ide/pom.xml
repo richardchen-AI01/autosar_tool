@@ -56,6 +56,12 @@
 
         <module>feature/cn.com.myorg.bswbuilder.feature</module>
         <module>product/cn.com.myorg.bswbuilder.product</module>
+
+        <!-- Test bundles (eclipse-test-plugin + JUnit 4)
+             暂注释 — Tycho-surefire OSGi runtime 启动撞 SWT aarch64 vs target
+             x86_64 classloader 问题. 下 commit fix surefire config (osgi.arch=
+             x86_64 强制 Rosetta 跑 / 或 maven-surefire 跑 plain JUnit). -->
+        <!-- <module>tests/cn.com.myorg.bswbuilder.ui.tests</module> -->
     </modules>
 
     <build>
