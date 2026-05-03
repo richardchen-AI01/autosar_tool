@@ -85,6 +85,36 @@
             version="0.0.0"
             unpack="false"/>
 
+    <!-- ===== ARTOP AAL — AUTOSAR Authoring Tool runtime =====
+         没这些 bundle 在 product 里启动, ARTOP autosar metamodel descriptor
+         不会注册到 Sphinx MetaModelDescriptorRegistry, ar:/#/...?type=...
+         proxy URI 永远 resolve 不了 (master tree def=空 + 字段不渲染 +
+         hook permitDel 等都依赖 def resolve). 这是 v0.1 起埋的债, P0 fix. -->
+    <plugin id="org.artop.aal.common"             version="0.0.0" unpack="false"/>
+    <plugin id="org.artop.aal.gautosar"           version="0.0.0" unpack="false"/>
+    <plugin id="org.artop.aal.gautosar.edit"      version="0.0.0" unpack="false"/>
+    <plugin id="org.artop.aal.gautosar.services"  version="0.0.0" unpack="false"/>
+    <plugin id="org.artop.aal.autosar448"         version="0.0.0" unpack="false"/>
+    <plugin id="org.artop.aal.autosar448.edit"    version="0.0.0" unpack="false"/>
+    <plugin id="org.artop.aal.serialization"      version="0.0.0" unpack="false"/>
+    <plugin id="org.artop.aal.workspace"          version="0.0.0" unpack="false"/>
+    <plugin id="org.artop.eel.common"             version="0.0.0" unpack="false"/>
+    <plugin id="org.artop.eel.serialization"      version="0.0.0" unpack="false"/>
+
+    <!-- ===== Sphinx EMF + workspace integration =====
+         Sphinx 提供 IModelDescriptor / IProxyResolverService /
+         BasicTransactionalFormEditor / WorkspaceEditingDomainUtil 等基础设施.
+         同样必须装进 product 才会 OSGi 启动. -->
+    <plugin id="org.eclipse.sphinx.emf"                version="0.0.0" unpack="false"/>
+    <plugin id="org.eclipse.sphinx.emf.editors"        version="0.0.0" unpack="false"/>
+    <plugin id="org.eclipse.sphinx.emf.editors.forms"  version="0.0.0" unpack="false"/>
+    <plugin id="org.eclipse.sphinx.emf.explorer"       version="0.0.0" unpack="false"/>
+    <plugin id="org.eclipse.sphinx.emf.ui"             version="0.0.0" unpack="false"/>
+    <plugin id="org.eclipse.sphinx.emf.workspace"      version="0.0.0" unpack="false"/>
+    <plugin id="org.eclipse.sphinx.emf.workspace.ui"   version="0.0.0" unpack="false"/>
+    <plugin id="org.eclipse.sphinx.platform"           version="0.0.0" unpack="false"/>
+    <plugin id="org.eclipse.sphinx.platform.ui"        version="0.0.0" unpack="false"/>
+
     <!-- Eclipse 标准文本编辑器，让 AutosarExplorerView 双击 .c/.h 走
          org.eclipse.ui.DefaultTextEditor 在 IDE tab 内打开。
          org.eclipse.rcp feature 不带这条；一定要显式列。 -->
