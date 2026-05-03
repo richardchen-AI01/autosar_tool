@@ -23,5 +23,6 @@ Export-Package: cn.com.myorg.mal,
  cn.com.myorg.mal.excel,
  cn.com.myorg.mal.generation,
  cn.com.myorg.mal.interfaces,
- cn.com.myorg.mal.modelutils
+ cn.com.myorg.mal.modelutils,
+ cn.com.myorg.mal.uidefinition
 Automatic-Module-Name: cn.com.myorg.mal
