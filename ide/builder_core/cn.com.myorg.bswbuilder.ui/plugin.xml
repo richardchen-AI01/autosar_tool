@@ -2,15 +2,21 @@
 <?eclipse version="3.4"?>
 <plugin>
 
-    <!-- Views — IDE pivot phase 2 (2026-04-30):
-         AutosarExplorer → 删 (用 Eclipse 标准 Project Explorer 替代)
-         PropertyForm    → 删 (legacy ViewPart, FormEditor 接管)
-         Validation/Detail 保留 (BSW Builder 自有视图) -->
+    <!-- Views — Validation/Detail/AUTOSAR Explorer.
+         AUTOSAR Explorer = thin CommonNavigator subclass, AR-tree rendering
+         via Sphinx open-source content provider (declared below). -->
     <extension
             point="org.eclipse.ui.views">
         <category
                 id="cn.com.myorg.bswbuilder.ui.viewCategory"
                 name="BSW Builder"/>
+
+        <view
+                category="cn.com.myorg.bswbuilder.ui.viewCategory"
+                class="cn.com.myorg.bswbuilder.ui.views.BswExplorerView"
+                id="cn.com.myorg.bswbuilder.ui.bswExplorer"
+                name="AUTOSAR Explorer"
+                restorable="true"/>
 
         <view
                 category="cn.com.myorg.bswbuilder.ui.viewCategory"
@@ -25,6 +31,49 @@
                 id="cn.com.myorg.bswbuilder.ui.views.Detail"
                 name="Detail"
                 restorable="true"/>
+    </extension>
+
+    <!-- Navigator content for AR-tree drilling. Sphinx
+         BasicExplorerContentProvider / BasicExplorerLabelProvider are
+         open-source Eclipse-licensed classes from
+         org.eclipse.sphinx.emf.explorer; we just reference them by FQN. -->
+    <extension
+            point="org.eclipse.ui.navigator.navigatorContent">
+        <navigatorContent
+                contentProvider="org.eclipse.sphinx.emf.explorer.BasicExplorerContentProvider"
+                id="cn.com.myorg.bswbuilder.ui.arxmlContent"
+                labelProvider="org.eclipse.sphinx.emf.explorer.BasicExplorerLabelProvider"
+                name="AUTOSAR Model"
+                priority="high">
+            <triggerPoints>
+                <or>
+                    <instanceof value="org.eclipse.core.resources.IFile"/>
+                    <instanceof value="org.eclipse.emf.ecore.EObject"/>
+                </or>
+            </triggerPoints>
+            <possibleChildren>
+                <instanceof value="org.eclipse.emf.ecore.EObject"/>
+            </possibleChildren>
+        </navigatorContent>
+    </extension>
+
+    <!-- Wire BswExplorerView to Eclipse standard resource content (project
+         tree) + our arxmlContent (AR-tree drill into .arxml). -->
+    <extension
+            point="org.eclipse.ui.navigator.viewer">
+        <viewer viewerId="cn.com.myorg.bswbuilder.ui.bswExplorer"/>
+        <viewerContentBinding viewerId="cn.com.myorg.bswbuilder.ui.bswExplorer">
+            <includes>
+                <contentExtension pattern="org.eclipse.ui.navigator.resourceContent"/>
+                <contentExtension pattern="org.eclipse.ui.navigator.resources.filters.*"/>
+                <contentExtension pattern="cn.com.myorg.bswbuilder.ui.arxmlContent"/>
+            </includes>
+        </viewerContentBinding>
+        <viewerActionBinding viewerId="cn.com.myorg.bswbuilder.ui.bswExplorer">
+            <includes>
+                <actionExtension pattern="org.eclipse.ui.navigator.resources.*"/>
+            </includes>
+        </viewerActionBinding>
     </extension>
 
     <!-- Editors — Generic Module Manager (E5-4).

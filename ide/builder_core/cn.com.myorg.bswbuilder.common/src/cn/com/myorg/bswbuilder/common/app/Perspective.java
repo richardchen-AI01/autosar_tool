@@ -30,11 +30,12 @@ public class Perspective implements IPerspectiveFactory {
     public static final String PROJECT_EXPLORER_VIEW =
             "org.eclipse.ui.navigator.ProjectExplorer";
 
-    /** AUTOSAR Explorer — iSoft pal jar 现成的 AutosarNavigator
-     *  (class cn.com.isoft.pal.ui.explorer.AutosarNavigator). plugins/ 里
-     *  cn.com.isoft.pal_2.0.5 已 deploy, 直接复用 view id, 不自撸. */
+    /** AUTOSAR Explorer — own thin CommonNavigator subclass + Sphinx
+     *  open-source BasicExplorerContentProvider for AR-tree drill. iSoft
+     *  commercial pal jar 不在 deploy (license/工程纪律 不准抄), 自撸最低
+     *  可行版. 详见 plugin.xml navigatorContent / viewerContentBinding. */
     public static final String AUTOSAR_EXPLORER_VIEW =
-            "cn.com.isoft.pal.views.autosarexplorer";
+            "cn.com.myorg.bswbuilder.ui.bswExplorer";
 
     public static final String VALIDATION_VIEW =
             "cn.com.myorg.bswbuilder.ui.views.Validation";
