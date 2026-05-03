@@ -33,6 +33,7 @@ import autosar40.ecucdescription.EcucTextualParamValue;
 import cn.com.myorg.bswbuilder.ui.Activator;
 import cn.com.myorg.bswbuilder.ui.editor.utils.EcuUtils;
 import cn.com.myorg.bswbuilder.ui.editor.utils.EcucWriteActions;
+import cn.com.myorg.bswbuilder.ui.editor.utils.UIDefinitionDispatcher;
 import gautosar.gecucdescription.GContainer;
 import gautosar.gecucdescription.GModuleConfiguration;
 import gautosar.gecucdescription.GParameterValue;
@@ -112,9 +113,10 @@ public class GenericGeneralFormPage extends FormPage {
         GridDataFactory.fillDefaults().grab(true, true).applyTo(section);
 
         Composite client = toolkit.createComposite(section);
-        GridLayout grid = new GridLayout(3, false);
+        // 4 列: [set?] | label | widget | D-reset (跟参考截图布局对齐)
+        GridLayout grid = new GridLayout(4, false);
         grid.marginTop = 6;
-        grid.horizontalSpacing = 10;
+        grid.horizontalSpacing = 8;
         grid.verticalSpacing = 6;
         client.setLayout(grid);
         section.setClient(client);
@@ -135,6 +137,13 @@ public class GenericGeneralFormPage extends FormPage {
     }
 
     private void addRow(Composite parent, FormToolkit toolkit, final GConfigParameter param) {
+        // col 0: set? checkbox — 标记字段值是否实际配置 vs 默认 (跟参考一致)
+        final Button setMark = toolkit.createButton(parent, "", SWT.CHECK);
+        setMark.setSelection(readParamValue(param) != null);
+        setMark.setEnabled(false);
+        GridDataFactory.fillDefaults().align(SWT.CENTER, SWT.CENTER).applyTo(setMark);
+
+        // col 1: label
         Label label = toolkit.createLabel(parent, param.gGetShortName() + ":", SWT.NONE);
         GridDataFactory.fillDefaults().align(SWT.END, SWT.CENTER).applyTo(label);
 
@@ -209,10 +218,17 @@ public class GenericGeneralFormPage extends FormPage {
             widget.setEnabled(false);
         }
 
-        // 3rd column reserved for future per-row [D] reset / browse buttons.
-        toolkit.createLabel(parent, "", SWT.NONE);
+        // col 3: D reset-to-default
+        Label dBtn = toolkit.createLabel(parent, " D ", SWT.BORDER | SWT.CENTER);
+        dBtn.setToolTipText("Reset to default value");
+        GridDataFactory.fillDefaults().align(SWT.CENTER, SWT.CENTER).applyTo(dBtn);
 
         widgets.put(param, widget);
+
+        // GenericGeneralFormPage 也接 hook dispatch (跟 master-detail 一致, 6c 范围)
+        if (instanceContainer != null) {
+            UIDefinitionDispatcher.applyEnableHooks(instanceContainer, param.gGetShortName(), widget);
+        }
     }
 
     /**

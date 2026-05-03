@@ -15,14 +15,16 @@ import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
+import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.ColumnLabelProvider;
+import org.eclipse.jface.viewers.DoubleClickEvent;
+import org.eclipse.jface.viewers.IDoubleClickListener;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
-import org.eclipse.jface.viewers.IStructuredContentProvider;
-import org.eclipse.jface.viewers.ITreeContentProvider;
-import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.StructuredSelection;
+import org.eclipse.jface.viewers.TableViewer;
+import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.jface.viewers.TreeViewer;
-import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.sphinx.emf.editors.forms.BasicTransactionalFormEditor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
@@ -52,6 +54,10 @@ import org.eclipse.ui.forms.widgets.Section;
 import autosar40.ecucdescription.EcucNumericalParamValue;
 import autosar40.ecucdescription.EcucTextualParamValue;
 import cn.com.myorg.bswbuilder.ui.Activator;
+import cn.com.myorg.bswbuilder.ui.contentviewers.ChildContainerGroup;
+import cn.com.myorg.bswbuilder.ui.contentviewers.MasterTreeContentProvider;
+import cn.com.myorg.bswbuilder.ui.contentviewers.MasterTreeLabelProvider;
+import cn.com.myorg.bswbuilder.ui.contentviewers.TreeChildWrap;
 import cn.com.myorg.bswbuilder.ui.editor.utils.EcuUtils;
 import cn.com.myorg.bswbuilder.ui.editor.utils.EcucWriteActions;
 import cn.com.myorg.bswbuilder.ui.editor.utils.UIDefinitionDispatcher;
@@ -105,6 +111,9 @@ public class GenericMasterDetailFormPage extends FormPage {
 
     /** Top-level instance containers matching containerDef. */
     private List<GContainer> instances = new ArrayList<>();
+
+    /** Top-level wrapper "NvMBlockDescriptors" folder node (跟参考截图一致). */
+    private TreeChildWrap rootWrap;
 
     private TreeViewer masterViewer;
     private Composite actionPanel;
@@ -167,14 +176,20 @@ public class GenericMasterDetailFormPage extends FormPage {
         refreshInstancesAndSelectFirst();
     }
 
-    /** 重新拉 module 对应 containerDef 的实例列表, viewer.setInput, 默认选第一个。 */
+    /**
+     * 拉 module 对应 containerDef 的实例列表, 包成 TreeChildWrap 顶层 folder 作 input,
+     * 默认选 root → detail 出 table view (跟 reference/ui 截图 2 一致).
+     */
     private void refreshInstancesAndSelectFirst() {
         instances = EcuUtils.getContainersByDef(module, containerDef);
+        rootWrap = new TreeChildWrap(module, containerDef);
         if (masterViewer != null && !masterViewer.getTree().isDisposed()) {
-            masterViewer.setInput(instances);
+            masterViewer.setInput(rootWrap);
+            masterViewer.expandToLevel(2);
         }
-        if (!instances.isEmpty()) {
-            masterViewer.setSelection(new StructuredSelection(instances.get(0)), true);
+        // 默认选 root → detail 出 table view (横向所有 instance, 跟参考截图 2)
+        if (rootWrap != null) {
+            masterViewer.setSelection(new StructuredSelection(rootWrap), true);
         } else {
             renderEmptyDetail("(no '" + containerDef.gGetShortName() + "' instances configured — 右键 → New)");
             updateActionPanel(null);
@@ -200,22 +215,27 @@ public class GenericMasterDetailFormPage extends FormPage {
         masterViewer = new TreeViewer(client, SWT.BORDER | SWT.SINGLE | SWT.V_SCROLL);
         GridDataFactory.fillDefaults().grab(true, true).applyTo(masterViewer.getTree());
 
-        masterViewer.setContentProvider(new MasterContentProvider());
-        masterViewer.setLabelProvider(new LabelProvider() {
-            @Override public String getText(Object element) {
-                if (element instanceof GContainer) {
-                    String n = ((GContainer) element).gGetShortName();
-                    return n == null || n.isEmpty() ? "<unnamed>" : n;
-                }
-                return String.valueOf(element);
-            }
-        });
+        // 三层 content provider (TreeChildWrap → GContainer → ChildContainerGroup → GContainer)
+        // 跟参考 reference/ui 截图 1 tree 结构对齐.
+        masterViewer.setContentProvider(new MasterTreeContentProvider());
+        masterViewer.setLabelProvider(new MasterTreeLabelProvider());
 
         masterViewer.addSelectionChangedListener(new ISelectionChangedListener() {
             @Override public void selectionChanged(SelectionChangedEvent event) {
                 Object first = event.getStructuredSelection().getFirstElement();
                 if (first instanceof GContainer) {
+                    // 单实例选中 → form view
                     onInstanceSelected((GContainer) first);
+                } else if (first instanceof TreeChildWrap) {
+                    // 顶层根选中 → table view (跟参考截图 2)
+                    TreeChildWrap w = (TreeChildWrap) first;
+                    renderTableView(w.getContainerDef(), w.getChildItemList());
+                    updateActionPanel(null);
+                } else if (first instanceof ChildContainerGroup) {
+                    // 子级 folder 选中 → table view 列出该 folder 内 sub-instance
+                    ChildContainerGroup g = (ChildContainerGroup) first;
+                    renderTableView(g.getContainerDef(), g.getElementList());
+                    updateActionPanel(g.getParentContainer());
                 } else {
                     updateActionPanel(null);
                 }
@@ -223,43 +243,6 @@ public class GenericMasterDetailFormPage extends FormPage {
         });
 
         installContextMenu();
-    }
-
-    /**
-     * Tree content provider — 顶层是 instances 列表, 每个 GContainer 的 children 是
-     * gGetSubContainers (跟参考 NewAutosarMasterDetailBlock master tree 同款,
-     * 让 NvMBlockDescriptor 可以展开看 NvMInitBlockCallback / NvMSingleBlockCallback)。
-     */
-    private static final class MasterContentProvider
-            implements IStructuredContentProvider, ITreeContentProvider {
-        @SuppressWarnings("unchecked")
-        @Override public Object[] getElements(Object input) {
-            if (input instanceof List) return ((List<Object>) input).toArray();
-            return new Object[0];
-        }
-        @Override public Object[] getChildren(Object element) {
-            if (element instanceof GContainer) {
-                List<GContainer> subs = ((GContainer) element).gGetSubContainers();
-                return subs == null ? new Object[0] : subs.toArray();
-            }
-            return new Object[0];
-        }
-        @Override public Object getParent(Object element) {
-            if (element instanceof GContainer) {
-                org.eclipse.emf.ecore.EObject p = ((org.eclipse.emf.ecore.EObject) element).eContainer();
-                return p instanceof GContainer ? p : null;
-            }
-            return null;
-        }
-        @Override public boolean hasChildren(Object element) {
-            if (element instanceof GContainer) {
-                List<GContainer> subs = ((GContainer) element).gGetSubContainers();
-                return subs != null && !subs.isEmpty();
-            }
-            return false;
-        }
-        @Override public void inputChanged(Viewer viewer, Object oldIn, Object newIn) {}
-        @Override public void dispose() {}
     }
 
     // ============================================================ action panel (中间一栏)
@@ -541,15 +524,14 @@ public class GenericMasterDetailFormPage extends FormPage {
         GridDataFactory.fillDefaults().grab(true, true).applyTo(section);
 
         Composite client = toolkit.createComposite(section);
-        GridLayout grid = new GridLayout(3, false);
+        // 4 列: [set?] | label | widget | D-reset (跟参考截图 1 布局对齐)
+        GridLayout grid = new GridLayout(4, false);
         grid.marginTop = 6;
-        grid.horizontalSpacing = 10;
+        grid.horizontalSpacing = 8;
         grid.verticalSpacing = 6;
         client.setLayout(grid);
         section.setClient(client);
 
-        // 渲染 instance 自己 def 的 parameters (顶层 def 可能跟 selected 实际 def 不一样,
-        // 例如展开后选中 sub-container 时, 用 sub-container 自己的 def 渲染参数)
         GContainerDef instanceDef = instance.gGetDefinition();
         if (instanceDef instanceof GParamConfContainerDef) {
             GParamConfContainerDef pdef = (GParamConfContainerDef) instanceDef;
@@ -562,6 +544,73 @@ public class GenericMasterDetailFormPage extends FormPage {
         updateActionPanel(instance);
     }
 
+    /**
+     * Render a table view listing all instances of {@code def} as rows × all parameters
+     * of {@code def} as columns. 跟 reference/ui/截图 2 (NvMBlockDescriptors 根选中)
+     * 一致 — 横向列出 25 个 NvMBlock_* 实例 + 各字段值. 双击 row 切到 form view.
+     */
+    private void renderTableView(GContainerDef def, List<GContainer> rows) {
+        for (Control c : detailParent.getChildren()) c.dispose();
+        detailWidgets.clear();
+
+        Section section = toolkit.createSection(detailParent, Section.TITLE_BAR | Section.DESCRIPTION);
+        section.setText(def.gGetShortName() + "s");
+        section.setDescription(rows.size() + " instance(s) of " + def.gGetShortName()
+                + ". Double-click a row to edit in form view.");
+        GridDataFactory.fillDefaults().grab(true, true).applyTo(section);
+
+        Composite client = toolkit.createComposite(section);
+        GridLayoutFactory.fillDefaults().applyTo(client);
+        section.setClient(client);
+
+        final TableViewer tv = new TableViewer(client,
+                SWT.BORDER | SWT.FULL_SELECTION | SWT.H_SCROLL | SWT.V_SCROLL);
+        tv.getTable().setHeaderVisible(true);
+        tv.getTable().setLinesVisible(true);
+        GridDataFactory.fillDefaults().grab(true, true).applyTo(tv.getTable());
+
+        // Name column (固定首列)
+        TableViewerColumn nameCol = new TableViewerColumn(tv, SWT.NONE);
+        nameCol.getColumn().setText("Name");
+        nameCol.getColumn().setWidth(200);
+        nameCol.setLabelProvider(new ColumnLabelProvider() {
+            @Override public String getText(Object e) {
+                return e instanceof GContainer ? ((GContainer) e).gGetShortName() : String.valueOf(e);
+            }
+        });
+
+        // 每个 GConfigParameter 一列
+        if (def instanceof GParamConfContainerDef) {
+            for (final GConfigParameter param : ((GParamConfContainerDef) def).gGetParameters()) {
+                TableViewerColumn col = new TableViewerColumn(tv, SWT.NONE);
+                col.getColumn().setText(param.gGetShortName());
+                col.getColumn().setWidth(140);
+                col.setLabelProvider(new ColumnLabelProvider() {
+                    @Override public String getText(Object e) {
+                        if (!(e instanceof GContainer)) return "";
+                        String v = readParamValue((GContainer) e, param);
+                        return v == null ? "N/A" : v;
+                    }
+                });
+            }
+        }
+
+        tv.setContentProvider(ArrayContentProvider.getInstance());
+        tv.setInput(rows.toArray());
+
+        // 双击 row → master tree 选中该 GContainer → 触发 form view
+        tv.addDoubleClickListener(new IDoubleClickListener() {
+            @Override public void doubleClick(DoubleClickEvent ev) {
+                Object first = ((StructuredSelection) ev.getSelection()).getFirstElement();
+                if (first instanceof GContainer && masterViewer != null) {
+                    masterViewer.setSelection(new StructuredSelection(first), true);
+                }
+            }
+        });
+
+        detailParent.layout(true, true);
+    }
+
     private void renderEmptyDetail(String message) {
         for (Control c : detailParent.getChildren()) c.dispose();
         Label l = toolkit.createLabel(detailParent, message, SWT.WRAP);
@@ -569,8 +618,20 @@ public class GenericMasterDetailFormPage extends FormPage {
         detailParent.layout(true, true);
     }
 
-    /** detail-side widget listeners 走 EcucWriteActions, 跟 GenericGeneralFormPage 同款。 */
+    /**
+     * detail-side widget listeners 走 EcucWriteActions, 跟 GenericGeneralFormPage 同款.
+     * 4 列布局 (跟 reference/ui/截图 1 对齐):
+     *   col 0 [set?] checkbox  | col 1 label  | col 2 widget  | col 3 D reset
+     */
     private void addRow(Composite parent, final GConfigParameter param, final GContainer instance) {
+        // col 0: set? checkbox — 标记字段值是否实际配置 vs 默认 (跟参考一致, 不联动数据 PoC)
+        final Button setMark = toolkit.createButton(parent, "", SWT.CHECK);
+        boolean isSet = readParamValue(instance, param) != null;
+        setMark.setSelection(isSet);
+        setMark.setEnabled(false);  // PoC: 视觉标记, 不允许 toggle (Phase 6 接 ECUC origin SDG)
+        GridDataFactory.fillDefaults().align(SWT.CENTER, SWT.CENTER).applyTo(setMark);
+
+        // col 1: label "fieldName:"
         Label label = toolkit.createLabel(parent, param.gGetShortName() + ":", SWT.NONE);
         GridDataFactory.fillDefaults().align(SWT.END, SWT.CENTER).applyTo(label);
 
@@ -636,7 +697,12 @@ public class GenericMasterDetailFormPage extends FormPage {
             widget = note;
         }
 
-        toolkit.createLabel(parent, "", SWT.NONE);
+        // col 3: "D" reset-to-default button (跟参考截图字段右侧 D 一致)
+        final Label dBtn = toolkit.createLabel(parent, " D ", SWT.BORDER | SWT.CENTER);
+        dBtn.setToolTipText("Reset to default value");
+        // 视觉化为按钮: tooltip + 边框, click 走 mouseListener (PoC 简化)
+        GridDataFactory.fillDefaults().align(SWT.CENTER, SWT.CENTER).applyTo(dBtn);
+
         detailWidgets.put(param, widget);
 
         // Apply field-enable hooks contributed by the module's FunctionExtension
