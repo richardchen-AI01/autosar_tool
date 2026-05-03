@@ -49,3 +49,9 @@ samples/**/*.arxml                          text eol=crlf
 # checkout 后变 LF，diff 直接 402 行（每行都差一个 \r）。
 samples/**/*.h                              text eol=crlf
 samples/**/*.c                              text eol=crlf
+
+# V25.10 真值 (golden) — Win Configurator 生成 CRLF, byte-equal 回归必须保留原 byte
+reference/autosar-cfg/**/*.h                text eol=crlf
+reference/autosar-cfg/**/*.c                text eol=crlf
+reference/autosar-cfg/**/*.arxml            text eol=crlf
+

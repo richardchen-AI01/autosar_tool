@@ -71,6 +71,11 @@ workspace_test/
 # 软链 reference (指向 V25.10 反编结果, 不入库)
 # 注意 anchor 到 / 防止把 docs/reference/ 也吞掉
 /reference/
+# golden 真值例外 (byte-equal 回归基准, sha256 锁版本必须入库)
+!/reference/autosar-cfg/
+!/reference/autosar-cfg/**
+!/reference/ui/
+!/reference/ui/**
 
 # 二进制制品
 dist/
