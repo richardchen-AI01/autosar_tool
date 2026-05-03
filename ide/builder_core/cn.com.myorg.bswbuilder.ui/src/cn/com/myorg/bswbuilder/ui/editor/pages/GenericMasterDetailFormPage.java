@@ -171,6 +171,13 @@ public class GenericMasterDetailFormPage extends FormPage {
         Label hint = toolkit.createLabel(leftSide, "(Right click to add or remove items)");
         GridData hintGd = new GridData(SWT.FILL, SWT.BEGINNING, true, false, 2, 1);
         hint.setLayoutData(hintGd);
+        // 99% 配色复刻 reference NewAutosarMasterDetailBlock.java line 144-147:
+        //   l.setForeground(new Color(null, 100, 100, 100));   -> 深灰 RGB(100,100,100)
+        //   fd[0].setStyle(3); l.setFont(new Font(null, fd));   -> SWT.BOLD | SWT.ITALIC
+        hint.setForeground(new org.eclipse.swt.graphics.Color(null, 100, 100, 100));
+        org.eclipse.swt.graphics.FontData[] hintFd = hint.getFont().getFontData();
+        hintFd[0].setStyle(SWT.BOLD | SWT.ITALIC);
+        hint.setFont(new org.eclipse.swt.graphics.Font(null, hintFd));
 
         createDetail(sash);
         sash.setWeights(new int[] { 10, 15 });
@@ -485,7 +492,12 @@ public class GenericMasterDetailFormPage extends FormPage {
 
     private void refreshInstancesAndSelect(GContainer toSelect) {
         instances = EcuUtils.getContainersByDef(module, containerDef);
-        masterViewer.setInput(instances);
+        // 必须 TreeViewerInputObject (跟 refreshInstancesAndSelectFirst 一致),
+        // 否则新 ContentProvider.getElements 不认 List 直接返空 → tree 全空,
+        // 用户报 "New 后所有 NvMBlockDescriptor 都消失了" 的根因.
+        TreeViewerInputObject input = new TreeViewerInputObject(module, containerDef);
+        masterViewer.setInput(input);
+        masterViewer.refresh();
         if (toSelect != null && instances.contains(toSelect)) {
             masterViewer.setSelection(new StructuredSelection(toSelect), true);
         } else if (!instances.isEmpty()) {
