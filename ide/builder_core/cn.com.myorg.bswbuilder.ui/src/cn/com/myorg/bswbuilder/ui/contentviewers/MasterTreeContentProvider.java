@@ -7,7 +7,6 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 
@@ -17,6 +16,7 @@ import autosar40.ecucparameterdef.EcucParamConfContainerDef;
 import autosar40.ecucparameterdef.EcucParameterDef;
 import autosar40.genericstructure.generaltemplateclasses.identifiable.Identifiable;
 import cn.com.myorg.bswbuilder.ui.Activator;
+import cn.com.myorg.bswbuilder.ui.editor.utils.ProxyResolveHelper;
 import cn.com.myorg.mal.admindata.IdentifiableOption;
 import cn.com.myorg.mal.modelutils.EcuUtils;
 import gautosar.gecucdescription.GContainer;
@@ -210,22 +210,18 @@ public class MasterTreeContentProvider extends org.eclipse.ui.navigator.CommonAc
     }
 
     /**
-     * Resolve possibly-proxied container definition. ARTOP/Sphinx leaves
-     * GContainer.gGetDefinition() as an unresolved proxy in some load paths
-     * (e.g. cross-resource ECUC def references). instanceof check on a proxy
-     * returns false → 0 children → user reports "字段不渲染". Force EcoreUtil.resolve.
+     * Resolve possibly-proxied container definition. ARTOP encodes def
+     * cross-refs as {@code ar:/#/...?type=...} URIs which standard
+     * {@link org.eclipse.emf.ecore.util.EcoreUtil#resolve} can't decode without
+     * full Sphinx wiring. Delegate to {@link ProxyResolveHelper} which scans
+     * loaded resources for a matching Identifiable.
      */
     private static GContainerDef resolveDef(GContainer container) {
         GContainerDef def = container.gGetDefinition();
-        if (def != null && ((EObject) def).eIsProxy()) {
-            EObject ctx = container.eResource() != null
-                    ? container : (EObject) def;
-            EObject resolved = EcoreUtil.resolve((EObject) def, ctx);
-            if (resolved != null && !resolved.eIsProxy()) {
-                return (GContainerDef) resolved;
-            }
-        }
-        return def;
+        if (def == null) return null;
+        if (!((EObject) def).eIsProxy()) return def;
+        EObject resolved = ProxyResolveHelper.resolve((EObject) def, container);
+        return (resolved instanceof GContainerDef) ? (GContainerDef) resolved : def;
     }
 
     private static void log(String msg) {

@@ -62,6 +62,7 @@ import cn.com.myorg.bswbuilder.ui.contentviewers.TreeChildWrap;
 import cn.com.myorg.bswbuilder.ui.contentviewers.TreeViewerInputObject;
 import cn.com.myorg.bswbuilder.ui.editor.utils.EcuUtils;
 import cn.com.myorg.bswbuilder.ui.editor.utils.EcucWriteActions;
+import cn.com.myorg.bswbuilder.ui.editor.utils.ProxyResolveHelper;
 import cn.com.myorg.bswbuilder.ui.editor.utils.UIDefinitionDispatcher;
 import gautosar.gecucdescription.GContainer;
 import gautosar.gecucdescription.GModuleConfiguration;
@@ -442,13 +443,24 @@ public class GenericMasterDetailFormPage extends FormPage {
     private static List<GContainerDef> collectSubContainerDefs(GContainer container) {
         List<GContainerDef> out = new ArrayList<>();
         if (container == null) return out;
-        GContainerDef def = container.gGetDefinition();
+        GContainerDef def = resolveDef(container);
         if (def instanceof GParamConfContainerDef) {
             for (GContainerDef sub : ((GParamConfContainerDef) def).gGetSubContainers()) {
                 out.add(sub);
             }
         }
         return out;
+    }
+
+    /** Shared proxy-aware def resolution — see {@link ProxyResolveHelper}. */
+    private static GContainerDef resolveDef(GContainer container) {
+        if (container == null) return null;
+        GContainerDef def = container.gGetDefinition();
+        if (def == null) return null;
+        if (!((org.eclipse.emf.ecore.EObject) def).eIsProxy()) return def;
+        org.eclipse.emf.ecore.EObject resolved = ProxyResolveHelper.resolve(
+                (org.eclipse.emf.ecore.EObject) def, container);
+        return (resolved instanceof GContainerDef) ? (GContainerDef) resolved : def;
     }
 
     // ============================================================ Action runners
@@ -596,17 +608,10 @@ public class GenericMasterDetailFormPage extends FormPage {
         client.setLayout(grid);
         section.setClient(client);
 
-        // Resolve possibly-proxied def, 跟 MasterTreeContentProvider 同 proxy fix.
-        // 不 resolve 时 instanceof GParamConfContainerDef 返 false → 字段不渲染,
-        // 用户报 "NvMBlock_Primary_0 不显示配置".
-        GContainerDef instanceDef = instance.gGetDefinition();
-        if (instanceDef != null && ((org.eclipse.emf.ecore.EObject) instanceDef).eIsProxy()) {
-            org.eclipse.emf.ecore.EObject resolved = org.eclipse.emf.ecore.util.EcoreUtil.resolve(
-                    (org.eclipse.emf.ecore.EObject) instanceDef, instance);
-            if (resolved != null && !resolved.eIsProxy()) {
-                instanceDef = (GContainerDef) resolved;
-            }
-        }
+        // Resolve possibly-proxied def via ProxyResolveHelper (handles ar:/?type=
+        // URIs that standard EcoreUtil.resolve can't decode). Without resolution
+        // the instanceof check returns false → 0 params → 用户报 "不显示配置".
+        GContainerDef instanceDef = resolveDef(instance);
         if (instanceDef instanceof GParamConfContainerDef) {
             GParamConfContainerDef pdef = (GParamConfContainerDef) instanceDef;
             for (GConfigParameter param : pdef.gGetParameters()) {
