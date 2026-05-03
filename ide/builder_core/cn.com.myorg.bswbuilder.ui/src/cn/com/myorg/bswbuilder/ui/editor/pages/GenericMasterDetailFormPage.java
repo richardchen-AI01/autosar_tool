@@ -57,7 +57,9 @@ import cn.com.myorg.bswbuilder.ui.Activator;
 import cn.com.myorg.bswbuilder.ui.contentviewers.ChildContainerGroup;
 import cn.com.myorg.bswbuilder.ui.contentviewers.MasterTreeContentProvider;
 import cn.com.myorg.bswbuilder.ui.contentviewers.MasterTreeLabelProvider;
+import cn.com.myorg.bswbuilder.ui.contentviewers.TableDataContainer;
 import cn.com.myorg.bswbuilder.ui.contentviewers.TreeChildWrap;
+import cn.com.myorg.bswbuilder.ui.contentviewers.TreeViewerInputObject;
 import cn.com.myorg.bswbuilder.ui.editor.utils.EcuUtils;
 import cn.com.myorg.bswbuilder.ui.editor.utils.EcucWriteActions;
 import cn.com.myorg.bswbuilder.ui.editor.utils.UIDefinitionDispatcher;
@@ -177,19 +179,23 @@ public class GenericMasterDetailFormPage extends FormPage {
     }
 
     /**
-     * 拉 module 对应 containerDef 的实例列表, 包成 TreeChildWrap 顶层 folder 作 input,
-     * 默认选 root → detail 出 table view (跟 reference/ui 截图 2 一致).
+     * 跟参考 MasterFormSection.createSectionClientContent line 437 一致:
+     * setInput(new TreeViewerInputObject(moduleConfig, containerDef)).
+     * ContentProvider.getElements 内部 new TreeChildWrap, 不让我们自己 hold.
      */
     private void refreshInstancesAndSelectFirst() {
         instances = EcuUtils.getContainersByDef(module, containerDef);
-        rootWrap = new TreeChildWrap(module, containerDef);
+        TreeViewerInputObject input = new TreeViewerInputObject(module, containerDef);
         if (masterViewer != null && !masterViewer.getTree().isDisposed()) {
-            masterViewer.setInput(rootWrap);
-            // 不强制 expandToLevel — 让用户手动展开, 避免 tree 渲染错乱
+            masterViewer.setInput(input);
+            masterViewer.refresh();
+            // 不强制 expandToLevel — 让用户手动展开
         }
-        // 默认选 root → detail 出 table view (横向所有 instance, 跟参考截图 2)
-        if (rootWrap != null) {
-            masterViewer.setSelection(new StructuredSelection(rootWrap), true);
+        // 默认选 TreeChildWrap (顶层 folder) — 跟参考截图 2 NvMBlockDescriptors 根选中一致.
+        // ContentProvider.getElements 已构造 TreeChildWrap, 取 viewer 第一行作 selection.
+        Object[] roots = ((MasterTreeContentProvider) masterViewer.getContentProvider()).getElements(input);
+        if (roots.length > 0) {
+            masterViewer.setSelection(new StructuredSelection(roots[0]), true);
         } else {
             renderEmptyDetail("(no '" + containerDef.gGetShortName() + "' instances configured — 右键 → New)");
             updateActionPanel(null);
@@ -213,10 +219,10 @@ public class GenericMasterDetailFormPage extends FormPage {
         section.setClient(client);
 
         masterViewer = new TreeViewer(client, SWT.BORDER | SWT.SINGLE | SWT.V_SCROLL);
+        masterViewer.setUseHashlookup(true);  // 跟参考 MasterFormSection line 433 一致
         GridDataFactory.fillDefaults().grab(true, true).applyTo(masterViewer.getTree());
 
-        // 三层 content provider (TreeChildWrap → GContainer → ChildContainerGroup → GContainer)
-        // 跟参考 reference/ui 截图 1 tree 结构对齐.
+        // 三层 content provider 跟 MasterFormSection.ContentProvider 99% paraphrase
         masterViewer.setContentProvider(new MasterTreeContentProvider());
         masterViewer.setLabelProvider(new MasterTreeLabelProvider());
 
@@ -236,6 +242,9 @@ public class GenericMasterDetailFormPage extends FormPage {
                     ChildContainerGroup g = (ChildContainerGroup) first;
                     renderTableView(g.getContainerDef(), g.getElementList());
                     updateActionPanel(g.getParentContainer());
+                } else if (first instanceof TableDataContainer) {
+                    // table-row wrapper 选中 — 跟参考一致, 不进 form
+                    updateActionPanel(((TableDataContainer) first).getParentContainer());
                 } else {
                     updateActionPanel(null);
                 }

@@ -18,6 +18,7 @@ Require-Bundle: org.eclipse.core.runtime,
  org.artop.aal.autosar448,
  cn.com.myorg.mal.model;visibility:=reexport
 Export-Package: cn.com.myorg.mal,
+ cn.com.myorg.mal.admindata,
  cn.com.myorg.mal.coordinator,
  cn.com.myorg.mal.exceptions,
  cn.com.myorg.mal.excel,
