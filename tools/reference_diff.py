@@ -45,6 +45,8 @@ FILTER_PATTERNS = [
     re.compile(r'\* Generation Date.*'),
     re.compile(r'\* Tool Version.*'),
     re.compile(r'\* iSOFT.*'),
+    re.compile(r'\* @date\s*:.*'),         # ISoft @date: 2026-05-04 00:11:22
+    re.compile(r'\* @toolVersion\s*:.*'),  # ISoft @toolVersion: for EasyXMen V25.10 vs AutosarTool v0.1
 ]
 
 # How V25.10 reference outputs are organised on disk.
