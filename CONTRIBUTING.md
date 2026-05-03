@@ -72,7 +72,7 @@ diagram. TL;DR:
 
 ## 5. Branch & commit style
 
-Conventions are in [`docs/GIT_CONVENTION.md`](docs/GIT_CONVENTION.md).
+Conventions are workspace-level: [`../conventions/GIT_CONVENTION.md`](../conventions/GIT_CONVENTION.md).
 Summary:
 
 - Branch: `<type>/<short-description>` — e.g. `feat/det-externals-default`
