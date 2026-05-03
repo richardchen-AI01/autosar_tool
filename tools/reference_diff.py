@@ -48,19 +48,20 @@ FILTER_PATTERNS = [
 ]
 
 # How V25.10 reference outputs are organised on disk.
-# Pattern: reference/.../<demo>/config/<Module>_Cfg.{c,h}
+# Pattern: reference/.../<demo>/config/<Module>_{Cfg,Lcfg}.{c,h}
 def find_reference_files(module: str, sample: str = 'Demo_S32K148') -> List[Path]:
-    """Search for V25.10-generated <Module>_Cfg.{c,h} under reference/."""
+    """Search for V25.10-generated <Module>_{Cfg,Lcfg}.{c,h} under reference/."""
     candidates = []
     if not REFERENCE_ROOT.exists():
         return candidates
-    # search for <Module>_Cfg.h / .c anywhere under reference/.../<sample>/config/
-    for ext in ('h', 'c'):
-        for p in REFERENCE_ROOT.rglob(f'{module}_Cfg.{ext}'):
-            if 'config' in p.parts and sample.lower() in str(p).lower():
-                candidates.append(p)
-    # sort .h first then .c for stable display order
-    candidates.sort(key=lambda p: (p.suffix != '.h', str(p)))
+    # _Cfg = pre-compile / _Lcfg = link-time post-compile config (NvM 等多产物模块)
+    for suffix in ('Cfg', 'Lcfg'):
+        for ext in ('h', 'c'):
+            for p in REFERENCE_ROOT.rglob(f'{module}_{suffix}.{ext}'):
+                if 'config' in p.parts and sample.lower() in str(p).lower():
+                    candidates.append(p)
+    # sort: Cfg.h, Cfg.c, Lcfg.h, Lcfg.c — 稳定显示顺序
+    candidates.sort(key=lambda p: ('Lcfg' in p.stem, p.suffix != '.h', str(p)))
     return candidates
 
 
