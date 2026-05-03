@@ -307,18 +307,61 @@ public class GenericMasterDetailFormPage extends FormPage {
                     @Override public void run() { runNewChild(selected, subDef); }
                 });
             }
-            // 跟参考 MasterFormSection:567-573 顺序: Del / Copy / ReName.
-            addActionLink("Del Element", new Runnable() {
-                @Override public void run() { runDelete(selected); }
-            });
-            addActionLink("Copy Element", new Runnable() {
-                @Override public void run() { runDuplicate(selected); }
-            });
-            addActionLink("ReName Element", new Runnable() {
-                @Override public void run() { runRename(selected); }
-            });
+            // 按 ReserveUIDefinition 过滤 Del/Copy/Rename — 跟参考一致.
+            // NvMBlockDescriptorEnable.permitDel("NvMBlock_ConfigID") = false 不显示.
+            boolean permitDel = checkReservePermit(selected, ReservePermit.DEL);
+            boolean permitDup = checkReservePermit(selected, ReservePermit.DUPLICATE);
+            boolean permitRen = checkReservePermit(selected, ReservePermit.RENAME);
+            if (permitDel) {
+                addActionLink("Del Element", new Runnable() {
+                    @Override public void run() { runDelete(selected); }
+                });
+            }
+            if (permitDup) {
+                addActionLink("Copy Element", new Runnable() {
+                    @Override public void run() { runDuplicate(selected); }
+                });
+            }
+            if (permitRen) {
+                addActionLink("ReName Element", new Runnable() {
+                    @Override public void run() { runRename(selected); }
+                });
+            }
         }
         actionPanel.layout(true, true);
+    }
+
+    private enum ReservePermit { DEL, DUPLICATE, RENAME }
+
+    /**
+     * 调 MetaModelDescriptorParser.getUIDefinitionList(ecuName, def.shortName, RESERVED_FLAG)
+     * 拿 ReserveUIDefinition list, 调 permit{Del,Duplicate,Rename}(selected) 决定 link 是否 show.
+     * 跟参考 BswContainerUtil.java:55+ 同 pattern (3 处 RESERVED_FLAG 分别 dispatch).
+     */
+    private boolean checkReservePermit(GContainer selected, ReservePermit kind) {
+        try {
+            GContainerDef def = selected.gGetDefinition();
+            if (def == null) return true;
+            String defShortName = def.gGetShortName();
+            if (defShortName == null || defShortName.isEmpty()) return true;
+            java.util.List<cn.com.myorg.mal.uidefinition.IUIDefinition> defs =
+                    cn.com.myorg.mal.MetaModelDescriptorParser.getUIDefinitionList(
+                            "", defShortName, cn.com.myorg.mal.uidefinition.IUIDefinition.RESERVED_FLAG);
+            if (defs == null || defs.isEmpty()) return true;
+            for (cn.com.myorg.mal.uidefinition.IUIDefinition d : defs) {
+                if (!(d instanceof cn.com.myorg.mal.uidefinition.ReserveUIDefinition)) continue;
+                cn.com.myorg.mal.uidefinition.ReserveUIDefinition r =
+                        (cn.com.myorg.mal.uidefinition.ReserveUIDefinition) d;
+                switch (kind) {
+                    case DEL:       if (!r.permitDel(selected))       return false; break;
+                    case DUPLICATE: if (!r.permitDuplicate(selected)) return false; break;
+                    case RENAME:    if (!r.permitRename(selected))    return false; break;
+                }
+            }
+            return true;
+        } catch (Throwable t) {
+            return true;
+        }
     }
 
     /** Add a Link with "&lt;a&gt;text&lt;/a&gt;" — 跟参考 ActionManager.addActionLink line 146 同 markup。 */
@@ -553,7 +596,17 @@ public class GenericMasterDetailFormPage extends FormPage {
         client.setLayout(grid);
         section.setClient(client);
 
+        // Resolve possibly-proxied def, 跟 MasterTreeContentProvider 同 proxy fix.
+        // 不 resolve 时 instanceof GParamConfContainerDef 返 false → 字段不渲染,
+        // 用户报 "NvMBlock_Primary_0 不显示配置".
         GContainerDef instanceDef = instance.gGetDefinition();
+        if (instanceDef != null && ((org.eclipse.emf.ecore.EObject) instanceDef).eIsProxy()) {
+            org.eclipse.emf.ecore.EObject resolved = org.eclipse.emf.ecore.util.EcoreUtil.resolve(
+                    (org.eclipse.emf.ecore.EObject) instanceDef, instance);
+            if (resolved != null && !resolved.eIsProxy()) {
+                instanceDef = (GContainerDef) resolved;
+            }
+        }
         if (instanceDef instanceof GParamConfContainerDef) {
             GParamConfContainerDef pdef = (GParamConfContainerDef) instanceDef;
             for (GConfigParameter param : pdef.gGetParameters()) {

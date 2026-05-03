@@ -1,5 +1,6 @@
 package cn.com.myorg.bswbuilder.modules.nvm.functionextensions;
 
+import cn.com.myorg.bswbuilder.modules.nvm.block.functionextensions.NvMBlockDescriptorEnable;
 import cn.com.myorg.bswbuilder.modules.nvm.block.functionextensions.NvMBlockUseCrcEnable;
 import cn.com.myorg.mal.interfaces.IFunctionExtension;
 import cn.com.myorg.mal.interfaces.IModuleInit;
@@ -21,6 +22,7 @@ public class NvMFunctionExtension implements IFunctionExtension {
     public UIDefinitionMap getUIDefinitionMap() {
         UIDefinitionMap uiDefinitionMap = new UIDefinitionMap();
         uiDefinitionMap.put((IUIDefinition) new NvMBlockUseCrcEnable());
+        uiDefinitionMap.put((IUIDefinition) new NvMBlockDescriptorEnable());
         return uiDefinitionMap;
     }
 

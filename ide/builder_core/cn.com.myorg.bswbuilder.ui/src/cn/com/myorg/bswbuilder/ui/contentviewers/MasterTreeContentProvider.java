@@ -6,6 +6,8 @@ import java.util.List;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 
@@ -52,7 +54,7 @@ public class MasterTreeContentProvider extends org.eclipse.ui.navigator.CommonAc
         }
         if (parentElement instanceof GContainer) {
             GContainer container = (GContainer) parentElement;
-            GContainerDef containerDef = container.gGetDefinition();
+            GContainerDef containerDef = resolveDef(container);
             if (containerDef instanceof EcucParamConfContainerDef) {
                 EcucParamConfContainerDef paramConfContainerDef = (EcucParamConfContainerDef) containerDef;
                 if (!this.isDisplay(paramConfContainerDef)) {
@@ -205,6 +207,25 @@ public class MasterTreeContentProvider extends org.eclipse.ui.navigator.CommonAc
             subCotainers.add(subContainer);
         }
         return subCotainers.toArray();
+    }
+
+    /**
+     * Resolve possibly-proxied container definition. ARTOP/Sphinx leaves
+     * GContainer.gGetDefinition() as an unresolved proxy in some load paths
+     * (e.g. cross-resource ECUC def references). instanceof check on a proxy
+     * returns false → 0 children → user reports "字段不渲染". Force EcoreUtil.resolve.
+     */
+    private static GContainerDef resolveDef(GContainer container) {
+        GContainerDef def = container.gGetDefinition();
+        if (def != null && ((EObject) def).eIsProxy()) {
+            EObject ctx = container.eResource() != null
+                    ? container : (EObject) def;
+            EObject resolved = EcoreUtil.resolve((EObject) def, ctx);
+            if (resolved != null && !resolved.eIsProxy()) {
+                return (GContainerDef) resolved;
+            }
+        }
+        return def;
     }
 
     private static void log(String msg) {
