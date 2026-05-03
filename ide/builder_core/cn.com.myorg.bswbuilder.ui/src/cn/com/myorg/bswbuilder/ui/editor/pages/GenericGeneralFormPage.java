@@ -113,8 +113,8 @@ public class GenericGeneralFormPage extends FormPage {
         GridDataFactory.fillDefaults().grab(true, true).applyTo(section);
 
         Composite client = toolkit.createComposite(section);
-        // 4 列: [set?] | label | widget | D-reset (跟参考截图布局对齐)
-        GridLayout grid = new GridLayout(4, false);
+        // 2 列简洁: label | widget (checkbox/D 按钮等读懂 ECUC SDG 再加)
+        GridLayout grid = new GridLayout(2, false);
         grid.marginTop = 6;
         grid.horizontalSpacing = 8;
         grid.verticalSpacing = 6;
@@ -137,13 +137,6 @@ public class GenericGeneralFormPage extends FormPage {
     }
 
     private void addRow(Composite parent, FormToolkit toolkit, final GConfigParameter param) {
-        // col 0: set? checkbox — 标记字段值是否实际配置 vs 默认 (跟参考一致)
-        final Button setMark = toolkit.createButton(parent, "", SWT.CHECK);
-        setMark.setSelection(readParamValue(param) != null);
-        setMark.setEnabled(false);
-        GridDataFactory.fillDefaults().align(SWT.CENTER, SWT.CENTER).applyTo(setMark);
-
-        // col 1: label
         Label label = toolkit.createLabel(parent, param.gGetShortName() + ":", SWT.NONE);
         GridDataFactory.fillDefaults().align(SWT.END, SWT.CENTER).applyTo(label);
 
@@ -217,11 +210,6 @@ public class GenericGeneralFormPage extends FormPage {
         if (instanceContainer == null) {
             widget.setEnabled(false);
         }
-
-        // col 3: D reset-to-default
-        Label dBtn = toolkit.createLabel(parent, " D ", SWT.BORDER | SWT.CENTER);
-        dBtn.setToolTipText("Reset to default value");
-        GridDataFactory.fillDefaults().align(SWT.CENTER, SWT.CENTER).applyTo(dBtn);
 
         widgets.put(param, widget);
 

@@ -3,9 +3,12 @@ package cn.com.myorg.bswbuilder.ui.contentviewers;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 
+import cn.com.myorg.bswbuilder.ui.Activator;
 import gautosar.gecucdescription.GContainer;
 import gautosar.gecucparameterdef.GContainerDef;
 import gautosar.gecucparameterdef.GParamConfContainerDef;
@@ -38,25 +41,49 @@ public class MasterTreeContentProvider implements ITreeContentProvider {
 
     @Override public Object[] getChildren(Object element) {
         if (element instanceof TreeChildWrap) {
-            return ((TreeChildWrap) element).getChildItemList().toArray();
+            TreeChildWrap w = (TreeChildWrap) element;
+            Object[] arr = w.getChildItemList().toArray();
+            log("getChildren TreeChildWrap[" + w.getContainerDef().gGetShortName()
+                    + "] -> " + arr.length + " GContainer instance(s)");
+            return arr;
         }
         if (element instanceof GContainer) {
-            // 每个 sub-def 一个 ChildContainerGroup 节点 (即使 0 实例, 跟参考一致 — folder 节点恒在)
             GContainer container = (GContainer) element;
             GContainerDef def = container.gGetDefinition();
+            String shortName = container.gGetShortName();
+            String defName = def == null ? "<null def>" : def.gGetShortName();
             if (def instanceof GParamConfContainerDef) {
+                List<GContainerDef> subDefs = ((GParamConfContainerDef) def).gGetSubContainers();
                 List<Object> out = new ArrayList<>();
-                for (GContainerDef sub : ((GParamConfContainerDef) def).gGetSubContainers()) {
+                for (GContainerDef sub : subDefs) {
                     out.add(new ChildContainerGroup(container, sub));
                 }
+                log("getChildren GContainer[" + shortName + " def=" + defName + "] -> "
+                        + out.size() + " ChildContainerGroup(s)");
                 return out.toArray();
             }
+            log("getChildren GContainer[" + shortName + " def=" + defName + "] -> 0 (def not PARAM-CONF)");
             return new Object[0];
         }
         if (element instanceof ChildContainerGroup) {
-            return ((ChildContainerGroup) element).getElementList().toArray();
+            ChildContainerGroup g = (ChildContainerGroup) element;
+            Object[] arr = g.getElementList().toArray();
+            log("getChildren ChildContainerGroup[parent=" + g.getParentContainer().gGetShortName()
+                    + " def=" + g.getContainerDef().gGetShortName() + "] -> " + arr.length + " sub-instance(s)");
+            return arr;
         }
+        log("getChildren UNKNOWN element class=" + element.getClass().getSimpleName() + " -> 0");
         return new Object[0];
+    }
+
+    private static void log(String msg) {
+        try {
+            Activator a = Activator.getDefault();
+            if (a != null) {
+                a.getLog().log(new Status(IStatus.INFO, Activator.PLUGIN_ID,
+                        "[MasterTreeCP] " + msg));
+            }
+        } catch (Throwable ignored) { /* fallback silent */ }
     }
 
     @Override public Object getParent(Object element) {

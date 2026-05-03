@@ -185,7 +185,7 @@ public class GenericMasterDetailFormPage extends FormPage {
         rootWrap = new TreeChildWrap(module, containerDef);
         if (masterViewer != null && !masterViewer.getTree().isDisposed()) {
             masterViewer.setInput(rootWrap);
-            masterViewer.expandToLevel(2);
+            // 不强制 expandToLevel — 让用户手动展开, 避免 tree 渲染错乱
         }
         // 默认选 root → detail 出 table view (横向所有 instance, 跟参考截图 2)
         if (rootWrap != null) {
@@ -524,8 +524,8 @@ public class GenericMasterDetailFormPage extends FormPage {
         GridDataFactory.fillDefaults().grab(true, true).applyTo(section);
 
         Composite client = toolkit.createComposite(section);
-        // 4 列: [set?] | label | widget | D-reset (跟参考截图 1 布局对齐)
-        GridLayout grid = new GridLayout(4, false);
+        // 2 列简洁: label | widget (checkbox/D 按钮先去掉等读懂 ECUC SDG 再加)
+        GridLayout grid = new GridLayout(2, false);
         grid.marginTop = 6;
         grid.horizontalSpacing = 8;
         grid.verticalSpacing = 6;
@@ -620,18 +620,12 @@ public class GenericMasterDetailFormPage extends FormPage {
 
     /**
      * detail-side widget listeners 走 EcucWriteActions, 跟 GenericGeneralFormPage 同款.
-     * 4 列布局 (跟 reference/ui/截图 1 对齐):
-     *   col 0 [set?] checkbox  | col 1 label  | col 2 widget  | col 3 D reset
+     * 当前 2 列布局: label | widget. 参考截图里"checkbox / D 按钮"不是每行都有,
+     * 是按 ECUC SDG (origin / required / hide flag) 决定的 — 没读懂 SDG 元数据
+     * 之前不机械照搬, 等 Phase 6c 反完 IdentifiableOption.getOption("HIDE_FLAG"
+     * / "TABLE_FLAG" / 等) 再准确加。
      */
     private void addRow(Composite parent, final GConfigParameter param, final GContainer instance) {
-        // col 0: set? checkbox — 标记字段值是否实际配置 vs 默认 (跟参考一致, 不联动数据 PoC)
-        final Button setMark = toolkit.createButton(parent, "", SWT.CHECK);
-        boolean isSet = readParamValue(instance, param) != null;
-        setMark.setSelection(isSet);
-        setMark.setEnabled(false);  // PoC: 视觉标记, 不允许 toggle (Phase 6 接 ECUC origin SDG)
-        GridDataFactory.fillDefaults().align(SWT.CENTER, SWT.CENTER).applyTo(setMark);
-
-        // col 1: label "fieldName:"
         Label label = toolkit.createLabel(parent, param.gGetShortName() + ":", SWT.NONE);
         GridDataFactory.fillDefaults().align(SWT.END, SWT.CENTER).applyTo(label);
 
@@ -696,12 +690,6 @@ public class GenericMasterDetailFormPage extends FormPage {
             Label note = toolkit.createLabel(parent, "(unsupported type)", SWT.NONE);
             widget = note;
         }
-
-        // col 3: "D" reset-to-default button (跟参考截图字段右侧 D 一致)
-        final Label dBtn = toolkit.createLabel(parent, " D ", SWT.BORDER | SWT.CENTER);
-        dBtn.setToolTipText("Reset to default value");
-        // 视觉化为按钮: tooltip + 边框, click 走 mouseListener (PoC 简化)
-        GridDataFactory.fillDefaults().align(SWT.CENTER, SWT.CENTER).applyTo(dBtn);
 
         detailWidgets.put(param, widget);
 
