@@ -54,6 +54,7 @@ import autosar40.ecucdescription.EcucTextualParamValue;
 import cn.com.myorg.bswbuilder.ui.Activator;
 import cn.com.myorg.bswbuilder.ui.editor.utils.EcuUtils;
 import cn.com.myorg.bswbuilder.ui.editor.utils.EcucWriteActions;
+import cn.com.myorg.bswbuilder.ui.editor.utils.UIDefinitionDispatcher;
 import gautosar.gecucdescription.GContainer;
 import gautosar.gecucdescription.GModuleConfiguration;
 import gautosar.gecucdescription.GParameterValue;
@@ -637,12 +638,17 @@ public class GenericMasterDetailFormPage extends FormPage {
 
         toolkit.createLabel(parent, "", SWT.NONE);
         detailWidgets.put(param, widget);
+
+        // Apply field-enable hooks contributed by the module's FunctionExtension
+        // (Phase 2.5 PoC: NvMBlockUseCrcEnable). Static apply on widget creation.
+        UIDefinitionDispatcher.applyEnableHooks(instance, param.gGetShortName(), widget);
     }
 
     private void writeNumericalParam(GContainer instance, GConfigParameter param, String newText) {
         GParameterValue pv = EcuUtils.getParameterValue(instance, param);
         if (pv instanceof EcucNumericalParamValue) {
             EcucWriteActions.setNumericalText(editor(), (EcucNumericalParamValue) pv, newText);
+            UIDefinitionDispatcher.reapplyForRelated(instance, param.gGetShortName(), detailWidgets);
         } else if (pv == null) {
             log("writeNumericalParam: pv missing for " + param.gGetShortName() + " on "
                     + instance.gGetShortName() + " — skip (S5.5 will create pv)");
@@ -653,6 +659,7 @@ public class GenericMasterDetailFormPage extends FormPage {
         GParameterValue pv = EcuUtils.getParameterValue(instance, param);
         if (pv instanceof EcucTextualParamValue) {
             EcucWriteActions.setTextualValue(editor(), (EcucTextualParamValue) pv, newValue);
+            UIDefinitionDispatcher.reapplyForRelated(instance, param.gGetShortName(), detailWidgets);
         } else if (pv == null) {
             log("writeTextualParam: pv missing for " + param.gGetShortName() + " on "
                     + instance.gGetShortName() + " — skip (S5.5 will create pv)");
