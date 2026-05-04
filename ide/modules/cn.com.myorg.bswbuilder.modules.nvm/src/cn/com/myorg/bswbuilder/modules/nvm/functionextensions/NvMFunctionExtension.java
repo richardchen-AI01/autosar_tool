@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Reference: cn.com.isoft.bswbuilder.modules.nvm.functionextensions.NvMFunctionExtension.
+ * Reference: cn.com.myorg.bswbuilder.modules.nvm.functionextensions.NvMFunctionExtension.
  *
  * <p>Phase 2.5 PoC: registers only NvMBlockUseCrcEnable to validate the hook
  * dispatch chain end-to-end. Phase 6c expands to the full 32 sub-extensions

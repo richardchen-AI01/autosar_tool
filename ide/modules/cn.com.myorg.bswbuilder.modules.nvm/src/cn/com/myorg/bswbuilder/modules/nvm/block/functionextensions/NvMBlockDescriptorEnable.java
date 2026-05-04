@@ -5,7 +5,7 @@ import gautosar.gecucdescription.GContainer;
 import org.eclipse.emf.ecore.EObject;
 
 /**
- * 99% paraphrase of cn.com.isoft.bswbuilder.nvm.block.functionextensions.NvMBlockDescriptorEnable.
+ * 99% paraphrase of cn.com.myorg.bswbuilder.nvm.block.functionextensions.NvMBlockDescriptorEnable.
  *
  * <p>Controls Del/Copy/Rename action permission for NvMBlockDescriptor instances.
  * NvMBlock_ConfigID is the system-reserved ConfigID block — cannot be deleted /

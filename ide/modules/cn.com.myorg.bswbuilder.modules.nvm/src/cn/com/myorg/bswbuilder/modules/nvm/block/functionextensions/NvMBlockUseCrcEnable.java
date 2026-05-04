@@ -10,7 +10,7 @@ import java.util.List;
 import org.eclipse.emf.ecore.EObject;
 
 /**
- * Reference: cn.com.isoft.bswbuilder.nvm.block.functionextensions.NvMBlockUseCrcEnable.
+ * Reference: cn.com.myorg.bswbuilder.nvm.block.functionextensions.NvMBlockUseCrcEnable.
  *
  * <p>Field NvMBlockUseCrc enable rule:
  *  - container shortName == "NvMBlock_ConfigID" -> always disabled

@@ -139,3 +139,40 @@
 | Phase 6g NvM Generator | ⏳ |
 
 剩 6c~6g 主体工作量. 按"99% 复刻"机械 paraphrase, 不再有路线决策风险.
+
+---
+
+## 7. Phase 6c 实测工作量 (2026-05-04 当前 session 探索)
+
+尝试系统化 port 49 functionextensions, 撞 chained dependency 链:
+
+```
+49 functionextensions  →  调用 EcuUtils.getEnumerationValue/getIntegerValue/getStringValue/...
+                          调用 ModelUtils.getModelRootObject/getModuleConfiguration
+                          调用 NvmUtils (NvM bundle utils, 533 行)
+                          调用 NvMDef constants (common bundle)
+                          ↓
+mal.modelutils 包 (10 文件, ~3000 行):
+  EcuUtilsBase 924 行 / EcuUtils ~280 行 / Model40Factory + Base ~400 行
+  ModelUtils 489 行 / ModelUtilsBase 1431 行 / ParameterUtils / VariantDataBase / WorkspaceModelUtils
+                          ↓
+cfr 反编 Generic 信息丢失:
+  raw EList 没 type parameter → for (GParameterValue p : list) 编译挂
+  需手动加 <GParameterValue> generic
+  每个文件 N 处 raw EList, 总 ~50+ 处需手动 fix
+```
+
+**估计工作量**: 整套 port + Generic 修复 + chained dep (autosar40 / sphinx.platform / 等 transitive bundle) ~30+ commit, 多 session.
+
+**当前 session 决定**: 回退 mal.modelutils 批量 cp, 保留 N=59 build pass 状态. Phase 6c 留下 session 系统做 (避免 token cost 爆炸 + 中间状态 build 挂)。
+
+**Phase 6c 待 session 计划**:
+- Step 1: port `mal.modelutils.EcuUtilsBase` 整文件 + 手动修 Generic raw EList → typed EList. ~50 处, 1 session
+- Step 2: port `mal.modelutils.ModelUtils*` (Base + sub) ~1900 行, 1 session
+- Step 3: port `mal.modelutils.{Model40Factory*, ParameterUtils, VariantDataBase, WorkspaceModelUtils}` ~600 行, 1 session
+- Step 4: port `bswbuilder.modules.nvm.utils.NvmUtils` 533 行, 0.5 session
+- Step 5: port `bswbuilder.common.def.NvMDef` constants, 0.5 session
+- Step 6: 重 cp 49 functionextensions + 改 NvMFunctionExtension 注册, 0.5 session
+- Step 7: build + commit + deploy 验, 0.5 session
+
+总 ~4-5 session 完成 Phase 6c 整体. 比一次性塞当前 session 健康得多.
