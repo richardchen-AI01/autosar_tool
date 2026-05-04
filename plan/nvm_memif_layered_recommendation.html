@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>NvM/MemIf 复刻 · 截图驱动的架构层级分配</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+         max-width: 1180px; margin: 24px auto; padding: 0 28px 60px; color: #222; line-height: 1.6;
+         background: #fafbfc; }
+  h1 { border-bottom: 3px solid #2a5db0; padding-bottom: 8px; color: #1a3a70; }
+  h2 { color: #2a5db0; margin-top: 36px; border-left: 5px solid #2a5db0; padding-left: 12px; }
+  h3 { color: #444; margin-top: 24px; }
+  h4 { color: #666; margin-top: 16px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13.5px;
+          background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  th { background: #2a5db0; color: white; padding: 7px 9px; text-align: left; font-weight: 600; }
+  td { border: 1px solid #e1e5ea; padding: 6px 9px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7f9fc; }
+  .done { color: #2a8f3a; font-weight: bold; }
+  .partial { color: #c47c00; font-weight: bold; }
+  .miss { color: #c0392b; font-weight: bold; }
+  .skip { color: #888; font-weight: bold; }
+  .p0 td { background: #ffd8d6 !important; }
+  .p1 td { background: #ffe9c4 !important; }
+  .p2 td { background: #fff7cc !important; }
+  .p3 td { background: #e8f4ff !important; }
+  .evidence { background: #f4faff; border-left: 4px solid #5b8def; padding: 10px 14px;
+              margin: 10px 0; font-size: 14px; border-radius: 0 4px 4px 0; }
+  .shot { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #2a5db0; font-weight: bold; }
+  code { background: #f0f2f6; padding: 1.5px 5px; border-radius: 3px; font-size: 12.5px;
+         font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .block { background: white; padding: 12px 16px; border-radius: 6px; margin: 12px 0;
+           border: 1px solid #e1e5ea; }
+  .flag { display: inline-block; padding: 2px 7px; border-radius: 3px;
+          font-size: 11.5px; font-weight: bold; color: white; }
+  .flag-p0 { background: #c0392b; }
+  .flag-p1 { background: #d97706; }
+  .flag-p2 { background: #b59500; }
+  .flag-p3 { background: #5b8def; }
+  .header-meta { color: #666; font-size: 13px; margin-bottom: 4px; }
+  .toc { background: white; border: 1px solid #e1e5ea; border-radius: 6px; padding: 10px 18px;
+         margin-bottom: 24px; }
+  .toc ul { margin: 4px 0; padding-left: 20px; }
+  .toc a { color: #2a5db0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .legend { display: inline-block; padding: 1px 6px; margin-right: 8px; border-radius: 3px; font-size: 12px; }
+  .legend-p0 { background: #ffd8d6; }
+  .legend-p1 { background: #ffe9c4; }
+  .legend-p2 { background: #fff7cc; }
+  .legend-p3 { background: #e8f4ff; }
+</style>
+</head>
+<body>
+
+<h1>NvM/MemIf 复刻 · 基于参考截图的架构层级分配</h1>
+<div class="header-meta">
+  <b>证据基础</b>:<code>reference/ui/*.png</code> 共 4 张参考截图,逐一标号 <span class="shot">S1–S4</span>,每条结论引用截图编号。<br>
+  <b>更新日期</b>:2026-05-04 &nbsp;|&nbsp; <b>状态</b>:M1 拆为 M1a + M1b,推荐先做 M1a
+</div>
+
+<div class="toc">
+  <b>目录</b>
+  <ul>
+    <li><a href="#sec0">0. 截图实证</a></li>
+    <li><a href="#sec1">1. 截图驱动的关键判断</a></li>
+    <li><a href="#sec2">2. 架构层级 × 工作项分配(L1–L5)</a></li>
+    <li><a href="#sec3">3. 截图修订后的里程碑(M1a / M1b / M2–M5)</a></li>
+    <li><a href="#sec4">4. 推荐执行顺序与理由</a></li>
+    <li><a href="#sec5">5. 关键判断(收口)</a></li>
+  </ul>
+  <b>优先级图例</b>:
+  <span class="legend legend-p0">P0 阻塞跑起来</span>
+  <span class="legend legend-p1">P1 阻塞 NvM 业务</span>
+  <span class="legend legend-p2">P2 阻塞跨模块</span>
+  <span class="legend legend-p3">P3 nice-to-have</span>
+</div>
+
+<h2 id="sec0">0 · 截图实证(先看清楚要做什么)</h2>
+
+<div class="evidence">
+<b><span class="shot">S1</span> 253841AD — NvMTargetBlockReference 选中</b><br>
+<b>中栏</b>:「Del Element / ReName Element」(仅 2 项, sub-instance 不能 New/Copy)<br>
+<b>右栏</b>:「NvMNameOfFeeBlock : <b>Fee_EventEntryPrimary_0</b>」dropdown(跨模块 ref 真实工作)<br>
+<b>结论</b>: ReferenceValueScopeUIDefinition 跑通且需要 <code>modules.fee</code> bundle 真实存在 + ProxyResolveHelper 解析跨 ARXML。
+</div>
+
+<div class="evidence">
+<b><span class="shot">S2</span> 5D676A4A — NvMBlock_Primary_0 主视图</b><br>
+<b>中栏</b>:「New NvMInitBlockCallback / Del / Copy / ReName」(4 项 active, ANATOMY D1 完全一致)<br>
+<b>右栏</b>: 30+ 字段 form (NvMBlockCrcType=NVM_CRC16 dropdown / NvMBlockHeaderInclude=Dem_Cbk.h / 13 个 Boolean checkbox / NvMMaxNumOfReadRetries=3 / NvMNvBlockBaseNumber=9 / Length=28)<br>
+<b>左树</b>: 完整 ~20 Block 层级(DIDF190/183 + Primary_0..16 + AdminData/EventStatusData), sub-folder 计数显示「(0) / (1) / (1)」<br>
+<b>marker</b>: 黄色 ⚠ = mandatory; 灰底「D」suffix = default 派生值
+</div>
+
+<div class="evidence">
+<b><span class="shot">S3</span> 91B40C10 — NvMSingleBlockCallback 选中(sub-instance)</b><br>
+<b>中栏</b>:「Del Element / ReName Element」(2 项, 跟 S1 一致 sub-instance 规则)<br>
+<b>右栏</b>:「NvMSingleBlockCallbackFnc : Dem_NvMJobFinished」(单字段 form)
+</div>
+
+<div class="evidence">
+<b><span class="shot">S4</span> DB71E847 — NvMBlock_Primary_0 字段全表(detail 全屏)</b><br>
+~30 字段 + 滚动条; ROM 端字段 (NvMRomBlockDataAddress / NvMRomBlockNum);<br>
+NvMResistantToChangedSw 灰显勾选(ComputeEnable.calc 写回真值);<br>
+NvMBlockCipheringRef 灰显空白(前置条件未满足)
+</div>
+
+<h2 id="sec1">1 · 截图驱动的关键判断</h2>
+
+<table>
+<tr><th>截图</th><th>架构面</th><th>结论</th><th>对当前推荐的影响</th></tr>
+<tr><td><span class="shot">S1</span></td><td>跨模块 ref 联动</td><td>10 ReferenceValueScopeUIDefinition <b>必须先有 modules.fee/ea/dem</b> 才能验收</td><td>不能跟 S2 同切片做</td></tr>
+<tr><td><span class="shot">S2/S4</span></td><td>本模块内字段灰显</td><td>32 ComputeEnable + 1 EnumValueScope + 1 Reserve + 4 Related = 38 hooks 独立可做</td><td>这是真正的 M1 实质</td></tr>
+<tr><td><span class="shot">S2</span></td><td>master tree 子文件夹计数</td><td>「(0)/(1)」已在 ChildContainerGroup, 但全 Demo 加载验未做</td><td>验收时全树展开比对</td></tr>
+<tr><td><span class="shot">S3</span></td><td>sub-instance 单字段</td><td>UI 已通, 不再是阻塞</td><td>从 M1 移除</td></tr>
+<tr><td><span class="shot">S2/S4</span></td><td>marker (⚠/D)</td><td>mandatory 黄叹号 + default-D suffix 渲染纪律未实装</td><td>新增到 M1 范围</td></tr>
+</table>
+
+<h2 id="sec2">2 · 架构层级 × 工作项分配(截图修订版)</h2>
+
+<h3>L1 · 公共基础(参考 13 bundle, in-deg 最高)</h3>
+<table>
+<tr><th>Bundle</th><th>MEN</th><th>缺什么(精确)</th><th>截图证据</th><th>P</th></tr>
+<tr class="p0"><td><code>mal.modelutils</code> ★in-deg 101</td><td><span class="partial">⚠ stub 4 方法</span></td><td>EcuUtilsBase ~32 方法 + ModelUtils.lookupSwBaseType + NvmUtils 533 行 + ParameterUtils + WorkspaceModelUtils</td><td>S2 字段灰显需 getBooleanValue/getIntegerValue/getEnumerationValue</td><td><span class="flag flag-p0">P0</span></td></tr>
+<tr class="p1"><td><code>mal.exceptions</code></td><td><span class="partial">⚠ 1/12</span></td><td>11 类 (GenerationFailedException 等)</td><td>S1 ref 解析失败需 ModelObjectNotFoundException</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>mal.model</code></td><td><span class="partial">⚠ EMF only</span></td><td>BswBuilderModel + ModuleKindModel 工厂</td><td>S2 左树根容器需要</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p2"><td><code>pal.base.common</code></td><td><span class="partial">⚠ stub</span></td><td>FunctionBlock 扩展点 + SystemInitialize</td><td>(无直接截图证据, 启动期需要)</td><td><span class="flag flag-p2">P2</span></td></tr>
+<tr><td><code>extensionpoints</code></td><td><span class="done">✅</span></td><td>—</td><td>S1/S2 module/mcu/modulekind 都需要</td><td>—</td></tr>
+<tr><td><code>mal.licm / pal.doggle / pal.feedback</code></td><td><span class="skip">⛔</span></td><td>三把锁(复刻项目跳过)</td><td>—</td><td><span class="skip">⛔</span></td></tr>
+<tr class="p3"><td><code>def.editor / def.editor.common.ui / commandline.common / expansion.definition / cetc.isoft.val</code></td><td><span class="miss">❌</span></td><td>NvM/MemIf 不强依赖</td><td>—</td><td><span class="flag flag-p3">P3</span></td></tr>
+</table>
+
+<h3>L2 · mal 主体(3 bundle)</h3>
+<table>
+<tr><th>Bundle</th><th>MEN</th><th>缺什么</th><th>截图证据</th><th>P</th></tr>
+<tr class="p0"><td><code>mal</code></td><td><span class="partial">⚠ stub</span></td><td>AutocoreCoordinator 真实读扩展点 / BswModuleManager.getInstance(mcu) / AutocoreModuleDefinition.createExecutableExtension / MetaModelDescriptorParser 分发 / SystemInitialize 启动钩子</td><td>S2 模块加载主链</td><td><span class="flag flag-p0">P0</span></td></tr>
+<tr class="p1"><td><code>mal.validation</code></td><td><span class="miss">❌ 整 bundle 缺</span></td><td>ValidationUtils + ExteralExeValidateHandler + ProxyValidator + Validator 父类 (~31 类)</td><td>(M2 才需要)</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p3"><td><code>pal.graphics</code></td><td><span class="miss">❌</span></td><td>视图绘制</td><td>NvM/MemIf 不强依赖</td><td><span class="flag flag-p3">P3</span></td></tr>
+</table>
+
+<h3>L3 · pal 主体(6 bundle)</h3>
+<table>
+<tr><th>Bundle</th><th>MEN</th><th>缺什么</th><th>截图证据</th><th>P</th></tr>
+<tr class="p1"><td><code>pal</code> ★in-deg 85</td><td><span class="partial">⚠ 命名混</span></td><td>真 pal 主体 (Activator + GeneratorUtils + ExteralExeGeneratorHandler);当前 MEN <code>pal</code> 实为 L1 角色</td><td>S2 模块运行时钩子</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>pal.cgenerator</code></td><td><span class="miss">❌</span></td><td>外挂 EXE 桥</td><td>(M3 才需要)</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p2"><td><code>pal.librarymanager</code></td><td><span class="miss">❌</span></td><td>AR-path 全局注册表</td><td>S1 NvMNameOfFeeBlock 跨 ARXML 引用解析依赖</td><td><span class="flag flag-p2">P2</span></td></tr>
+<tr class="p2"><td><code>pal.rte.common</code></td><td><span class="miss">❌</span></td><td>RTE 通用类</td><td>(M4 才需要)</td><td><span class="flag flag-p2">P2</span></td></tr>
+<tr><td><code>bswbuilder.common</code></td><td><span class="done">✅</span></td><td>—</td><td>S2/S4 字段名 enum 全在</td><td>—</td></tr>
+<tr class="p1"><td><code>bswbuilder.validation</code></td><td><span class="miss">❌</span></td><td>BswBuilderModuleValidator + ReferenceValidator</td><td>S1 ref 校验</td><td><span class="flag flag-p1">P1</span></td></tr>
+</table>
+
+<h3>L4 · 业务公共框架(19 bundle)</h3>
+<table>
+<tr><th>Bundle</th><th>MEN</th><th>缺什么</th><th>截图证据</th><th>P</th></tr>
+<tr class="p0"><td><code>bswbuilder.ui</code> ★</td><td><span class="partial">⚠ ~50/1028</span></td><td>UIDefinitionDispatcher 完整化 + DetailComposite marker(⚠/D) 渲染 + NewChildContainerAction + BswContainerUtil + MasterFormSection</td><td>S2/S4 字段渲染 + S2 中栏 4 menu</td><td><span class="flag flag-p0">P0</span></td></tr>
+<tr class="p1"><td><code>parallelmodelmanager</code> ★in-deg 54</td><td><span class="miss">❌ 整 bundle</span></td><td>ARObjectCreator + ParallelModel + ParallelModelBswmdMannager + 25 Constructor (DefinitionQuery / ServerPortConstructor / SynchronousClientPortConstructor 等)</td><td>(M4 才需要)</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p2"><td><code>bswbuilder.librarymanager</code></td><td><span class="miss">❌</span></td><td>跟 pal.librarymanager 配套 L4 端</td><td>S1 跨模块 ref</td><td><span class="flag flag-p2">P2</span></td></tr>
+<tr class="p2"><td><code>rtebuilder.{generator,ui,validator}</code></td><td><span class="miss">❌</span></td><td>NvM 5 ClientServerInterface RTE 落地</td><td>(M4)</td><td><span class="flag flag-p2">P2</span></td></tr>
+<tr class="p3"><td><code>importers.* (10) / commandline / bswbuilder.os.core / utils.os</code></td><td><span class="miss">❌</span></td><td>NvM/MemIf 不用</td><td>—</td><td><span class="flag flag-p3">P3</span></td></tr>
+</table>
+
+<h3>L5 · 业务末梢</h3>
+
+<h4>NvM (89 类参考 / 12 子包)</h4>
+<table>
+<tr><th>子包</th><th>参考</th><th>MEN</th><th>截图证据</th><th>P</th></tr>
+<tr class="p0"><td><code>nvm.utils</code></td><td>NvmUtils 533 行 + 2 Comparator</td><td><span class="miss">❌ 0</span></td><td>S2 ChildContainer 排序 / 类型判定靠它</td><td><span class="flag flag-p0">P0</span></td></tr>
+<tr class="p0"><td><code>nvm.block.functionextensions</code></td><td>36</td><td><span class="partial">⚠ 2/36</span></td><td><b>S2/S4 字段灰显规则的核心载体</b></td><td><span class="flag flag-p0">P0</span></td></tr>
+<tr class="p0"><td><code>nvm.common.functionextensions</code></td><td>3</td><td><span class="miss">❌ 0/3</span></td><td>S2 NvMCommon 容器</td><td><span class="flag flag-p0">P0</span></td></tr>
+<tr class="p0"><td><code>nvm.functionextensions</code> 顶层</td><td>1 (注册器)</td><td><span class="partial">⚠ 注册 2/49</span></td><td>S2 全字段灰显需 49 全注册</td><td><span class="flag flag-p0">P0</span></td></tr>
+<tr class="p1"><td><code>nvm.demevent.functionextensions</code></td><td>8</td><td><span class="miss">❌ 0/8</span></td><td>S1 跨模块 ref(Dem) drop-down</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>NvMNameOfFeeBlockRef / NvMNameOfEaBlockRef</code></td><td>2</td><td><span class="miss">❌</span></td><td><b>S1 直接命中(NvMNameOfFeeBlock dropdown)</b></td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>nvm.common (CsmRetryCounter)</code></td><td>1</td><td><span class="miss">❌</span></td><td>跨 Csm</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>nvm.validator</code></td><td>813 行 / 13 校验</td><td><span class="partial">⚠ 22 行</span></td><td>(M2)</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>nvm.service</code></td><td>12 类 / 514 行</td><td><span class="miss">❌ 0/12</span></td><td>(M4 RTE 联动核心)</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>nvm.bswmd</code></td><td>2 (NvMBswmdData / NvMUpdateBswmd)</td><td><span class="miss">❌</span></td><td>NvMBswmdData 父类在 PMM</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>nvm.generator</code></td><td>4 (1 IModuleGen + 3 JET)</td><td><span class="partial">⚠ stub</span></td><td>(M3)</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>nvm</code> 顶层</td><td>4</td><td><span class="partial">⚠ 3/4 stub</span></td><td>S2 模块加载</td><td><span class="flag flag-p1">P1</span></td></tr>
+</table>
+
+<h4>MemIf</h4>
+<table>
+<tr><th>子包</th><th>参考</th><th>MEN</th><th>截图证据 / 备注</th><th>P</th></tr>
+<tr class="p0"><td><code>memif.functionextensions</code></td><td>3</td><td><span class="miss">❌ 0/3</span></td><td>跟 NvM 同模式</td><td><span class="flag flag-p0">P0</span></td></tr>
+<tr class="p1"><td><code>memif.validator</code></td><td>+ ProxyValidator 联动</td><td><span class="partial">⚠ stub</span></td><td>NvMBlock 的 MemIf 端点存在性校验</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>memif.generator</code></td><td>简单 JET</td><td><span class="partial">⚠ stub</span></td><td>MemIf_Cfg.h jinja</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>memif</code> 顶层</td><td>4</td><td><span class="partial">⚠ stub</span></td><td>跟 NvM 同步推</td><td><span class="flag flag-p1">P1</span></td></tr>
+</table>
+
+<h4>跨模块 5 端点 (NvM ECUC ref 对手)</h4>
+<table>
+<tr><th>模块</th><th>截图证据</th><th>P</th></tr>
+<tr class="p1"><td><code>modules.fee</code></td><td><b>S1 直接命中(Fee_EventEntryPrimary_0)</b></td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p1"><td><code>modules.ea</code></td><td>NvMBlockManagementType=NATIVE 时跟 fee 二选一(S2/S4 字段)</td><td><span class="flag flag-p1">P1</span></td></tr>
+<tr class="p2"><td><code>modules.dem</code></td><td>S2 NvMBlockHeaderInclude=Dem_Cbk.h + 8 demevent ref</td><td><span class="flag flag-p2">P2</span></td></tr>
+<tr class="p2"><td><code>modules.csm-4-4</code></td><td>NvMNameOfCsmJobRef</td><td><span class="flag flag-p2">P2</span></td></tr>
+<tr class="p3"><td><code>modules.ecuc</code> (内置)</td><td>—</td><td><span class="flag flag-p3">P3</span></td></tr>
+</table>
+
+<h2 id="sec3">3 · 截图修订后的里程碑(M1 拆分)</h2>
+
+<table>
+<tr><th>M</th><th>验收标准(含截图)</th><th>涉及层</th><th>工期</th></tr>
+<tr class="p0"><td><b>M1a</b><br>本模块内灰显</td><td><span class="shot">S2 + S4</span> NvMBlock_Primary_0 全 30+ 字段灰显规则、⚠/D marker、checkbox 状态 100% 跟参考一致</td><td>L5 nvm: 32 ComputeEnable + 1 EnumValueScope + 1 Reserve + 4 Related = <b>38 hooks</b>; L4 bswbuilder.ui marker 渲染; L1 mal.modelutils EcuUtilsBase 按需补</td><td><b>3-5 天</b></td></tr>
+<tr class="p0"><td><b>M1a'</b><br>MemIf 字段灰显</td><td>MemIf detail 字段灰显跟参考一致</td><td>L5 memif: 3 hooks 全; 复用 M1a 的 L4/L1 完成度</td><td><b>0.5 天</b></td></tr>
+<tr class="p1"><td><b>M1b</b><br>跨模块 ref 联动</td><td><span class="shot">S1</span> NvMNameOfFeeBlock dropdown 显示 Fee_EventEntryPrimary_0 等 Fee 实例; 同理 EaBlock / 8 DemEvent</td><td>L5 modules.fee + modules.ea 新建 bundle; L5 nvm 10 ReferenceValueScopeUIDefinition; L3 pal.librarymanager + L4 bswbuilder.librarymanager</td><td><b>1.5-2 周</b></td></tr>
+<tr class="p1"><td><b>M2</b><br>validate 相</td><td>NvMValidator 13 校验全跑通; validateBlockBaseNumber 跨 Fee/Ea 校验</td><td>L2 mal.validation + L3 bswbuilder.validation + L5 nvm.validator + 已有 fee/ea</td><td><b>1.5 周</b></td></tr>
+<tr class="p1"><td><b>M3</b><br>generate 相</td><td>NvM_Cfg.c/h, NvM_Lcfg.c/h, Rte_NvM_Type.h byte-equal vs ref</td><td>L3 pal.cgenerator + 外挂 EXE 桥 + 4 jinja + L5 nvm.generator</td><td><b>1 周</b></td></tr>
+<tr class="p1"><td><b>M4</b><br>RTE 联动</td><td>NvmParallelModel.doUpdateModel 9 步; SW-C NvBlockDescriptor + 5 ClientServerInterface 落 ARXML</td><td><b>L4 parallelmodelmanager 整 bundle</b> + L3 pal.rte.common + L5 nvm.service 12 类</td><td><b>2 周</b></td></tr>
+<tr class="p2"><td><b>M5</b><br>跨模块完整</td><td>剩余 modules.dem / csm-4-4 + ecuc</td><td>3 个新模块 bundle</td><td><b>1.5 周</b></td></tr>
+</table>
+
+<h2 id="sec4">4 · 推荐执行顺序与理由</h2>
+
+<div class="block">
+<b>第一步: M1a (3-5 天) — 截图驱动的最薄切片</b>
+<ul>
+<li><span class="shot">S2/S4</span> 直接给出 38 hooks 的视觉真值,逐字段截图比对即可验收</li>
+<li>不依赖 modules.fee/ea/dem,不依赖 parallelmodelmanager,不依赖外挂 EXE</li>
+<li>每补一个 hook 撞到 EcuUtilsBase 缺什么就补什么(demand-driven 自然填 L1)</li>
+<li>命中 memory 纪律:99% 复刻 + 整文件 paraphrase + plan 先写 + deploy 前 unit test</li>
+</ul>
+</div>
+
+<div class="block">
+<b>第二步: M1a' (0.5 天) — MemIf 同模式扫尾</b>
+<ul>
+<li>3 个 hook,模板已立,机械填空</li>
+<li>顺手把 MemIfValidator/Generator stub 完成度推到 M1 范围</li>
+</ul>
+</div>
+
+<div class="block">
+<b>第三步: M1b (1.5-2 周) — 截图 S1 阻塞解锁</b>
+<ul>
+<li>建 modules.fee + modules.ea bundle(各参考 ~80-200 类,但 NvM 只用其 ECUC schema + 容器列举,不需要全实装)</li>
+<li>L3 pal.librarymanager + L4 bswbuilder.librarymanager 配套</li>
+<li>10 ReferenceValueScopeUIDefinition 全实装</li>
+<li>验收: <span class="shot">S1</span> dropdown 工作 + 8 demevent ref 工作(若 dem 同步建则一并)</li>
+</ul>
+</div>
+
+<div class="block" style="border-color: #c0392b;">
+<b style="color: #c0392b;">不推荐的反例:</b>
+<ul>
+<li>❌ <b>先做 M4 RTE 联动</b>: parallelmodelmanager 整 bundle ~50 类是 L4 巨石, vertical slice 切不动, 一次性投入 2 周看不到截图绿</li>
+<li>❌ <b>先做 M3 generator</b>: byte-equal 真值已在 Phase 1.5 采到, 但 NvMGenerator 连外挂 EXE 桥都没建, 先做意义低</li>
+<li>❌ <b>纯自下而上补 L1-L4</b>: 几万行框架代码无截图驱动验证, 过度设计 + 接口对不上 = 必返工</li>
+</ul>
+</div>
+
+<h2 id="sec5">5 · 关键判断(收口)</h2>
+
+<div class="block" style="background: #f4faff; border-color: #5b8def;">
+<b>截图分析后, 推荐从 M1 拆为 M1a + M1b 两片, 先做 M1a:</b>
+<ol>
+<li><b>3-5 天可见绿色截图</b>(对照 S2/S4)</li>
+<li><b>不引入新 bundle</b>,所有改动在 modules.nvm + mal/mal.modelutils 内</li>
+<li><b>暴露 L1 mal.modelutils 真实需求</b>,demand-driven 自然填(不预补 32 方法整集)</li>
+<li><b>下一片 M1b 才碰跨模块 bundle 新建</b>(modules.fee/ea + librarymanager 双层)</li>
+<li><b>M2/M3/M4 不在当前推荐范围</b>,完成 M1a 后再选下一片</li>
+</ol>
+</div>
+
+</body>
+</html>

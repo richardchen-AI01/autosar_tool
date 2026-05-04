@@ -3,11 +3,18 @@ package cn.com.myorg.mal.modelutils;
 import autosar40.genericstructure.varianthandling.attributevaluevariationpoints.BooleanValueVariationPoint;
 import autosar40.genericstructure.varianthandling.attributevaluevariationpoints.PositiveIntegerValueVariationPoint;
 import autosar40.ecucdescription.EcucNumericalParamValue;
+import autosar40.ecucdescription.EcucTextualParamValue;
+import autosar40.ecucparameterdef.EcucAbstractStringParamDef;
 import autosar40.ecucparameterdef.EcucBooleanParamDef;
 import autosar40.ecucparameterdef.EcucChoiceContainerDef;
 import autosar40.ecucparameterdef.EcucDefinitionElement;
+import autosar40.ecucparameterdef.EcucEnumerationParamDef;
+import autosar40.ecucparameterdef.EcucIntegerParamDef;
+import gautosar.gecucdescription.GConfigReferenceValue;
 import gautosar.gecucdescription.GContainer;
+import gautosar.gecucdescription.GModuleConfiguration;
 import gautosar.gecucdescription.GParameterValue;
+import gautosar.gecucdescription.GReferenceValue;
 import gautosar.gecucparameterdef.GConfigParameter;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -16,12 +23,7 @@ import org.eclipse.emf.ecore.EObject;
 
 /**
  * Reference: cn.com.isoft.mal.modelutils.EcuUtils (extends EcuUtilsBase).
- *
- * <p>Phase 2.5 PoC port — single helper getBooleanValue, called by
- * NvMBlockUseCrcEnable.compute. Full EcuUtilsBase port (32+ helpers including
- * getIntegerValue / getEnumerationValue / getReferenceContainerList / etc) is
- * deferred to Phase 6c when NvM 32 functionextensions need them. Kept in
- * mal.modelutils package to match reference path so subsequent ports drop in.
+ * 99% paraphrase — methods needed by NvM 32 ComputeEnable hooks (M1a).
  */
 public final class EcuUtils {
 
@@ -43,6 +45,135 @@ public final class EcuUtils {
         }
         if (lstRet.size() > 0) {
             return lstRet.get(0);
+        }
+        return null;
+    }
+
+    public static String getEnumerationValue(GContainer parentContainer, String elementName) {
+        ArrayList<String> lstRet = new ArrayList<>();
+        if (parentContainer != null) {
+            for (GParameterValue parameterValue : parentContainer.gGetParameterValues()) {
+                GConfigParameter def = parameterValue.gGetDefinition();
+                if (!(def instanceof EcucEnumerationParamDef) || !def.gGetShortName().equals(elementName)) {
+                    continue;
+                }
+                lstRet.add(((EcucTextualParamValue) parameterValue).getValue());
+            }
+        }
+        if (lstRet.size() > 0) {
+            return lstRet.get(0);
+        }
+        return null;
+    }
+
+    public static Integer getIntegerValue(GContainer parentContainer, String elementName) {
+        ArrayList<Integer> lstRet = new ArrayList<>();
+        if (parentContainer != null) {
+            for (GParameterValue parameterValue : parentContainer.gGetParameterValues()) {
+                GConfigParameter def = parameterValue.gGetDefinition();
+                if (!(def instanceof EcucIntegerParamDef) || !def.gGetShortName().equals(elementName)) {
+                    continue;
+                }
+                String strInteger = ((EcucNumericalParamValue) parameterValue).getValue().getMixedText();
+                if (strInteger.trim().length() <= 0) {
+                    continue;
+                }
+                if (strInteger.length() > 2) {
+                    String prefix = strInteger.substring(0, 2);
+                    if (prefix.equals("0x") || prefix.equals("0X")) {
+                        int val = Integer.parseInt(strInteger.substring(2), 16);
+                        strInteger = String.valueOf(val);
+                    }
+                }
+                Integer value = 0;
+                try {
+                    value = Integer.valueOf(strInteger);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                lstRet.add(value);
+            }
+        }
+        if (lstRet.size() > 0) {
+            return lstRet.get(0);
+        }
+        return null;
+    }
+
+    public static String getStringValue(GContainer parentContainer, String elementName) {
+        ArrayList<String> lstRet = new ArrayList<>();
+        if (parentContainer != null) {
+            for (GParameterValue parameterValue : parentContainer.gGetParameterValues()) {
+                GConfigParameter def = parameterValue.gGetDefinition();
+                if (!(def instanceof EcucAbstractStringParamDef) || !def.gGetShortName().equals(elementName)) {
+                    continue;
+                }
+                lstRet.add(((EcucTextualParamValue) parameterValue).getValue());
+            }
+        }
+        if (lstRet.size() > 0) {
+            return lstRet.get(0);
+        }
+        return null;
+    }
+
+    public static GContainer getFirstChildContainer(GContainer parentContainer, String childContainerName) {
+        if (parentContainer == null) {
+            return null;
+        }
+        for (GContainer childContainer : parentContainer.gGetSubContainers()) {
+            if (!childContainer.gGetDefinition().gGetShortName().equals(childContainerName)) {
+                continue;
+            }
+            return childContainer;
+        }
+        return null;
+    }
+
+    public static List<GContainer> getModuleChildContainers(GModuleConfiguration moduleConf, String containerName) {
+        LinkedList<GContainer> lstContainer = new LinkedList<>();
+        if (moduleConf != null) {
+            for (GContainer childContainer : moduleConf.gGetContainers()) {
+                if (!childContainer.gGetDefinition().gGetShortName().equals(containerName)) {
+                    continue;
+                }
+                lstContainer.add(childContainer);
+            }
+        }
+        return lstContainer;
+    }
+
+    public static GContainer getFirstModuleContainer(GModuleConfiguration moduleConf, String containerName) {
+        if (moduleConf == null) {
+            return null;
+        }
+        for (GContainer childContainer : moduleConf.gGetContainers()) {
+            if (!childContainer.gGetDefinition().gGetShortName().equals(containerName)) {
+                continue;
+            }
+            return childContainer;
+        }
+        return null;
+    }
+
+    public static List<GContainer> getReferenceContainerList(GContainer parentContainer, String elementName) {
+        LinkedList<GContainer> lstRet = new LinkedList<>();
+        if (parentContainer != null) {
+            for (GConfigReferenceValue configReferenceValue : parentContainer.gGetReferenceValues()) {
+                if (!(configReferenceValue instanceof GReferenceValue)
+                        || !configReferenceValue.gGetDefinition().gGetShortName().equals(elementName)) {
+                    continue;
+                }
+                lstRet.add((GContainer) ((GReferenceValue) configReferenceValue).gGetValue());
+            }
+        }
+        return lstRet;
+    }
+
+    public static GContainer getSingleRefValue(GContainer parentContainer, String elementName) {
+        List<GContainer> lstReferenceContainer = getReferenceContainerList(parentContainer, elementName);
+        if (lstReferenceContainer.size() > 0) {
+            return lstReferenceContainer.get(0);
         }
         return null;
     }
