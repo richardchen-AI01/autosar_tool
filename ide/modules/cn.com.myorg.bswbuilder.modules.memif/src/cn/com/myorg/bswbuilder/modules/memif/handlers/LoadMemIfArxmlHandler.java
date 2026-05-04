@@ -31,7 +31,7 @@ public class LoadMemIfArxmlHandler extends AbstractHandler {
 
         FileDialog dialog = new FileDialog(shell, SWT.OPEN);
         dialog.setFilterExtensions(new String[] { "*.arxml" });
-        dialog.setText("Select an ARXML file (e.g. samples/Demo_S32K148/.../MemIf.arxml)");
+        dialog.setText("Select a MemIf ARXML file");
         String path = dialog.open();
         if (path == null) {
             return null;

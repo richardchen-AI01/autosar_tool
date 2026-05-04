@@ -9,7 +9,7 @@
 ```
 2026-05-11 之前交付一个能：
   ① 启动 Eclipse RCP IDE
-  ② 打开 Demo_S32K148 工程
+  ② 打开 BSW 配置工程
   ③ 在 IDE 表单里编辑 5 个核心 BSW 模块（Det/MemIf/NvM/Ea/Fee）
   ④ 一键 Validate + Generate
   ⑤ 输出的 .c/.h 与 V25.10 reference 输出 ≥ 95% 一致
@@ -361,14 +361,10 @@ D8 起 MemIf 已经完美——把它当**模板**复制。每个新模块的工
 │   │   ├── AUTOSAR_4-2-2/
 │   │   └── STD/
 │   │
-│   └── samples/                   golden 工程
-│       └── Demo_S32K148/                 （从 V25.10 复制）
-│
 ├── tools/                                构建脚本
 │   ├── build_eclipse.sh                  Eclipse RCP product 打包
 │   ├── build_python_exes.sh              PyInstaller 打 generator/validator
-│   ├── pack_installer.sh                 Windows installer
-│   └── reference_diff.py                 跟 V25.10 reference 对比 5 核心模块输出
+│   └── pack_installer.sh                 Windows installer
 │
 └── reference/                            V25.10 reference（作为黄金对照）
     └── (软链到 /Users/richard/AI-MiniWorkspace/project/autosar-cfg/)
@@ -382,7 +378,7 @@ D8 起 MemIf 已经完美——把它当**模板**复制。每个新模块的工
 
 ```bash
 cd /Users/richard/AI-MiniWorkspace/project/autosar_tool
-mkdir -p {ide/{product,frameworks,builder_core,modules},core/Common/arxmlparse/constant,generator/modules,validator/modules,schemas/{common,std},samples}
+mkdir -p {ide/{product,frameworks,builder_core,modules},core/Common/arxmlparse/constant,generator/modules,validator/modules,schemas/{common,std}}
 mkdir -p tools docs reference
 
 # 软链 reference V25.10 资产
@@ -408,7 +404,7 @@ git add . && git commit -m "Initial scaffolding from V25.10 extracts"
 | P0 | Eclipse RCP `.product` 文件 + 最小启动配置 | 实例 C | D1 EOD |
 | P1 | `core/Public.py` v1 | 实例 A | D2 上午 |
 | P1 | 1 个 minimal plugin（cn.com.myorg.bswbuilder.modules.memif）—— 仅 plugin.xml + MemIfDef.arxml | 实例 B | D2 上午 |
-| P1 | generator 跑通 `python -m generator -g Det -i samples/Demo_S32K148`（哪怕错）| 实例 D | D2 EOD |
+| P1 | generator 跑通 `python -m generator -g Det -i <workspace>`（哪怕错）| 实例 D | D2 EOD |
 
 ---
 

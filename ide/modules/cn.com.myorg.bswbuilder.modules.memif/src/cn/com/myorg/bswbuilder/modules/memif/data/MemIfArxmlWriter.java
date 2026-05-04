@@ -76,23 +76,15 @@ public final class MemIfArxmlWriter {
      *   <li>{@code ORIENTAIS_Configurator} (alt install layout)</li>
      *   <li>{@code docs/reference/} (in-repo reference fixtures)</li>
      * </ul>
-     * Working copies must live elsewhere (typically {@code samples/} or a
-     * user-chosen workspace).
+     * Working copies must live elsewhere (typically a user-chosen workspace,
+     * e.g. {@code D:\bswbuilder<N>\workspace\...}).
      */
     static boolean isReferenceProjectPath(String path) {
         if (path == null) return false;
         String lower = path.replace('\\', '/').toLowerCase();
         return lower.contains("/orientais_studio/")
             || lower.contains("/orientais_configurator")
-            || lower.contains("/docs/reference/")
-            // autosar_tool/samples/ 是 git 管的 fixture baseline。算法测试
-            // (test_memif_full + pytest) 都基于这个 baseline，IDE Save 写入
-            // 会污染 baseline 让 test 挂 (反复犯过, 2026-04-30 用户 D:\bswbuilder
-            // IDE 改了 MemIfDevErrorDetect false→true 导致 generator 出 macros
-            // 缺失)。
-            // 部署专属 workspace D:\bswbuilderN\workspace\... 不会命中这条
-            // (路径含 /bswbuilder<N>/ 不含 /samples/)。
-            || lower.contains("/autosar_tool/samples/");
+            || lower.contains("/docs/reference/");
     }
 
     /**

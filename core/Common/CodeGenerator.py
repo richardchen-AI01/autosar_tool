@@ -34,7 +34,6 @@ class CodeGenerator:
         self.module: Optional[str] = None
         self._template_dirs: list[Path] = []
         self._output_path: Optional[Path] = None
-        # Defaults match V25.10 reference output (see samples/.../config/MemIf_Cfg.h header)
         self._tool_version: str = 'for AutosarTool v0.1'
         self._mcu: str = 'S32K148'
         self._customer: str = 'iSoft'

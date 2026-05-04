@@ -20,7 +20,6 @@ V25.10** (vendor: iSoft / EasyXMen). Specifically:
 |---|---|
 | `generator/modules/<Module>/` | Reverse-engineered + decompiled from V25.10's `bswgen.exe` PYZ archive |
 | `validator/Bsw/<Module>/` | Reverse-engineered + decompiled from V25.10's `bswval.exe` PYZ archive |
-| `samples/Demo_S32K148/` | Copied verbatim from V25.10's bundled demo workspace |
 | `schemas/common/*Def.arxml` | Copied verbatim from V25.10's installed schema set |
 | `core/Common/arxmlparse/constant/BswPathConstant.py` | All 6870 enum members extracted via `xdis` from V25.10's `BswPathConstant.pyc` |
 
@@ -65,7 +64,6 @@ rewrite milestone. v0.3 is intended to:
    `validator/Bsw/<Module>/`).
 2. Replace them with implementations written from public AUTOSAR R23-11 ECUC
    schemas only, with no reference to the vendor's `.pyd` or `.pyc` artifacts.
-3. Replace V25.10's bundled demo workspace with one we author from scratch.
 
 **Until v0.3 lands and that clean-room scope is verified by an independent
 review, this repository is for personal / internal use only.**
@@ -82,8 +80,6 @@ upstream encumbrance:
 - All files under `docs/` (architecture, plan, sprint logs).
 - The `ide/README.md` skeleton plan (no Java code yet).
 - The `.github/workflows/` CI configuration.
-- The `samples/Demo_S32K148_BAD_2170/` and `samples/Demo_S32K148_BAD_2171/`
-  test fixtures (the BAD- variants — not the original Demo_S32K148).
 
 These will form the basis of the v0.3 clean-room build.
 

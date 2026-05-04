@@ -42,8 +42,7 @@ public final class MemIfDerivedCalculator {
 
     /**
      * @param workspaceDir absolute path to the workspace root (the directory
-     *        that contains {@code BSW_Builder/<MCU>/}). For Demo_S32K148 it's
-     *        e.g. {@code /…/samples/Demo_S32K148}.
+     *        that contains {@code BSW_Builder/<MCU>/}).
      * @return derived MemIfNumberOfDevices value (0, 1 or 2). Returns 0 if
      *         no NvM.arxml is found anywhere in the workspace.
      */

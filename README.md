@@ -27,17 +27,6 @@ ORIENTAIS Configurator V25.10. Currently at v0.1 — research / internal demo.
 # 装依赖
 pip install jinja2 lxml pytest pyinstaller
 
-# 跑生成器（MemIf 模块）
-PYTHONPATH=core python3 -m generator -g MemIf -i samples/Demo_S32K148 -o /tmp/out
-ls /tmp/out/                      # → MemIf_Cfg.{c,h} + MemIf_Bswmd.arxml
-
-# 跑校验器
-PYTHONPATH=core python3 -m validator -m MemIf -i samples/Demo_S32K148           # 干净: 0 error
-PYTHONPATH=core python3 -m validator -m MemIf -i samples/Demo_S32K148_BAD_2170  # 触发 Rule_2170
-
-# 一键全栈回归（M2.7）
-./tools/test_memif_full.sh
-
 # 单元测试
 PYTHONPATH=core:. python3 -m pytest core/tests/ generator/tests/ validator/tests/ -v
 
@@ -49,6 +38,8 @@ tools\build_all.cmd                  # → build\dist\bswgen.exe, build\dist\bsw
 # 每日 standup checker
 ./tools/daily_check.sh
 ```
+
+> Demo workspace 不在仓内 — 见 Win 部署 `D:\bswbuilder*\workspace\Demo_S32K148_V2510_BSW_ConfigProject`。
 
 ## 目录布局
 
@@ -92,11 +83,6 @@ autosar_tool/
 │   ├── common/{MemIfDef,NvMDef,EaDef,Fee_62Def}.arxml
 │   └── std/AUTOSAR_StdTypes.arxml + SwAddrMethods.arxml
 │
-├── samples/                 黄金对照工程
-│   ├── Demo_S32K148/             V25.10 自带 demo
-│   ├── Demo_S32K148_BAD_2170/    刻意触发 Rule_BSW_MemIf_TCPP_2170
-│   └── Demo_S32K148_BAD_2171/    刻意触发 Rule_BSW_MemIf_TCPP_2171
-│
 ├── ide/                     Eclipse RCP 工程（D2-D3 实例 C 战场，骨架已留）
 │   ├── product/
 │   ├── frameworks/
@@ -105,8 +91,6 @@ autosar_tool/
 │
 ├── tools/                   构建/检查脚本
 │   ├── daily_check.sh           每天 standup checker
-│   ├── test_memif_full.sh       M2.7 一键回归
-│   ├── reference_diff.py        M2.1 / M3.1 diff 检查
 │   ├── build_all.{sh,cmd}       PyInstaller 打 bswgen/bswval
 │   └── winrun                   Mac → win-automotive 远端 PowerShell（SSH）
 │
@@ -133,7 +117,7 @@ v1.0 (3-6 月)     商业级稳定性 + 完整测试矩阵                      
 ## 法律边界
 
 v0.1 / v0.2 含 V25.10 派生代码（`generator/modules/<Module>/`、`validator/Bsw/<Module>/`、
-`samples/Demo_S32K148/`、`schemas/common/*Def.arxml`），属于**研究 / 内部 demo**，
+`schemas/common/*Def.arxml`），属于**研究 / 内部 demo**，
 **不能商业发布**。商业化路线请走 v0.3 clean-room 重写。
 
 ARTOP / Sphinx jar 因为我们的合法 V25.10 用户身份才能本机使用，但禁止再分发给非 ARTOP 会员。

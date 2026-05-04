@@ -213,11 +213,9 @@ We deliberately do **not** clone:
 To re-run everything:
 
 ```bash
-./tools/test_memif_full.sh && \
 ./tools/daily_check.sh && \
 PYTHONPATH=core:. python3 -m pytest core/tests generator/tests validator/tests -q && \
 ./tools/build_all.sh && \
-build/dist/bswgen -g MemIf -i samples/Demo_S32K148 -o /tmp/smoke && \
 echo "ALL PASS"
 ```
 

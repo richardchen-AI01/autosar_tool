@@ -91,8 +91,8 @@ The window title should read **"BSW Configurator (autosar_tool)"**, with:
 - Left-side **BSW Modules** view
 - Bottom **Console** view (output of bswgen/bswval streams here)
 
-Clicking **Generate MemIf** prompts for a workspace dir (e.g.
-`samples/Demo_S32K148`) and an output dir, then runs the equivalent of:
+Clicking **Generate MemIf** prompts for a workspace dir and an output dir,
+then runs the equivalent of:
 
 ```
 PYTHONPATH=core python3 -m generator -g MemIf -i <workspace> -o <output>

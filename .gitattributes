@@ -39,17 +39,6 @@
 *.cmd        text eol=crlf
 *.ps1        text eol=crlf
 
-# Phase F round-trip fixtures 必须保留 CRLF（V25.10 风格 / byte-equal 验收用）
-docs/reference/roundtrip-fixtures/*.arxml  text eol=crlf
-samples/**/*.arxml                          text eol=crlf
-
-# Generator 参考输出 (.c / .h) 也必须 CRLF —— V25.10 自带的 reference
-# 是 Windows 编辑器写的 CRLF，generator 跑出来也是 CRLF。
-# tools/test_memif_full.sh §3 直接 diff 这俩；不锁 CRLF 的话 Linux runner
-# checkout 后变 LF，diff 直接 402 行（每行都差一个 \r）。
-samples/**/*.h                              text eol=crlf
-samples/**/*.c                              text eol=crlf
-
 # V25.10 真值 (golden) — Win Configurator 生成 CRLF, byte-equal 回归必须保留原 byte
 reference/autosar-cfg/**/*.h                text eol=crlf
 reference/autosar-cfg/**/*.c                text eol=crlf

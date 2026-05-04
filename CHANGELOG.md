@@ -69,8 +69,7 @@
 
 
 ### Added — D2 半天压缩 5 天计划
-- **M1 MemIf walking skeleton** — `generator -g MemIf -i samples/Demo_S32K148 -o /tmp/out`
-  完整端到端跑通（提前 D3 EOD 计划 2 天）
+- **M1 MemIf walking skeleton** — generator MemIf 完整端到端跑通（提前 D3 EOD 计划 2 天）
 - **M2.1 / M2.2** MemIf_Cfg.h / MemIf_Cfg.c 与 V25.10 reference **byte-equal**
   （过滤时间戳 / 工具版本后），diff = 0
 - **M2.3 / M2.4** 跨模块校验规则 `Rule_BSW_MemIf_TCPP_2170` 与 `_2171`
@@ -101,10 +100,6 @@
   - `validator/__main__.py` bswval CLI（带 `Bsw.<M>.<M>Register` 反射调用）
   - `generator/modules/{MemIf,Det,NvM,Ea}/`（V25.10 派生）
   - `validator/Bsw/MemIf/`（V25.10 派生 + docs §15 patch）
-- **黄金对照工程**：
-  - `samples/Demo_S32K148/` — V25.10 自带 demo（reference）
-  - `samples/Demo_S32K148_BAD_2170/` — 刻意触发 Rule_BSW_MemIf_TCPP_2170
-  - `samples/Demo_S32K148_BAD_2171/` — 刻意触发 Rule_BSW_MemIf_TCPP_2171
 - **测试**（**16 / 16 PASS**）：
   - `core/tests/test_imports.py` — 7 项，Common.* 全部可 import + API surface
   - `generator/tests/test_memif_generation.py` — 6 项，含 MemIf 生成 +

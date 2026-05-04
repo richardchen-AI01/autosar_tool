@@ -53,7 +53,6 @@ diagram. TL;DR:
 - `generator/` — `bswgen` CLI + per-module Python + Jinja templates
 - `validator/` — `bswval` CLI + per-module Python rules + Messages JSON
 - `schemas/` — ECUC schema ARXMLs (read-only, vendor-derived)
-- `samples/` — golden / BAD demo workspaces
 - `ide/` — Eclipse RCP product (skeleton, no Java yet)
 - `tools/` — build & regression scripts
 - `docs/` — plan, milestones, sprint logs
@@ -63,12 +62,11 @@ diagram. TL;DR:
 | Layer | Command | What it covers |
 |---|---|---|
 | Unit | `PYTHONPATH=core:. pytest core/tests generator/tests validator/tests -q` | API surface, generation, rule firing |
-| Integration | `./tools/test_memif_full.sh` | bswgen + bswval + diff vs V25.10 reference |
 | Daily | `./tools/daily_check.sh` | Per-sprint-day PASS/FAIL/SKIP report |
-| Binary | `./tools/build_all.sh && build/dist/bswgen -g MemIf -i samples/Demo_S32K148 -o /tmp/smoke` | PyInstaller bundle works |
+| Binary | `./tools/build_all.sh` | PyInstaller bundle works |
 
-**All four must pass before you mark a milestone done.** CI (see
-`.github/workflows/test.yml`) re-runs the first three on Linux + macOS.
+**All three must pass before you mark a milestone done.** CI (see
+`.github/workflows/test.yml`) re-runs them on Linux + macOS.
 
 ## 5. Branch & commit style
 
@@ -91,13 +89,10 @@ git checkout -b fix/det-externals-default
 # 2. Code, then run the tests that touch your area
 PYTHONPATH=core:. pytest generator/tests -q
 
-# 3. If you're touching MemIf or anything cross-module, run the full regression
-./tools/test_memif_full.sh
-
-# 4. Commit
+# 3. Commit
 git commit -m "fix(generator): 为 Det_Externals 模板补默认 EcucPartition"
 
-# 5. Push and open PR
+# 4. Push and open PR
 git push -u origin fix/det-externals-default
 gh pr create --title "fix(generator): 为 Det_Externals 模板补默认 EcucPartition" \
     --body "Fixes the M3.1 stretch issue where Det generation aborts on missing global."
@@ -111,12 +106,8 @@ The MemIf vertical slice is the reference shape. To add module `Foo`:
 2. Create `generator/modules/Foo/` with `base/`, `src/`, `templates/` — copy
    MemIf's structure as a starting point.
 3. Create `validator/Bsw/Foo/{FooRules.py, FooRegister.py, FooMessages.json}`.
-4. Add a golden workspace `samples/Demo_<chip>_<Foo>/` with the .arxml
-   pair to compare against.
-5. Add `generator/tests/test_foo_generation.py` (byte-equal vs golden).
-6. Add `validator/tests/test_foo_validator.py` (clean + at least one BAD- case).
-7. If the module participates in cross-module rules, extend the existing
-   BAD- workspaces or add new ones.
+4. Add `generator/tests/test_foo_generation.py` (algorithm-level fixture).
+5. Add `validator/tests/test_foo_validator.py` (clean + at least one BAD- case).
 
 ## 8. Adding a validator rule
 
