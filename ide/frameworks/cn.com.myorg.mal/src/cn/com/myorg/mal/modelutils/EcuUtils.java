@@ -64,6 +64,25 @@ public final class EcuUtils {
     }
 
     /**
+     * 99% paraphrase of EcuUtilsBase.getLowerMultiplicity (line 230-244).
+     */
+    public static Integer getLowerMultiplicity(EObject object) {
+        if (object instanceof EcucDefinitionElement) {
+            EcucDefinitionElement multiplicity = (EcucDefinitionElement) object;
+            PositiveIntegerValueVariationPoint variationPoint = multiplicity.getLowerMultiplicity();
+            if (variationPoint != null) {
+                String strLowerMultiplicity = multiplicity.getLowerMultiplicity().getMixedText();
+                if (strLowerMultiplicity.equals("")) {
+                    return 1;
+                }
+                return Integer.parseInt(strLowerMultiplicity);
+            }
+            return 1;
+        }
+        return -1;
+    }
+
+    /**
      * 99% paraphrase of EcuUtilsBase.getUpperMultiplicity (line 215-228) +
      * parseUpperMultiplicity (line 246-258).
      */

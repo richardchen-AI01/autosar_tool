@@ -119,11 +119,10 @@ public class GenericModuleEditor extends BasicTransactionalFormEditor {
         if (module != null && moduleDef != null) {
             for (GContainerDef cdef : moduleDef.gGetContainers()) {
                 try {
-                    if (useGeneralPage(cdef)) {
-                        addPage(new GenericGeneralFormPage(this, module, cdef));
-                    } else {
-                        addPage(new GenericMasterDetailFormPage(this, module, cdef));
-                    }
+                    // 99% 复刻 — 参考 V25.10 单实例 / 多实例 def 都走 3 栏
+                    // master-detail 布局 (reference/ui MemIfGeneral 截图实证).
+                    // GenericGeneralFormPage 现遗留, 删派发, 全走 master-detail.
+                    addPage(new GenericMasterDetailFormPage(this, module, cdef));
                     added++;
                 } catch (PartInitException e) {
                     System.err.println("[GenericModuleEditor] addPage(" + cdef.gGetShortName()

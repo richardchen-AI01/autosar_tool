@@ -146,10 +146,20 @@ public class GenericMasterDetailFormPage extends FormPage {
         ScrolledForm form = managedForm.getForm();
         String moduleName = module.gGetShortName();
         String containerName = containerDef.gGetShortName();
-        form.setText(moduleName + " — " + containerName);
+        // 标题格式跟 reference/ui 截图字面对齐: "<Module> - <Module> Module Manager"
+        form.setText(moduleName + " - " + moduleName + " Module Manager");
 
         Composite body = form.getBody();
         GridLayoutFactory.fillDefaults().margins(5, 5).applyTo(body);
+
+        // 顶部 Section: "<containerDef> details" 蓝色 + 描述行
+        // (跟参考截图 reference/ui/C58BE21BCDABFA396FC0C5BAB0BEEF01.png 一致)
+        Section topSection = toolkit.createSection(body, Section.TITLE_BAR | Section.DESCRIPTION);
+        topSection.setText(containerName + " details");
+        topSection.setDescription("This container containers the " + moduleName
+                + " module specific parameters of each " + containerName + ".");
+        GridDataFactory.fillDefaults().grab(true, false).applyTo(topSection);
+        toolkit.createComposite(topSection);  // 占位 client (空)
 
         // SashForm 跟参考 NewAutosarAbstractMasterDetailsBlock.createContent line 51-52 同款
         // weights {10, 15} (master+action 部分 : detail 部分).
@@ -202,7 +212,13 @@ public class GenericMasterDetailFormPage extends FormPage {
         // 默认选 TreeChildWrap (顶层 folder) — 跟参考截图 2 NvMBlockDescriptors 根选中一致.
         // ContentProvider.getElements 已构造 TreeChildWrap, 取 viewer 第一行作 selection.
         Object[] roots = ((MasterTreeContentProvider) masterViewer.getContentProvider()).getElements(input);
-        if (roots.length > 0) {
+        if (instances.size() == 1) {
+            // 单实例 case (e.g., MemIfGeneral) — 默认选 instance 直接进 form view, 跟
+            // reference/ui/C58BE21BCDABFA396FC0C5BAB0BEEF01.png 截图一致.
+            masterViewer.expandToLevel(2);
+            masterViewer.setSelection(new StructuredSelection(instances.get(0)), true);
+        } else if (roots.length > 0) {
+            // 多实例 case — 默认选 root folder → table view (横向所有 instance).
             masterViewer.setSelection(new StructuredSelection(roots[0]), true);
         } else {
             renderEmptyDetail("(no '" + containerDef.gGetShortName() + "' instances configured — 右键 → New)");
@@ -219,7 +235,7 @@ public class GenericMasterDetailFormPage extends FormPage {
         GridDataFactory.fillDefaults().grab(true, true).applyTo(master);
 
         Section section = toolkit.createSection(master, Section.TITLE_BAR);
-        section.setText(containerDef.gGetShortName() + " instances");
+        section.setText("Container Hierarchical information:");
         GridDataFactory.fillDefaults().grab(true, true).applyTo(section);
 
         Composite client = toolkit.createComposite(section);
@@ -301,24 +317,36 @@ public class GenericMasterDetailFormPage extends FormPage {
                 @Override public void run() { runNewTopLevel(); }
             });
         } else {
-            // selected 的 sub-container defs 各加一条 "New <subDef>"
+            // selected 的 sub-container defs 各加一条 "New <subDef>" — 按 upper-multiplicity 过滤,
+            // 已达 upper 的 sub-def 不允许 New (跟参考 fillComposite isEnabled 一致).
             for (final GContainerDef subDef : collectSubContainerDefs(selected)) {
+                int currentCount = countSubInstancesOfDef(selected, subDef);
+                int upper = cn.com.myorg.mal.modelutils.EcuUtils.getUpperMultiplicity(
+                        (org.eclipse.emf.ecore.EObject) subDef);
+                if (upper > 0 && currentCount >= upper) continue;  // 已达上限不显示 New
                 final String linkText = "New " + subDef.gGetShortName();
                 addActionLink(linkText, new Runnable() {
                     @Override public void run() { runNewChild(selected, subDef); }
                 });
             }
-            // 按 ReserveUIDefinition 过滤 Del/Copy/Rename — 跟参考一致.
-            // NvMBlockDescriptorEnable.permitDel("NvMBlock_ConfigID") = false 不显示.
+            // Del/Copy/Rename — multiplicity + ReserveUIDefinition 双层过滤.
+            // MemIfGeneral [1..1] singleton 应只剩 ReName (countSiblings=1=lower, 不能 Del/Copy).
+            int siblingCount = countSiblingsOfSameDef(selected);
+            int lower = cn.com.myorg.mal.modelutils.EcuUtils.getLowerMultiplicity(
+                    (org.eclipse.emf.ecore.EObject) selected.gGetDefinition());
+            int selfDefUpper = cn.com.myorg.mal.modelutils.EcuUtils.getUpperMultiplicity(
+                    (org.eclipse.emf.ecore.EObject) selected.gGetDefinition());
+            boolean canRemove = siblingCount > Math.max(lower, 0);
+            boolean canDuplicate = selfDefUpper <= 0 || siblingCount < selfDefUpper;
             boolean permitDel = checkReservePermit(selected, ReservePermit.DEL);
             boolean permitDup = checkReservePermit(selected, ReservePermit.DUPLICATE);
             boolean permitRen = checkReservePermit(selected, ReservePermit.RENAME);
-            if (permitDel) {
+            if (permitDel && canRemove) {
                 addActionLink("Del Element", new Runnable() {
                     @Override public void run() { runDelete(selected); }
                 });
             }
-            if (permitDup) {
+            if (permitDup && canDuplicate) {
                 addActionLink("Copy Element", new Runnable() {
                     @Override public void run() { runDuplicate(selected); }
                 });
@@ -333,6 +361,41 @@ public class GenericMasterDetailFormPage extends FormPage {
     }
 
     private enum ReservePermit { DEL, DUPLICATE, RENAME }
+
+    /** Count sub-instances under {@code parent} whose def shortName == subDef.shortName. */
+    private static int countSubInstancesOfDef(GContainer parent, GContainerDef subDef) {
+        if (parent == null || subDef == null) return 0;
+        String subDefName = subDef.gGetShortName();
+        if (subDefName == null) return 0;
+        int n = 0;
+        for (GContainer sub : parent.gGetSubContainers()) {
+            GContainerDef d = sub.gGetDefinition();
+            if (d != null && subDefName.equals(d.gGetShortName())) n++;
+        }
+        return n;
+    }
+
+    /** Count siblings of {@code selected} under same eContainer with same def. */
+    private int countSiblingsOfSameDef(GContainer selected) {
+        if (selected == null) return 0;
+        org.eclipse.emf.ecore.EObject parent = ((org.eclipse.emf.ecore.EObject) selected).eContainer();
+        if (parent == null) return 1;
+        GContainerDef def = selected.gGetDefinition();
+        String defName = def == null ? null : def.gGetShortName();
+        int n = 0;
+        if (parent instanceof GModuleConfiguration) {
+            for (GContainer c : ((GModuleConfiguration) parent).gGetContainers()) {
+                GContainerDef d = c.gGetDefinition();
+                if (d != null && defName != null && defName.equals(d.gGetShortName())) n++;
+            }
+        } else if (parent instanceof GContainer) {
+            for (GContainer c : ((GContainer) parent).gGetSubContainers()) {
+                GContainerDef d = c.gGetDefinition();
+                if (d != null && defName != null && defName.equals(d.gGetShortName())) n++;
+            }
+        }
+        return n == 0 ? 1 : n;
+    }
 
     /**
      * 调 MetaModelDescriptorParser.getUIDefinitionList(ecuName, def.shortName, RESERVED_FLAG)
