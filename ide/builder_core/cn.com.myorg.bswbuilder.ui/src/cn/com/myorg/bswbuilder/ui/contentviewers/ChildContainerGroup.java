@@ -3,6 +3,9 @@ package cn.com.myorg.bswbuilder.ui.contentviewers;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.emf.ecore.EObject;
+
+import cn.com.myorg.bswbuilder.ui.editor.utils.ProxyResolveHelper;
 import gautosar.gecucdescription.GContainer;
 import gautosar.gecucparameterdef.GContainerDef;
 
@@ -33,16 +36,24 @@ public class ChildContainerGroup {
 
     /**
      * 返 parentContainer 下所有 def 等于 containerDef 的 sub-container 实例。
-     * 跟参考 EcuUtils.getChildContainers 同语义, 我们直接用 EcuUtils 的 by-def 匹配
-     * (跨模块 EMF proxy URI fragment match, 已在 E5-6 修过)。
+     * sub-instance.gGetDefinition() 在 ARTOP 跨 .arxml ECUC ref 上常是 unresolved
+     * proxy → proxy.gGetShortName() 返空, 直接 equals 比较 mismatch (count 0).
+     * 走 ProxyResolveHelper 强制 resolve 后比较, 跟 master tree 顶层同款修法。
      */
     public List<GContainer> getElementList() {
         List<GContainer> out = new ArrayList<>();
         if (parentContainer == null || containerDef == null) return out;
+        String targetName = containerDef.gGetShortName();
+        if (targetName == null) return out;
         for (GContainer sub : parentContainer.gGetSubContainers()) {
             GContainerDef subDef = sub.gGetDefinition();
-            if (subDef != null && containerDef.gGetShortName() != null
-                    && containerDef.gGetShortName().equals(subDef.gGetShortName())) {
+            if (subDef == null) continue;
+            if (((EObject) subDef).eIsProxy()) {
+                EObject resolved = ProxyResolveHelper.resolve((EObject) subDef, sub);
+                if (resolved instanceof GContainerDef) subDef = (GContainerDef) resolved;
+            }
+            String subName = subDef.gGetShortName();
+            if (targetName.equals(subName)) {
                 out.add(sub);
             }
         }

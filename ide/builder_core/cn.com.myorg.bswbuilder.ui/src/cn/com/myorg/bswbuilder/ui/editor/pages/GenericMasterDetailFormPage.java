@@ -362,7 +362,12 @@ public class GenericMasterDetailFormPage extends FormPage {
 
     private enum ReservePermit { DEL, DUPLICATE, RENAME }
 
-    /** Count sub-instances under {@code parent} whose def shortName == subDef.shortName. */
+    /**
+     * Count sub-instances under {@code parent} whose def shortName == subDef.shortName.
+     * sub.gGetDefinition() 常是 unresolved proxy → proxy.gGetShortName() 返空 →
+     * mismatch count 0 → multiplicity 过滤失效 → New X 链接全显示. 走
+     * ProxyResolveHelper resolve 后再比较, 跟 ChildContainerGroup.getElementList 同款.
+     */
     private static int countSubInstancesOfDef(GContainer parent, GContainerDef subDef) {
         if (parent == null || subDef == null) return 0;
         String subDefName = subDef.gGetShortName();
@@ -370,7 +375,14 @@ public class GenericMasterDetailFormPage extends FormPage {
         int n = 0;
         for (GContainer sub : parent.gGetSubContainers()) {
             GContainerDef d = sub.gGetDefinition();
-            if (d != null && subDefName.equals(d.gGetShortName())) n++;
+            if (d == null) continue;
+            if (((org.eclipse.emf.ecore.EObject) d).eIsProxy()) {
+                org.eclipse.emf.ecore.EObject resolved =
+                        cn.com.myorg.bswbuilder.ui.editor.utils.ProxyResolveHelper.resolve(
+                                (org.eclipse.emf.ecore.EObject) d, sub);
+                if (resolved instanceof GContainerDef) d = (GContainerDef) resolved;
+            }
+            if (subDefName.equals(d.gGetShortName())) n++;
         }
         return n;
     }
